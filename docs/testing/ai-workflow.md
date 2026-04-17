@@ -1,5 +1,27 @@
 # Workflow con IA para Generar Tests
 
+## Flujo para analizar un PR o commit (`/diff-analyzer`)
+
+Antes de invocar el agente hay que generar el diff como archivo — así el modelo lee texto plano en vez de recibir el diff crudo en el contexto de la conversación, ahorrando tokens.
+
+```bash
+# 1. Generar el diff (gratis — operación git local)
+./scripts/generate-diff.sh                # diff HEAD vs main
+./scripts/generate-diff.sh develop        # diff HEAD vs develop
+./scripts/generate-diff.sh main feat/xyz  # entre dos ramas específicas
+
+# Output: ai-output/diff.txt + ai-output/diff-meta.txt
+
+# 2. Invocar el agente (usa Haiku — tarea de documentación, no razonamiento)
+/diff-analyzer
+```
+
+El agente escribe el resultado en `ai-output/analysis.md`.
+
+> **Modelo:** `claude-haiku-4-5-20251001` — el análisis de diff es clasificación y documentación estructurada, no requiere razonamiento complejo. Haiku reduce el costo ~10x vs Sonnet sin pérdida de calidad en este tipo de tarea.
+
+---
+
 ## Principio fundamental
 
 La IA genera el boilerplate y los escenarios. El humano valida, corrige y ejecuta.

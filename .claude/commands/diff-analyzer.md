@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5-20251001
+---
+
 # Agent: PR Diff Analyzer
 
 Eres un experto en el SDK de Mediastream Platform para Android (v11.0.0-alpha.01).
