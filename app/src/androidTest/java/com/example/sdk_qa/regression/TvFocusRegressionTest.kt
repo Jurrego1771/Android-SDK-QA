@@ -1,6 +1,5 @@
 package com.example.sdk_qa.regression
 
-import am.mediastre.mediastreamplatformsdkandroid.MediastreamPlayerConfig
 import android.view.KeyEvent
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -8,43 +7,46 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.example.sdk_qa.annotation.TvOnly
-import com.example.sdk_qa.core.BaseScenarioActivity
-import com.example.sdk_qa.core.TestContent
 import com.example.sdk_qa.utils.SdkTestRule
 import com.example.sdk_qa.utils.awaitCallback
-import com.example.sdk_qa.utils.getCallbackCaptor
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Regresión: Bug de pérdida de foco en botones de salto (Android TV / Fire TV).
+ * Regresión: Bug de pérdida de foco durante seek con D-pad en Android TV.
  *
  * COMPORTAMIENTO INCORRECTO (bug):
- *   Presionar Avance o Retroceso repetidamente → el foco se mueve al botón Play/Pause.
- *   Los presses siguientes del botón de salto no generan seek — en cambio
- *   togglean play/pause o no hacen nada.
+ *   Presionar DPAD_RIGHT/LEFT repetidamente en la barra de progreso → el foco
+ *   salta a otro elemento (ej. Play/Pause). Los presses siguientes no generan
+ *   seek sino que accionan el elemento que capturó el foco.
  *
  * COMPORTAMIENTO ESPERADO:
- *   Presionar Avance N veces → posición avanza ~N × skipAmount segundos.
- *   El foco debe permanecer en el botón de salto.
- *   El player debe seguir en estado PLAYING después de todos los presses.
+ *   DPAD_RIGHT/LEFT sobre la timebar N veces → posición avanza/retrocede N pasos.
+ *   El foco permanece en la barra de progreso durante toda la secuencia.
+ *   El player sigue en PLAYING al terminar.
  *
- * Estrategia de test — approach comportamental:
- *   En lugar de verificar el foco directamente (frágil, depende de IDs internos
- *   de Media3), verificamos las CONSECUENCIAS del bug:
+ * Layout TV del SDK (layout-television/exo_player_control_view.xml):
  *
- *   Si el foco saltó al Play/Pause:
- *     a) La posición NO avanzará en los presses siguientes (fallo medible)
- *     b) Si el foco está en Play y se presiona DPAD_CENTER → el player pausa (fallo medible)
+ *   ┌─────────────────────────────────────────────────┐
+ *   │  [pos]  ◀━━━━━━━━━ DvrTimeBar ━━━━━━━━━▶  [dur] │  ← fila superior (seek)
+ *   │  [▶] [⏮] [⏪10s] [⏩10s] [⏭]    [CC] [⚙]      │  ← fila inferior (botones)
+ *   └─────────────────────────────────────────────────┘
  *
- *   Si el foco se mantuvo en el botón de salto:
- *     a) La posición avanza correctamente con cada press
- *     b) El player sigue en PLAYING
+ *   Todos los botones tienen android:nextFocusUp="@id/exo_progress" →
+ *   DPAD_UP desde cualquier botón lleva a la DvrTimeBar.
  *
- * Requisito de hardware: dispositivo con D-PAD (Android TV, Fire TV, emulador TV).
- * Marcar tests con @TvOnly para excluirlos en mobile via run-tests.sh --target mobile.
+ * Flujo de seek real en TV:
+ *   1. DPAD_CENTER → muestra controles (foco en primer botón)
+ *   2. DPAD_UP     → foco sube a la barra de progreso
+ *   3. DPAD_RIGHT/LEFT → scrub; DefaultTimeBar llama seekTo() en cada keypress
+ *
+ * Nota: SDK oculta ⏪10s y ⏩10s para TV+VOD (MediastreamPlayerCustomizer líneas 333-336).
+ * El seek vía timebar es el mecanismo disponible. TV-FOCUS-04 usa media keys como baseline.
+ *
+ * DefaultTimeBar avanza duration/20 por keypress (Media3 default).
+ * Tolerancia de assert: (PRESS_COUNT - 2) pasos para absorber latencia de foco.
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -57,17 +59,17 @@ class TvFocusRegressionTest {
     private val device: UiDevice
         get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
-    private val TIMEOUT          = 20_000L
-    private val PRESS_INTERVAL   = 400L   // ms entre presses (simula usuario rápido)
-    private val SETTLE_AFTER_MS  = 1_500L // esperar que ExoPlayer procese todos los seeks
-    private val SKIP_AMOUNT_MS   = 10_000L // Media3 default forward skip = 10s
+    private val TIMEOUT         = 20_000L
+    private val PRESS_INTERVAL  = 400L
+    private val SETTLE_AFTER_MS = 1_500L
+    private val TIMEBAR_STEPS   = 20  // DefaultTimeBar: keyStep = duration / 20
 
     // -------------------------------------------------------------------------
-    // [TV-FOCUS-01] Presses repetidos de Avance no pierden el foco
+    // [TV-FOCUS-01] DPAD_RIGHT repetido en la timebar avanza la posición
     //
-    // Presionar DPAD_CENTER 5 veces sobre el botón de avance.
-    // La posición final debe reflejar ~5 skips.
-    // El player NO debe haberse pausado (lo que indicaría que el foco fue al Play).
+    // Navega a la barra de progreso con DPAD_UP y presiona DPAD_RIGHT 5 veces.
+    // Si el foco sale de la timebar durante los presses, la posición no avanza.
+    // El player no debe pausarse (lo que indicaría que el foco fue al Play/Pause).
     // -------------------------------------------------------------------------
     @Test
     fun repeatForwardPress_positionAdvancesCorrectly() {
@@ -75,20 +77,17 @@ class TvFocusRegressionTest {
             scenario.awaitCallback("onReady", TIMEOUT)
             scenario.awaitCallback("onPlay",  TIMEOUT)
 
-            // Mostrar controles del player presionando DPAD_CENTER sobre el video
+            var duration = 0L
+            scenario.onActivity { activity ->
+                duration = activity.player?.msPlayer?.duration ?: 0L
+            }
+
+            // Mostrar controles y navegar a la barra de progreso
             device.pressKeyCode(KeyEvent.KEYCODE_DPAD_CENTER)
             Thread.sleep(500)
-
-            // Navegar al botón de avance (DPAD_RIGHT desde el botón central Play)
-            // La disposición de Media3 StyledPlayerControlView es:
-            // [rew] [prev] [play/pause] [next] [ffwd]
-            // Necesitamos 2 presses a la derecha para llegar a ffwd
-            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
-            Thread.sleep(200)
-            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
+            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_UP)
             Thread.sleep(200)
 
-            // Capturar posición antes de los presses
             var positionBefore = 0L
             scenario.onActivity { activity ->
                 positionBefore = activity.player?.msPlayer?.currentPosition ?: 0L
@@ -96,13 +95,11 @@ class TvFocusRegressionTest {
 
             val PRESS_COUNT = 5
 
-            // Presionar ffwd 5 veces rápidamente
             repeat(PRESS_COUNT) {
-                device.pressKeyCode(KeyEvent.KEYCODE_DPAD_CENTER)
+                device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
                 Thread.sleep(PRESS_INTERVAL)
             }
 
-            // Esperar que ExoPlayer procese todos los seeks acumulados
             Thread.sleep(SETTLE_AFTER_MS)
 
             var positionAfter = 0L
@@ -112,28 +109,26 @@ class TvFocusRegressionTest {
                 isPlaying     = activity.player?.msPlayer?.isPlaying ?: false
             }
 
-            val expectedMinAdvance = (PRESS_COUNT - 1).toLong() * SKIP_AMOUNT_MS
-            val actualAdvance      = positionAfter - positionBefore
+            val keyStep           = if (duration > 0) duration / TIMEBAR_STEPS else 10_000L
+            val expectedMinAdvance = (PRESS_COUNT - 2).toLong() * keyStep
 
-            // ── Assertion 1: posición avanzó lo suficiente ──────────────────
             assertWithMessage(
-                "BUG DE FOCO: $PRESS_COUNT presses de avance avanzaron solo ${actualAdvance / 1000}s.\n" +
-                "  Se esperaba avance mínimo de ${expectedMinAdvance / 1000}s.\n" +
-                "  Si avanzó poco, el foco saltó al Play/Pause y los presses no generaron seek."
-            ).that(actualAdvance).isGreaterThan(expectedMinAdvance)
+                "BUG DE FOCO: $PRESS_COUNT presses DPAD_RIGHT avanzaron solo ${(positionAfter - positionBefore) / 1000}s.\n" +
+                "  Avance mínimo esperado: ${expectedMinAdvance / 1000}s (${PRESS_COUNT - 2} × keyStep=${keyStep / 1000}s).\n" +
+                "  Si avanzó poco, el foco salió de la timebar durante los presses."
+            ).that(positionAfter - positionBefore).isGreaterThan(expectedMinAdvance)
 
-            // ── Assertion 2: player sigue en PLAYING ────────────────────────
             assertWithMessage(
-                "BUG DE FOCO: el player está PAUSADO después de los presses.\n" +
-                "  El foco saltó al botón Play/Pause y DPAD_CENTER lo toggleó a pause."
+                "BUG DE FOCO: el player está PAUSADO. El foco fue al Play/Pause y lo toggleó."
             ).that(isPlaying).isTrue()
         }
     }
 
     // -------------------------------------------------------------------------
-    // [TV-FOCUS-02] Presses repetidos de Retroceso no pierden el foco
+    // [TV-FOCUS-02] DPAD_LEFT repetido en la timebar retrocede la posición
     //
-    // Similar al test anterior pero con el botón de retroceso (rew).
+    // Avanza primero a 60s para tener margen de retroceso, luego navega a la
+    // timebar con DPAD_UP y presiona DPAD_LEFT 5 veces.
     // -------------------------------------------------------------------------
     @Test
     fun repeatBackwardPress_positionRewindsCorrectly() {
@@ -141,23 +136,18 @@ class TvFocusRegressionTest {
             scenario.awaitCallback("onReady", TIMEOUT)
             scenario.awaitCallback("onPlay",  TIMEOUT)
 
-            // Primero avanzar para tener margen hacia atrás
+            var duration = 0L
             scenario.onActivity { activity ->
+                duration = activity.player?.msPlayer?.duration ?: 0L
                 activity.player?.msPlayer?.seekTo(60_000L)
                 activity.callbackCaptor.reset()
             }
             scenario.awaitCallback("onReady", TIMEOUT)
 
-            // Mostrar controles
+            // Mostrar controles y navegar a la barra de progreso
             device.pressKeyCode(KeyEvent.KEYCODE_DPAD_CENTER)
             Thread.sleep(500)
-
-            // Navegar al botón de retroceso (DPAD_LEFT desde Play)
-            // Disposición: [rew] [prev] [play/pause] [next] [ffwd]
-            // 2 presses a la izquierda para llegar a rew
-            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_LEFT)
-            Thread.sleep(200)
-            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_LEFT)
+            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_UP)
             Thread.sleep(200)
 
             var positionBefore = 0L
@@ -168,7 +158,7 @@ class TvFocusRegressionTest {
             val PRESS_COUNT = 5
 
             repeat(PRESS_COUNT) {
-                device.pressKeyCode(KeyEvent.KEYCODE_DPAD_CENTER)
+                device.pressKeyCode(KeyEvent.KEYCODE_DPAD_LEFT)
                 Thread.sleep(PRESS_INTERVAL)
             }
 
@@ -181,29 +171,27 @@ class TvFocusRegressionTest {
                 isPlaying     = activity.player?.msPlayer?.isPlaying ?: false
             }
 
-            val expectedMaxPosition = positionBefore - (PRESS_COUNT - 1) * SKIP_AMOUNT_MS
+            val keyStep          = if (duration > 0) duration / TIMEBAR_STEPS else 10_000L
+            val expectedMaxPos   = positionBefore - (PRESS_COUNT - 2) * keyStep
 
-            // ── Assertion 1: retrocedió lo suficiente ───────────────────────
             assertWithMessage(
-                "BUG DE FOCO: $PRESS_COUNT presses de retroceso no generaron el seek esperado.\n" +
+                "BUG DE FOCO: $PRESS_COUNT presses DPAD_LEFT no retrocedieron lo esperado.\n" +
                 "  Posición antes : ${positionBefore / 1000}s\n" +
                 "  Posición después: ${positionAfter / 1000}s\n" +
-                "  El foco puede haber saltado al Play/Pause."
-            ).that(positionAfter).isLessThan(expectedMaxPosition + SKIP_AMOUNT_MS)
+                "  Si retrocedió poco, el foco salió de la timebar durante los presses."
+            ).that(positionAfter).isLessThan(expectedMaxPos + keyStep)
 
-            // ── Assertion 2: player sigue en PLAYING ────────────────────────
             assertWithMessage(
-                "BUG DE FOCO: el player está PAUSADO. El foco fue al Play y lo toggleó."
+                "BUG DE FOCO: el player está PAUSADO. El foco fue al Play/Pause y lo toggleó."
             ).that(isPlaying).isTrue()
         }
     }
 
     // -------------------------------------------------------------------------
-    // [TV-FOCUS-03] Alternancia rápida ffwd/rew mantiene el control
+    // [TV-FOCUS-03] Alternancia rápida DPAD_RIGHT/LEFT en la timebar
     //
-    // Simula un usuario que ajusta su posición alternando avance y retroceso.
-    // Cada press cambia de botón (DPAD_RIGHT / DPAD_LEFT para navegar entre ellos).
-    // El player no debe pausarse en ningún punto del ciclo.
+    // 4 ciclos: 3 presses hacia adelante → 3 presses hacia atrás.
+    // Simula un usuario ajustando su posición. El player no debe pausarse.
     // -------------------------------------------------------------------------
     @Test
     fun alternatingSkipButtons_playerNeverPauses() {
@@ -211,34 +199,25 @@ class TvFocusRegressionTest {
             scenario.awaitCallback("onReady", TIMEOUT)
             scenario.awaitCallback("onPlay",  TIMEOUT)
 
-            // Avanzar para tener margen en ambas direcciones
             scenario.onActivity { activity ->
-                activity.player?.msPlayer?.seekTo(120_000L) // 2 min
+                activity.player?.msPlayer?.seekTo(120_000L)
                 activity.callbackCaptor.reset()
             }
             scenario.awaitCallback("onReady", TIMEOUT)
 
+            // Mostrar controles y navegar a la barra de progreso
             device.pressKeyCode(KeyEvent.KEYCODE_DPAD_CENTER)
             Thread.sleep(500)
-
-            // Ir al botón ffwd
-            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
-            Thread.sleep(200)
-            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT)
+            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_UP)
             Thread.sleep(200)
 
-            // 4 ciclos: press ffwd → navegar a rew → press rew → navegar a ffwd
+            // 4 ciclos: avanzar 3 pasos → retroceder 3 pasos
             repeat(4) { cycle ->
-                // Presionar botón actual (ffwd o rew)
-                device.pressKeyCode(KeyEvent.KEYCODE_DPAD_CENTER)
-                Thread.sleep(PRESS_INTERVAL)
-
-                // Navegar al botón opuesto (4 presses en dirección contraria)
-                val direction = if (cycle % 2 == 0) KeyEvent.KEYCODE_DPAD_LEFT
-                                else                 KeyEvent.KEYCODE_DPAD_RIGHT
-                repeat(4) {
+                val direction = if (cycle % 2 == 0) KeyEvent.KEYCODE_DPAD_RIGHT
+                                else                 KeyEvent.KEYCODE_DPAD_LEFT
+                repeat(3) {
                     device.pressKeyCode(direction)
-                    Thread.sleep(150)
+                    Thread.sleep(PRESS_INTERVAL)
                 }
             }
 
@@ -250,20 +229,18 @@ class TvFocusRegressionTest {
             }
 
             assertWithMessage(
-                "BUG DE FOCO: el player está PAUSADO después de alternancia ffwd/rew.\n" +
-                "  El foco fue al Play/Pause en algún punto del ciclo."
+                "BUG DE FOCO: el player está PAUSADO tras alternancia DPAD_RIGHT/LEFT en la timebar.\n" +
+                "  El foco fue al Play/Pause en algún punto del ciclo y lo toggleó."
             ).that(isPlaying).isTrue()
         }
     }
 
     // -------------------------------------------------------------------------
-    // [TV-FOCUS-04] Presses rápidos con media keys (fallback sin DPAD navigation)
+    // [TV-FOCUS-04] Media keys como baseline (sin navegación UI)
     //
-    // Usa KEYCODE_MEDIA_FAST_FORWARD directamente — bypasea la UI del player
-    // y envía el media key al SDK. Sirve como baseline:
-    //   - Si este test pasa y los tests con DPAD fallan → el bug está en el
-    //     manejo de foco del SDK, no en el procesamiento de seek.
-    //   - Si ambos fallan → el bug está en el procesamiento de seek en sí.
+    // KEYCODE_MEDIA_FAST_FORWARD bypasea la timebar y va directo al SDK.
+    // Si este test pasa y TV-FOCUS-01/02/03 fallan → el bug está en el
+    // manejo de foco de la timebar, no en el procesamiento de seek.
     // -------------------------------------------------------------------------
     @Test
     fun mediaKeyFastForward_positionAdvancesCorrectly() {
@@ -278,7 +255,6 @@ class TvFocusRegressionTest {
 
             val PRESS_COUNT = 5
 
-            // Media keys no requieren foco en un botón específico
             repeat(PRESS_COUNT) {
                 device.pressKeyCode(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD)
                 Thread.sleep(PRESS_INTERVAL)
@@ -293,11 +269,12 @@ class TvFocusRegressionTest {
                 isPlaying     = activity.player?.msPlayer?.isPlaying ?: false
             }
 
-            val expectedMinAdvance = (PRESS_COUNT - 1).toLong() * SKIP_AMOUNT_MS
+            val expectedMinAdvance = (PRESS_COUNT - 1).toLong() * 10_000L
 
             assertWithMessage(
                 "KEYCODE_MEDIA_FAST_FORWARD no generó avance suficiente.\n" +
-                "  Si DvrSeek tests pasan y este falla → bug de procesamiento de media key en TV."
+                "  Si TV-FOCUS-01/02/03 fallan y este pasa → bug en foco de timebar.\n" +
+                "  Si todos fallan → bug en procesamiento de seek en TV."
             ).that(positionAfter - positionBefore).isGreaterThan(expectedMinAdvance)
 
             assertWithMessage("El player no debe pausarse con media fast forward")
@@ -305,4 +282,3 @@ class TvFocusRegressionTest {
         }
     }
 }
-
