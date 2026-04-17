@@ -97,6 +97,47 @@ fun <T : BaseScenarioActivity> ActivityScenario<T>.assertNoErrorFired() {
 }
 
 /**
+ * Espera a que la ventana DVR esté disponible según el SDK.
+ *
+ * Llamar DESPUÉS de [seekBackward] + [awaitCallback("onReady")] — solo entonces
+ * el SDK carga la URL DVR y [getDvrDuration()] refleja la ventana real (ej. 7 200 000ms).
+ * NO usar antes de un seek: [msPlayer.duration] en modo live es ~36s (buffer HLS), no la ventana DVR.
+ */
+fun <T : BaseScenarioActivity> ActivityScenario<T>.awaitDvrWindow(
+    minDurationMs: Long = 60_000L,
+    timeoutMs: Long = 10_000L
+): Long {
+    val startMs = System.currentTimeMillis()
+    var duration = 0L
+
+    while (System.currentTimeMillis() - startMs < timeoutMs) {
+        onActivity { activity ->
+            duration = activity.player?.getDvrDuration() ?: 0L
+        }
+        if (duration > minDurationMs) return duration
+        Thread.sleep(500)
+    }
+
+    assertWithMessage(
+        "DVR window no disponible tras ${timeoutMs}ms\n" +
+        "  getDvrDuration() observada: ${duration}ms\n" +
+        "  mínimo requerido          : ${minDurationMs}ms\n" +
+        "  Verificar que seekBackward() + onReady se ejecutaron antes de esta llamada"
+    ).that(duration).isGreaterThan(minDurationMs)
+
+    return duration
+}
+
+/**
+ * Verifica que el player esté en modo DVR activo.
+ */
+fun <T : BaseScenarioActivity> ActivityScenario<T>.assertInDvrMode() {
+    var inDvr = false
+    onActivity { activity -> inDvr = activity.player?.isInDvrMode() ?: false }
+    assertWithMessage("El player debería estar en DVR mode").that(inDvr).isTrue()
+}
+
+/**
  * Espera a que ocurra cualquier tipo de error del SDK:
  * onError, onEmbedErrors o onPlaybackErrors.
  *

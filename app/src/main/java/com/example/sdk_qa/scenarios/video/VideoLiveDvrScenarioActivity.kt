@@ -22,22 +22,13 @@ class VideoLiveDvrScenarioActivity : BaseScenarioActivity() {
 
     override fun setupActionButtons(container: LinearLayout) {
         addButton(container, "Seek -5 min") {
-            player?.msPlayer?.let { exo ->
-                val newPos = (exo.currentPosition - 5 * 60 * 1000L).coerceAtLeast(0L)
-                exo.seekTo(newPos)
-            }
+            player?.seekBackward(5 * 60 * 1000L)
         }
         addButton(container, "Seek -30 min") {
-            player?.msPlayer?.let { exo ->
-                val newPos = (exo.currentPosition - 30 * 60 * 1000L).coerceAtLeast(0L)
-                exo.seekTo(newPos)
-            }
+            player?.seekBackward(30 * 60 * 1000L)
         }
         addButton(container, "Live Edge") {
-            // Ir al borde del live (posición máxima)
-            player?.msPlayer?.let { exo ->
-                exo.seekTo(exo.duration.coerceAtLeast(0L))
-            }
+            player?.switchToLive()
         }
         addButton(container, "Recargar") { player?.reloadPlayer(buildConfig()) }
     }
