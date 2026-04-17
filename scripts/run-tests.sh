@@ -591,7 +591,12 @@ fi
 # ─── Paso 13: Notificación Slack ─────────────────────────────────────────────
 ENV_FILE="${SCRIPT_DIR}/.env"
 if [[ -f "$ENV_FILE" ]]; then
-    set -a; source "$ENV_FILE"; set +a
+    # Solo carga variables del .env que no estén ya definidas en el entorno
+    # (los secrets de GitHub Actions tienen prioridad sobre el .env local)
+    while IFS='=' read -r key value; do
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+        [[ -z "${!key:-}" ]] && export "$key"="$value"
+    done < "$ENV_FILE"
 fi
 
 if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
