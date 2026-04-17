@@ -16,7 +16,7 @@ class VideoVodScenarioActivity : BaseScenarioActivity() {
     override fun getScenarioTitle() = "Video VOD"
 
     override fun buildConfig() = MediastreamPlayerConfig().apply {
-        id = TestContent.Video.VOD_SHORT
+        id = TestContent.Video.VOD_LONG
         accountID = TestContent.ACCOUNT_ID
         type = MediastreamPlayerConfig.VideoTypes.VOD
         environment = TestContent.ENV

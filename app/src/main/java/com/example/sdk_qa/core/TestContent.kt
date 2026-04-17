@@ -25,7 +25,7 @@ object TestContent {
         const val VOD_SHORT = "6980e43ac0ac0673d0944d63"
 
         /** VOD normal (~10 min) — para pruebas de seek. TODO: reemplazar con VOD más largo */
-        const val VOD_LONG = "6980e43ac0ac0673d0944d63"
+        const val VOD_LONG = "696e5966d7559b0a0a5225de"
 
         /** Live activo y estable */
         const val LIVE = "5fd39e065d68477eaa1ccf5a"
