@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Manifest del source set androidTest.
+  Las activities auxiliares para tests están declaradas en src/debug/AndroidManifest.xml
+  y se fusionan en el APK de debug en build time.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+</manifest>

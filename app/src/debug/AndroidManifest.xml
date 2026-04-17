@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Manifest del source set debug.
+  Declara activities auxiliares usadas en tests instrumentados.
+  Solo presentes en debug builds — no en release.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <activity
+            android:name="com.example.sdk_qa.smoke.InvalidUrlScenarioActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name="com.example.sdk_qa.integration.DirectHlsActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name="com.example.sdk_qa.integration.MockServerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name="com.example.sdk_qa.regression.TvPlayerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+    </application>
+
+</manifest>

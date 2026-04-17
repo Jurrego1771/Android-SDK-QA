@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- =====================================================================
+         Permisos
+         ===================================================================== -->
+
+    <!-- Red — requerido por el SDK para cargar streams -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Foreground Service — requerido por MediastreamPlayerService -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!-- Notificaciones — requerido en Android 13+ (API 33+) para mostrar notificación de media -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Wake lock — evita que el CPU duerma durante reproducción en background -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Bluetooth — para detección de auriculares/dispositivos de audio -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"
+        android:minSdkVersion="31" />
+
+    <!-- =====================================================================
+         Aplicación
+         ===================================================================== -->
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Sdkqa"
+        android:usesCleartextTraffic="true">
+
+        <!-- =================================================================
+             Launcher
+             ================================================================= -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Sdkqa">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- =================================================================
+             VIDEO Scenarios
+             ================================================================= -->
+
+        <!-- [01] VOD básico -->
+        <activity
+            android:name=".scenarios.video.VideoVodScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [02] Live -->
+        <activity
+            android:name=".scenarios.video.VideoLiveScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [03] Live + DVR -->
+        <activity
+            android:name=".scenarios.video.VideoLiveDvrScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [04] Episode — modo API (siguiente automático) -->
+        <activity
+            android:name=".scenarios.video.VideoEpisodeApiScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [05] Episode — modo Custom (updateNextEpisode manual) -->
+        <activity
+            android:name=".scenarios.video.VideoEpisodeCustomScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [06] Ads (IMA preroll/midroll) -->
+        <activity
+            android:name=".scenarios.video.VideoAdsScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [07] DRM Widevine -->
+        <activity
+            android:name=".scenarios.video.VideoDrmScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [08] Video + MediastreamPlayerService -->
+        <activity
+            android:name=".scenarios.video.VideoWithServiceScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [09] PiP — Picture-in-Picture (los 3 modos) -->
+        <activity
+            android:name=".scenarios.video.VideoPipScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [10] Reels — contenido vertical en loop -->
+        <activity
+            android:name=".scenarios.video.VideoReelsScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [11] Content Switcher — cambio de contenido sin destruir el player -->
+        <activity
+            android:name=".scenarios.video.VideoContentSwitcherActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- =================================================================
+             AUDIO Scenarios
+             ================================================================= -->
+
+        <!-- [12] Audio Live — radio en vivo -->
+        <activity
+            android:name=".scenarios.audio.AudioLiveScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- [13] Audio VOD — podcast bajo demanda -->
+        <activity
+            android:name=".scenarios.audio.AudioVodScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- [14] Audio Episode — episodios de podcast -->
+        <activity
+            android:name=".scenarios.audio.AudioEpisodeScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- [15] Audio + Service — radio con notificación y background playback -->
+        <activity
+            android:name=".scenarios.audio.AudioWithServiceScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!-- =================================================================
+             SDK Services (declarados aquí para que el SDK los encuentre)
+             ================================================================= -->
+
+        <!-- MediastreamPlayerService: playback en background + notificación de media -->
+        <service
+            android:name="am.mediastre.mediastreamplatformsdkandroid.MediastreamPlayerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- MediastreamPlayerServiceWithSync: extiende MediaLibraryService (Android Auto) -->
+        <service
+            android:name="am.mediastre.mediastreamplatformsdkandroid.MediastreamPlayerServiceWithSync"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+    </application>
+
+</manifest>

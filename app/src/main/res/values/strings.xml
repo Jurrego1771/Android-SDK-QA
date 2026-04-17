@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">SDK QA</string>
+    <string name="btn_clear_log">Limpiar</string>
+    <string name="btn_toggle_log">▲</string>
+    <string name="log_header">CALLBACKS</string>
+    <string name="no_events">Sin eventos aún…</string>
+</resources>

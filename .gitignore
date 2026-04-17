@@ -1,0 +1,29 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# AI agent outputs — generados automáticamente, no commitear
+ai-output/
+
+# Build outputs
+app/build/
+build/
+
+# Claude Code — settings locales (pueden tener paths absolutos)
+.claude/settings.local.json
+
+# Secrets locales — nunca commitear
+.env
+scripts/.env

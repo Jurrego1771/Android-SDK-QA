@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme -->
+    <color name="background_dark">#FF0D1B2A</color>
+    <color name="card_background">#FF1B263B</color>
+    <color name="primary_light">#FF415A77</color>
+    <color name="accent_cyan">#FF00D9FF</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FF778DA9</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Scenario list -->
+    <color name="scenario_header_bg">#FF0D1B2A</color>
+    <color name="scenario_item_bg">#FF1B263B</color>
+    <color name="status_stable">#FF4CAF50</color>
+    <color name="status_warning">#FFFF9800</color>
+    <color name="status_broken">#FFF44336</color>
+    <color name="status_pending">#FF778DA9</color>
+
+    <!-- Debug overlay (bottom sheet semitransparente) -->
+    <color name="debug_sheet_bg">#F01B263B</color>
+    <color name="debug_handle">#44FFFFFF</color>
+    <color name="debug_divider">#22FFFFFF</color>
+    <color name="log_timestamp">#FF778DA9</color>
+
+    <!-- Log category dots -->
+    <color name="log_lifecycle">#FF4CAF50</color>
+    <color name="log_error">#FFF44336</color>
+    <color name="log_ad">#FFFF9800</color>
+    <color name="log_cast">#FF2196F3</color>
+    <color name="log_navigation">#FF9C27B0</color>
+    <color name="log_system">#FF607D8B</color>
+</resources>
