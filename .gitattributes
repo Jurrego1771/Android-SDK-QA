@@ -1,0 +1,4 @@
+# Scripts bash siempre con LF — evita CRLF en Windows que rompe bash en CI
+scripts/*.sh        text eol=lf
+.github/**/*.yml    text eol=lf
+gradlew             text eol=lf

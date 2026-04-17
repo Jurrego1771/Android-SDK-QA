@@ -80,6 +80,10 @@ jobs:
             "skip_build=$skip" | Out-File $env:GITHUB_OUTPUT -Append
           }
 
+      - name: Normalizar line endings de scripts
+        shell: cmd
+        run: git config core.autocrlf false && git checkout -- scripts/
+
       - name: Ejecutar tests
         shell: cmd
         env:
