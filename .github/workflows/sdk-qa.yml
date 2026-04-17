@@ -62,32 +62,33 @@ jobs:
 
       - name: Determinar parámetros del run
         id: params
-        shell: bash
+        shell: pwsh
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "size=medium"   >> $GITHUB_OUTPUT
-            echo "target=all"    >> $GITHUB_OUTPUT
-            echo "skip_build="   >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo "size=all"      >> $GITHUB_OUTPUT
-            echo "target=all"    >> $GITHUB_OUTPUT
-            echo "skip_build="   >> $GITHUB_OUTPUT
-          else
-            echo "size=${{ github.event.inputs.size }}"     >> $GITHUB_OUTPUT
-            echo "target=${{ github.event.inputs.target }}" >> $GITHUB_OUTPUT
-            SKIP="${{ github.event.inputs.skip_build }}"
-            echo "skip_build=$( [[ "$SKIP" == "true" ]] && echo '--skip-build' || echo '' )" >> $GITHUB_OUTPUT
-          fi
+          $event = "${{ github.event_name }}"
+          if ($event -eq "push") {
+            "size=medium"   | Out-File $env:GITHUB_OUTPUT -Append
+            "target=all"    | Out-File $env:GITHUB_OUTPUT -Append
+            "skip_build="   | Out-File $env:GITHUB_OUTPUT -Append
+          } elseif ($event -eq "schedule") {
+            "size=all"      | Out-File $env:GITHUB_OUTPUT -Append
+            "target=all"    | Out-File $env:GITHUB_OUTPUT -Append
+            "skip_build="   | Out-File $env:GITHUB_OUTPUT -Append
+          } else {
+            "size=${{ github.event.inputs.size }}"     | Out-File $env:GITHUB_OUTPUT -Append
+            "target=${{ github.event.inputs.target }}" | Out-File $env:GITHUB_OUTPUT -Append
+            $skip = if ("${{ github.event.inputs.skip_build }}" -eq "true") { "--skip-build" } else { "" }
+            "skip_build=$skip" | Out-File $env:GITHUB_OUTPUT -Append
+          }
 
       - name: Ejecutar tests
-        shell: bash
+        shell: cmd
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          bash scripts/run-tests.sh \
-            --target "${{ steps.params.outputs.target }}" \
-            --size   "${{ steps.params.outputs.size }}" \
-            ${{ steps.params.outputs.skip_build }}
+        run: >
+          bash scripts/run-tests.sh
+          --target "${{ steps.params.outputs.target }}"
+          --size "${{ steps.params.outputs.size }}"
+          ${{ steps.params.outputs.skip_build }}
 
       - name: Subir reporte HTML
         uses: actions/upload-artifact@v4
