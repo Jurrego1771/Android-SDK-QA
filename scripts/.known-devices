@@ -1,0 +1,4 @@
+# Dispositivos conocidos para reconexión automática — uno por línea
+# Formato: ip:puerto  (ADB over WiFi)
+# El script intenta conectar a cada uno si no hay dispositivos disponibles al iniciar.
+192.168.0.46:5555

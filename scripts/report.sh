@@ -62,8 +62,9 @@ FAILED=$(python3 -c "import json,sys; d=json.load(open('$RESULTS_JSON')); print(
 DURATION=$(python3 -c "import json,sys; d=json.load(open('$RESULTS_JSON')); print(d['summary']['duration'])" 2>/dev/null || echo "?")
 
 # Generar filas de tests desde el JSON
-TESTS_HTML=$(python3 - <<'PYEOF'
+TESTS_HTML=$(PYTHONUTF8=1 python3 - <<'PYEOF'
 import json, os, base64, sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 results_json = sys.argv[1] if len(sys.argv) > 1 else "ai-output/test-results.json"
 screenshots_dir = sys.argv[2] if len(sys.argv) > 2 else "ai-output/report/screenshots"

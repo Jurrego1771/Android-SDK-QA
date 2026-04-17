@@ -67,6 +67,7 @@ AI_OUTPUT="${PROJECT_ROOT}/ai-output"
 INSTRUMENT_RAW="${AI_OUTPUT}/instrument-raw.txt"
 RESULTS_JSON="${AI_OUTPUT}/test-results.json"
 REPORT_DIR="${AI_OUTPUT}/report"
+KNOWN_DEVICES_FILE="${SCRIPT_DIR}/.known-devices"
 
 # Detectar si estamos en Windows (Git Bash / MSYS)
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
@@ -123,7 +124,21 @@ DEVICES=$(adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1
 DEVICE_COUNT=$(echo "$DEVICES" | grep -c . 2>/dev/null || echo 0)
 
 if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
-    log_error "No hay dispositivos conectados.\n  Conecta un dispositivo físico o inicia un emulador."
+    if [[ -f "$KNOWN_DEVICES_FILE" ]]; then
+        log_warn "Sin dispositivos — intentando reconectar desde ${KNOWN_DEVICES_FILE}..."
+        while IFS= read -r known_ip; do
+            [[ -z "$known_ip" || "$known_ip" == \#* ]] && continue
+            log_info "adb connect $known_ip"
+            adb connect "$known_ip" 2>&1 | grep -v "^$" || true
+        done < "$KNOWN_DEVICES_FILE"
+        sleep 2
+        DEVICES=$(adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1}' || true)
+        DEVICE_COUNT=$(echo "$DEVICES" | grep -c . 2>/dev/null || echo 0)
+    fi
+    if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
+        log_error "No hay dispositivos conectados.\n  Agrega IPs a ${KNOWN_DEVICES_FILE} para reconexión automática."
+    fi
+    log_ok "Reconexión exitosa"
 fi
 
 if [[ -n "$DEVICE_SERIAL" ]]; then
@@ -280,6 +295,14 @@ if [[ -n "$TEST_CLASS" ]]; then
     log_info "Clase: ${TEST_CLASS}"
 fi
 
+# ─── Paso 5b: Limpiar procesos previos ───────────────────────────────────────
+log_step "Limpieza de procesos previos"
+log_info "Deteniendo cualquier instrumentación activa..."
+adb -s "$DEVICE_SERIAL" shell am force-stop "${APP_PACKAGE}"      2>/dev/null || true
+adb -s "$DEVICE_SERIAL" shell am force-stop "${APP_PACKAGE}.test" 2>/dev/null || true
+sleep 1
+log_ok "Procesos detenidos"
+
 # ─── Paso 6: Grabar pantalla ──────────────────────────────────────────────────
 log_step "Grabación de pantalla"
 
@@ -302,22 +325,33 @@ log_step "Ejecutando tests"
 echo -e ""
 START_TS=$(date +%s)
 
-# Mostrar output en tiempo real (corre en subshell — solo para display)
+# Mostrar output en tiempo real — parsea el formato brief de ADB:
+#   com.example.sdk_qa.SomeTest:...E..   (. = pass, E = fail en la línea de clase)
+#   Error in methodName(className):      (bloque de error siguiente)
+#   .                                    (pass suelto después de un error)
 show_realtime_output() {
-    local cur_test="" cur_class="" cur_num="" total=""
+    local cur_suite=""
     while IFS= read -r line; do
-        case "$line" in
-            INSTRUMENTATION_STATUS:\ test=*)    cur_test="${line#*test=}" ;;
-            INSTRUMENTATION_STATUS:\ class=*)   cur_class="${line#*class=}"; cur_class="${cur_class##*.}" ;;
-            INSTRUMENTATION_STATUS:\ current=*) cur_num="${line#*current=}" ;;
-            INSTRUMENTATION_STATUS:\ numtests=*) total="${line#*numtests=}" ;;
-            INSTRUMENTATION_STATUS_CODE:\ 1)
-                printf "  ${BLUE}[%s/%s]${NC} %s.%s " "$cur_num" "$total" "$cur_class" "$cur_test"
-                ;;
-            INSTRUMENTATION_STATUS_CODE:\ 0)   echo -e "${GREEN}✓${NC}" ;;
-            INSTRUMENTATION_STATUS_CODE:\ -2)  echo -e "${RED}✗${NC}" ;;
-            INSTRUMENTATION_STATUS_CODE:\ -3)  echo -e "${YELLOW}⊘ skip${NC}" ;;
-        esac
+        # Línea de suite: "com.example.sdk_qa.foo.BarTest:...E."
+        if [[ "$line" =~ ^com\.example\.sdk_qa\.(.+):(.*)$ ]]; then
+            cur_suite="${BASH_REMATCH[1]##*.}"
+            local trail="${BASH_REMATCH[2]}"
+            local c
+            for (( c=0; c<${#trail}; c++ )); do
+                ch="${trail:$c:1}"
+                if [[ "$ch" == "." ]]; then
+                    echo -e "  ${GREEN}✓${NC}  ${cur_suite}"
+                elif [[ "$ch" == "E" ]]; then
+                    : # el nombre real llega en el bloque "Error in" siguiente
+                fi
+            done
+        # Inicio de bloque de error
+        elif [[ "$line" =~ ^Error\ in\ ([a-zA-Z_][a-zA-Z0-9_]*)\( ]]; then
+            echo -e "  ${RED}✗${NC}  ${cur_suite}.${BASH_REMATCH[1]}"
+        # Pass suelto después de un bloque de error
+        elif [[ "$line" == "." ]]; then
+            echo -e "  ${GREEN}✓${NC}  ${cur_suite}"
+        fi
     done
 }
 
@@ -345,45 +379,100 @@ if [[ -n "$SCREENRECORD_PID" ]]; then
 fi
 
 # ─── Paso 9: Parsear resultados del raw file ──────────────────────────────────
-# Esta función corre en el shell principal (no subshell) para poder llenar arrays
+# ADB brief format: "com.example.pkg.Class:...E." luego bloques "Error in method()"
+# Python parsea el raw y escribe un JSON temporal con los resultados estructurados.
 PASSED_TESTS=()
 FAILED_TESTS=()
 FAILED_REASONS=()
 
-if [[ -f "$INSTRUMENT_RAW" ]]; then
-    cur_test="" cur_class="" in_stack=false stack=""
-    while IFS= read -r line; do
-        case "$line" in
-            INSTRUMENTATION_STATUS:\ test=*)
-                cur_test="${line#*test=}"
-                in_stack=false; stack=""
-                ;;
-            INSTRUMENTATION_STATUS:\ class=*)
-                cur_class="${line#*class=}"
-                ;;
-            INSTRUMENTATION_STATUS_CODE:\ 0)
-                PASSED_TESTS+=("${cur_class}.${cur_test}")
-                ;;
-            INSTRUMENTATION_STATUS_CODE:\ -2)
-                FAILED_TESTS+=("${cur_class}.${cur_test}")
-                FAILED_REASONS+=("${stack:-sin detalle}")
-                ;;
-            INSTRUMENTATION_STATUS:\ stack=*)
-                in_stack=true
-                stack="${line#*stack=}"
-                ;;
-            *)
-                if $in_stack; then
-                    if [[ "$line" == INSTRUMENTATION_STATUS* ]]; then
-                        in_stack=false
-                    elif [[ -n "$line" ]]; then
-                        stack+=$'\n'"$line"
-                    fi
-                fi
-                ;;
-        esac
-    done < "$INSTRUMENT_RAW"
+TMP_PARSE=$(mktemp).json
+
+python3 - "$INSTRUMENT_RAW" "$TMP_PARSE" <<'PYEOF'
+import sys, re, json
+
+raw_path = sys.argv[1]
+out_path = sys.argv[2]
+
+try:
+    with open(raw_path, encoding='utf-8', errors='replace') as f:
+        content = f.read()
+except Exception:
+    json.dump({"passed": [], "failed": []}, open(out_path, 'w'))
+    sys.exit(0)
+
+passed = []
+failed = []
+current_class = ""
+current_suite = ""
+in_error = False
+error_entry = None
+collecting_reason = False
+
+for line in content.splitlines():
+    # Suite header: "com.example.sdk_qa.foo.BarTest:...E."
+    m = re.match(r'^(com\.example\.sdk_qa\.(\S+?)):(.*)$', line)
+    if m:
+        current_class = m.group(1)
+        current_suite = m.group(2)
+        trail = m.group(3)
+        # Count dots as passes (we'll add proper names for errors from error blocks)
+        for ch in trail:
+            if ch == '.':
+                passed.append({"class": current_class, "test": "unknown"})
+        in_error = False
+        error_entry = None
+        continue
+
+    # Error block start
+    em = re.match(r'^Error in (\w+)\(', line)
+    if em:
+        # Remove the last "unknown" pass we may have counted for this E
+        if passed and passed[-1]["test"] == "unknown":
+            passed.pop()
+        error_entry = {"class": current_class, "test": em.group(1), "reason": ""}
+        failed.append(error_entry)
+        in_error = True
+        collecting_reason = False
+        continue
+
+    # Collect first meaningful reason line
+    if in_error and error_entry and not error_entry["reason"]:
+        s = line.strip()
+        if s and not s.startswith("at ") and not s.startswith("expected") \
+             and not s.startswith("Recibidos") and not s.startswith("Faltantes") \
+             and not re.match(r'^\s*$', s):
+            error_entry["reason"] = s[:200]
+
+    # Lone dot = pass after an error block
+    if line.strip() == ".":
+        passed.append({"class": current_class, "test": "unknown"})
+        in_error = False
+        error_entry = None
+
+json.dump({"passed": passed, "failed": failed}, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False)
+PYEOF
+
+if [[ -f "$TMP_PARSE" ]]; then
+    while IFS= read -r entry; do
+        PASSED_TESTS+=("$entry")
+    done < <(python3 -c "
+import json, sys
+d = json.load(open('$TMP_PARSE', encoding='utf-8'))
+for t in d['passed']:
+    print(t['class'] + '.' + t['test'])
+" 2>/dev/null)
+
+    while IFS=$'\t' read -r full reason; do
+        FAILED_TESTS+=("$full")
+        FAILED_REASONS+=("$reason")
+    done < <(python3 -c "
+import json, sys
+d = json.load(open('$TMP_PARSE', encoding='utf-8'))
+for t in d['failed']:
+    print(t['class'] + '.' + t['test'] + '\t' + t['reason'].replace('\n',' '))
+" 2>/dev/null)
 fi
+rm -f "$TMP_PARSE"
 
 # ─── Paso 10: Resumen final ───────────────────────────────────────────────────
 log_step "Resumen"
@@ -418,73 +507,78 @@ fi
 if [[ "$NO_REPORT" == false ]]; then
     log_info "Generando test-results.json..."
 
-    # Escribir listas a archivos temporales para evitar problemas con
-    # caracteres especiales y saltos de línea en stack traces al pasar por args
-    TMP_PASSED=$(mktemp)
-    TMP_FAILED=$(mktemp)
-    TMP_ERRORS=$(mktemp)
+    python3 - "$INSTRUMENT_RAW" "$RESULTS_JSON" "${MINUTES}m${SECONDS_REM}s" <<'PYEOF'
+import json, sys, re
 
-    printf '%s\n' "${PASSED_TESTS[@]+"${PASSED_TESTS[@]}"}" > "$TMP_PASSED"
-    printf '%s\n' "${FAILED_TESTS[@]+"${FAILED_TESTS[@]}"}" > "$TMP_FAILED"
+raw_path  = sys.argv[1]
+out_path  = sys.argv[2]
+duration  = sys.argv[3]
 
-    # Errores: cada entrada separada por un marcador único (los stack traces tienen \n)
-    for reason in "${FAILED_REASONS[@]+"${FAILED_REASONS[@]}"}"; do
-        printf '%s\n---SDK_QA_ERR_SEP---\n' "$reason"
-    done > "$TMP_ERRORS"
+try:
+    with open(raw_path, encoding='utf-8', errors='replace') as f:
+        content = f.read()
+except Exception:
+    content = ""
 
-    python3 - "$RESULTS_JSON" "$N_PASS" "$N_FAIL" "${MINUTES}m${SECONDS_REM}s" \
-              "$TMP_PASSED" "$TMP_FAILED" "$TMP_ERRORS" <<'PYEOF'
-import json, sys
+passed_tests = []
+failed_tests = []
+current_class = ""
+in_error = False
+error_entry = None
 
-out_file  = sys.argv[1]
-n_pass    = int(sys.argv[2])
-n_fail    = int(sys.argv[3])
-duration  = sys.argv[4]
-f_passed  = sys.argv[5]
-f_failed  = sys.argv[6]
-f_errors  = sys.argv[7]
+for line in content.splitlines():
+    # Suite header: "com.example.sdk_qa.foo.BarTest:...E."
+    m = re.match(r'^(com\.example\.sdk_qa\.(\S+?)):(.*)$', line)
+    if m:
+        current_class = m.group(1)
+        trail = m.group(3)
+        for ch in trail:
+            if ch == '.':
+                passed_tests.append({"name": "—", "class": current_class, "status": "passed", "duration": ""})
+        in_error = False
+        error_entry = None
+        continue
 
-def read_lines(path):
-    try:
-        with open(path) as f:
-            return [l.rstrip('\n') for l in f if l.strip()]
-    except Exception:
-        return []
+    # Error block start
+    em = re.match(r'^Error in (\w+)\(', line)
+    if em:
+        error_entry = {"name": em.group(1), "class": current_class,
+                       "status": "failed", "duration": "", "error": ""}
+        failed_tests.append(error_entry)
+        in_error = True
+        continue
 
-def read_errors(path):
-    try:
-        with open(path) as f:
-            content = f.read()
-        parts = content.split('---SDK_QA_ERR_SEP---\n')
-        return [p.strip() for p in parts if p.strip()]
-    except Exception:
-        return []
+    # Collect stack/reason — grab first non-boilerplate line
+    if in_error and error_entry and not error_entry["error"]:
+        s = line.strip()
+        if s and not s.startswith("at ") and not s.startswith("expected") \
+             and not s.startswith("Recibidos") and not s.startswith("Faltantes") \
+             and not re.match(r'^\s*$', s):
+            error_entry["error"] = s
 
-passed_list = read_lines(f_passed)
-failed_list = read_lines(f_failed)
-errors_list = read_errors(f_errors)
+    # Lone dot = pass after an error block
+    if line.strip() == ".":
+        passed_tests.append({"name": "—", "class": current_class, "status": "passed", "duration": ""})
+        in_error = False
+        error_entry = None
 
-tests = []
-for full in passed_list:
-    parts = full.rsplit('.', 1)
-    tests.append({"name": parts[-1], "class": parts[0] if len(parts) > 1 else "",
-                  "status": "passed", "duration": ""})
-for i, full in enumerate(failed_list):
-    parts = full.rsplit('.', 1)
-    err   = errors_list[i] if i < len(errors_list) else ""
-    tests.append({"name": parts[-1], "class": parts[0] if len(parts) > 1 else "",
-                  "status": "failed", "duration": "", "error": err})
+n_pass = len(passed_tests)
+n_fail = len(failed_tests)
 
 result = {
-    "tests": tests,
-    "summary": {"total": n_pass + n_fail, "passed": n_pass,
-                "failed": n_fail, "duration": duration}
+    "tests": failed_tests + passed_tests,
+    "summary": {
+        "total": n_pass + n_fail,
+        "passed": n_pass,
+        "failed": n_fail,
+        "duration": duration
+    }
 }
-with open(out_file, 'w') as f:
+
+with open(out_path, 'w', encoding='utf-8') as f:
     json.dump(result, f, indent=2, ensure_ascii=False)
 PYEOF
 
-    rm -f "$TMP_PASSED" "$TMP_FAILED" "$TMP_ERRORS"
     log_ok "test-results.json generado: $RESULTS_JSON"
 fi
 
