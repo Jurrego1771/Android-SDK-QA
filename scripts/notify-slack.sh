@@ -18,6 +18,7 @@ set -euo pipefail
 RESULTS_JSON="${1:-ai-output/test-results.json}"
 DEVICE_INFO="${2:-dispositivo local}"
 RUN_URL="${3:-}"
+SDK_VERSION="${4:-desconocida}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 log_info() { echo -e "\033[0;34m[INFO]\033[0m  $*"; }
@@ -36,12 +37,13 @@ command -v python3 &>/dev/null || { log_warn "python3 no encontrado — saltando
 # ─── Leer resultados y construir payload ──────────────────────────────────────
 log_info "Preparando mensaje Slack..."
 
-PAYLOAD=$(python3 - "$RESULTS_JSON" "$DEVICE_INFO" "$RUN_URL" <<'PYEOF'
+PAYLOAD=$(PYTHONUTF8=1 python3 - "$RESULTS_JSON" "$DEVICE_INFO" "$RUN_URL" "$SDK_VERSION" <<'PYEOF'
 import json, sys, datetime
 
 results_json = sys.argv[1]
 device_info  = sys.argv[2]
 run_url      = sys.argv[3]
+sdk_version  = sys.argv[4]
 
 try:
     with open(results_json) as f:
@@ -67,6 +69,7 @@ color        = "#22c55e" if all_passed else "#ef4444"
 fields = [
     {"type": "mrkdwn", "text": f"*Tests:*\n✓ {passed} pasaron   ✗ {failed} fallaron"},
     {"type": "mrkdwn", "text": f"*Duración:*\n{duration}"},
+    {"type": "mrkdwn", "text": f"*SDK Version:*\n`{sdk_version}`"},
     {"type": "mrkdwn", "text": f"*Device:*\n{device_info}"},
     {"type": "mrkdwn", "text": f"*Fecha:*\n{now}"},
 ]

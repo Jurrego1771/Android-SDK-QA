@@ -588,6 +588,28 @@ if [[ "$NO_REPORT" == false ]]; then
     bash "${SCRIPT_DIR}/report.sh" "$DEVICE_SERIAL" "$RESULTS_JSON" "$REPORT_DIR"
 fi
 
+# ─── Paso 13: Notificación Slack ─────────────────────────────────────────────
+ENV_FILE="${SCRIPT_DIR}/.env"
+if [[ -f "$ENV_FILE" ]]; then
+    set -a; source "$ENV_FILE"; set +a
+fi
+
+if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+    log_step "Notificación Slack"
+
+    # Extraer versión del SDK desde build.gradle.kts
+    SDK_VER=$(grep -oP 'mediastreamplatformsdkandroid:\K[^"]+' \
+              "${PROJECT_ROOT}/app/build.gradle.kts" 2>/dev/null || echo "desconocida")
+
+    DEVICE_LABEL="${BRAND:-} ${MODEL:-} (Android ${ANDROID:-?} · API ${API:-?})"
+
+    bash "${SCRIPT_DIR}/notify-slack.sh" \
+        "$RESULTS_JSON" \
+        "$DEVICE_LABEL" \
+        "" \
+        "$SDK_VER"
+fi
+
 # ─── Resultado final ──────────────────────────────────────────────────────────
 echo ""
 if [[ $N_FAIL -gt 0 ]]; then
