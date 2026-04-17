@@ -100,7 +100,11 @@ class TvFocusRegressionTest {
                 Thread.sleep(PRESS_INTERVAL)
             }
 
-            Thread.sleep(SETTLE_AFTER_MS)
+            // Resetear captor y salir de la timebar: DPAD_DOWN dispara onScrubStop →
+            // StyledPlayerControlView llama player.play() → SDK emite "onPlay".
+            scenario.onActivity { it.callbackCaptor.reset() }
+            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_DOWN)
+            scenario.awaitCallback("onPlay", TIMEOUT)
 
             var positionAfter = 0L
             var isPlaying     = false
@@ -119,7 +123,8 @@ class TvFocusRegressionTest {
             ).that(positionAfter - positionBefore).isGreaterThan(expectedMinAdvance)
 
             assertWithMessage(
-                "BUG DE FOCO: el player está PAUSADO. El foco fue al Play/Pause y lo toggleó."
+                "BUG DE FOCO: el player está PAUSADO tras DPAD_DOWN de la timebar. " +
+                "StyledPlayerControlView no reanudó el playback en onScrubStop."
             ).that(isPlaying).isTrue()
         }
     }
@@ -162,7 +167,9 @@ class TvFocusRegressionTest {
                 Thread.sleep(PRESS_INTERVAL)
             }
 
-            Thread.sleep(SETTLE_AFTER_MS)
+            scenario.onActivity { it.callbackCaptor.reset() }
+            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_DOWN)
+            scenario.awaitCallback("onPlay", TIMEOUT)
 
             var positionAfter = 0L
             var isPlaying     = false
@@ -182,7 +189,8 @@ class TvFocusRegressionTest {
             ).that(positionAfter).isLessThan(expectedMaxPos + keyStep)
 
             assertWithMessage(
-                "BUG DE FOCO: el player está PAUSADO. El foco fue al Play/Pause y lo toggleó."
+                "BUG DE FOCO: el player está PAUSADO tras DPAD_DOWN de la timebar. " +
+                "StyledPlayerControlView no reanudó el playback en onScrubStop."
             ).that(isPlaying).isTrue()
         }
     }
@@ -221,7 +229,9 @@ class TvFocusRegressionTest {
                 }
             }
 
-            Thread.sleep(SETTLE_AFTER_MS)
+            scenario.onActivity { it.callbackCaptor.reset() }
+            device.pressKeyCode(KeyEvent.KEYCODE_DPAD_DOWN)
+            scenario.awaitCallback("onPlay", TIMEOUT)
 
             var isPlaying = false
             scenario.onActivity { activity ->
