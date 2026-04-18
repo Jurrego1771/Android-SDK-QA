@@ -92,6 +92,7 @@ jobs:
           set "PATH=C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;%PATH%"
           bash -c "sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh && bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
 
+
       - name: Subir reporte HTML
         uses: actions/upload-artifact@v4
         if: always()

@@ -104,6 +104,20 @@ done
 [[ "$SIZE_FILTER" =~ ^(medium|large|all)$ ]] || \
     log_error "--size debe ser: medium | large | all (recibido: '$SIZE_FILTER')"
 
+# En runners de CI (Windows self-hosted) adb puede no estar en PATH — buscarlo
+if ! command -v adb &>/dev/null; then
+    for _adb_candidate in \
+        "/c/Users/Neo/AppData/Local/Android/Sdk/platform-tools" \
+        "/c/ProgramData/chocolatey/bin" \
+        "${ANDROID_HOME:-}/platform-tools" \
+        "${LOCALAPPDATA:-}/Android/Sdk/platform-tools"
+    do
+        if [[ -f "${_adb_candidate}/adb.exe" || -f "${_adb_candidate}/adb" ]]; then
+            export PATH="${_adb_candidate}:${PATH}"
+            break
+        fi
+    done
+fi
 command -v adb &>/dev/null || \
     log_error "adb no encontrado. Agrega Android SDK Platform Tools al PATH."
 
