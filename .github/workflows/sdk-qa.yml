@@ -84,6 +84,12 @@ jobs:
             "skip_build=$skip" | Out-File $env:GITHUB_OUTPUT -Append
           }
 
+      - name: Crear local.properties
+        shell: pwsh
+        run: |
+          "sdk.dir=C\:\\Users\\Neo\\AppData\\Local\\Android\\Sdk" `
+            | Out-File local.properties -Encoding utf8 -NoNewline
+
       - name: Fijar line endings y ejecutar tests
         shell: cmd
         env:
