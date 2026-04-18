@@ -383,100 +383,63 @@ if [[ -n "$SCREENRECORD_PID" ]]; then
 fi
 
 # ─── Paso 9: Parsear resultados del raw file ──────────────────────────────────
-# ADB brief format: "com.example.pkg.Class:...E." luego bloques "Error in method()"
-# Python parsea el raw y escribe un JSON temporal con los resultados estructurados.
+# Python imprime comandos bash que eval pobla PASSED_TESTS / FAILED_TESTS.
+# Se evita temp-file para no tener problemas de path MSYS↔Windows en Python.exe.
 PASSED_TESTS=()
 FAILED_TESTS=()
 FAILED_REASONS=()
 
-TMP_PARSE=$(mktemp).json
-
-python3 - "$INSTRUMENT_RAW" "$TMP_PARSE" <<'PYEOF'
-import sys, re, json
+eval "$(python3 - "$INSTRUMENT_RAW" <<'PYEOF'
+import sys, re, shlex
 
 raw_path = sys.argv[1]
-out_path = sys.argv[2]
-
 try:
     with open(raw_path, encoding='utf-8', errors='replace') as f:
         content = f.read()
 except Exception:
-    json.dump({"passed": [], "failed": []}, open(out_path, 'w'))
     sys.exit(0)
 
 passed = []
-failed = []
+failed  = []
 current_class = ""
-current_suite = ""
-in_error = False
+in_error   = False
 error_entry = None
-collecting_reason = False
 
 for line in content.splitlines():
-    # Suite header: "com.example.sdk_qa.foo.BarTest:...E."
-    m = re.match(r'^(com\.example\.sdk_qa\.(\S+?)):(.*)$', line)
+    m = re.match(r'^(com\.example\.sdk_qa\.\S+?):(.*)', line)
     if m:
         current_class = m.group(1)
-        current_suite = m.group(2)
-        trail = m.group(3)
-        # Count dots as passes (we'll add proper names for errors from error blocks)
-        for ch in trail:
+        for ch in m.group(2):
             if ch == '.':
                 passed.append({"class": current_class, "test": "unknown"})
-        in_error = False
-        error_entry = None
+        in_error = False; error_entry = None
         continue
 
-    # Error block start
     em = re.match(r'^Error in (\w+)\(', line)
     if em:
-        # Remove the last "unknown" pass we may have counted for this E
         if passed and passed[-1]["test"] == "unknown":
             passed.pop()
         error_entry = {"class": current_class, "test": em.group(1), "reason": ""}
         failed.append(error_entry)
         in_error = True
-        collecting_reason = False
         continue
 
-    # Collect first meaningful reason line
     if in_error and error_entry and not error_entry["reason"]:
         s = line.strip()
-        if s and not s.startswith("at ") and not s.startswith("expected") \
-             and not s.startswith("Recibidos") and not s.startswith("Faltantes") \
-             and not re.match(r'^\s*$', s):
+        if s and not s.startswith("at ") and not re.match(r'^\s*$', s):
             error_entry["reason"] = s[:200]
 
-    # Lone dot = pass after an error block
     if line.strip() == ".":
         passed.append({"class": current_class, "test": "unknown"})
-        in_error = False
-        error_entry = None
+        in_error = False; error_entry = None
 
-json.dump({"passed": passed, "failed": failed}, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False)
+for t in passed:
+    print("PASSED_TESTS+=(" + shlex.quote(t['class'] + "." + t['test']) + ")")
+for t in failed:
+    print("FAILED_TESTS+=(" + shlex.quote(t['class'] + "." + t['test']) + ")")
+    print("FAILED_REASONS+=(" + shlex.quote(t['reason']) + ")")
 PYEOF
-
-if [[ -f "$TMP_PARSE" ]]; then
-    while IFS= read -r entry; do
-        PASSED_TESTS+=("$entry")
-    done < <(python3 -c "
-import json, sys
-d = json.load(open('$TMP_PARSE', encoding='utf-8'))
-for t in d['passed']:
-    print(t['class'] + '.' + t['test'])
-" 2>/dev/null)
-
-    while IFS=$'\t' read -r full reason; do
-        FAILED_TESTS+=("$full")
-        FAILED_REASONS+=("$reason")
-    done < <(python3 -c "
-import json, sys
-d = json.load(open('$TMP_PARSE', encoding='utf-8'))
-for t in d['failed']:
-    print(t['class'] + '.' + t['test'] + '\t' + t['reason'].replace('\n',' '))
-" 2>/dev/null)
-fi
-rm -f "$TMP_PARSE"
+)"
 
 # ─── Paso 10: Resumen final ───────────────────────────────────────────────────
 log_step "Resumen"
@@ -606,9 +569,17 @@ fi
 if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
     log_step "Notificación Slack"
 
-    # Extraer versión del SDK desde build.gradle.kts
-    SDK_VER=$(grep -oP 'mediastreamplatformsdkandroid:\K[^"]+' \
-              "${PROJECT_ROOT}/app/build.gradle.kts" 2>/dev/null || echo "desconocida")
+    # Extraer versión del SDK desde build.gradle.kts (Python para compatibilidad con Git Bash)
+    SDK_VER=$(python3 - "${PROJECT_ROOT}/app/build.gradle.kts" <<'PYSDK'
+import sys, re
+try:
+    text = open(sys.argv[1], encoding='utf-8').read()
+    m = re.search(r'mediastreamplatformsdkandroid:([^"]+)', text)
+    print(m.group(1) if m else "desconocida")
+except Exception:
+    print("desconocida")
+PYSDK
+)
 
     DEVICE_LABEL="${BRAND:-} ${MODEL:-} (Android ${ANDROID:-?} · API ${API:-?})"
 
