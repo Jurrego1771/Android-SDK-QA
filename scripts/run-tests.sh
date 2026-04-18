@@ -128,12 +128,16 @@ if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
         log_warn "Sin dispositivos — intentando reconectar desde ${KNOWN_DEVICES_FILE}..."
         while IFS= read -r known_ip; do
             [[ -z "$known_ip" || "$known_ip" == \#* ]] && continue
-            log_info "adb connect $known_ip"
+            log_info "Probando $known_ip..."
             adb connect "$known_ip" 2>&1 | grep -v "^$" || true
+            sleep 2
+            DEVICES=$(adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1}' || true)
+            DEVICE_COUNT=$(echo "$DEVICES" | grep -c . 2>/dev/null || echo 0)
+            if [[ "$DEVICE_COUNT" -gt 0 ]]; then
+                log_ok "Conectado a $known_ip"
+                break
+            fi
         done < "$KNOWN_DEVICES_FILE"
-        sleep 2
-        DEVICES=$(adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1}' || true)
-        DEVICE_COUNT=$(echo "$DEVICES" | grep -c . 2>/dev/null || echo 0)
     fi
     if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
         log_error "No hay dispositivos conectados.\n  Agrega IPs a ${KNOWN_DEVICES_FILE} para reconexión automática."
@@ -151,29 +155,34 @@ elif [[ "$DEVICE_COUNT" -eq 1 ]]; then
     log_info "Auto-seleccionado (único conectado): $DEVICE_SERIAL"
 
 else
-    # Múltiples dispositivos — mostrar menú
-    echo -e "${BOLD}Dispositivos conectados:${NC}"
-    i=1
+    # Múltiples dispositivos — en CI auto-seleccionar el primero, localmente mostrar menú
     declare -a DEVICE_LIST
     while IFS= read -r dev; do
-        MODEL=$(adb -s "$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r\n' || echo "Desconocido")
-        API=$(adb -s "$dev" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r\n' || echo "?")
-        printf "  ${BOLD}[%d]${NC} %-25s %s (API %s)\n" "$i" "$dev" "$MODEL" "$API"
         DEVICE_LIST+=("$dev")
-        i=$((i+1))
     done <<< "$DEVICES"
 
-    echo ""
-    printf "${BOLD}Selecciona [1-%d]: ${NC}" "$DEVICE_COUNT"
-    read -r selection
-
-    [[ "$selection" =~ ^[0-9]+$ ]] && \
-    [[ "$selection" -ge 1 ]] && \
-    [[ "$selection" -le "$DEVICE_COUNT" ]] || \
-        log_error "Selección inválida: '$selection'"
-
-    DEVICE_SERIAL="${DEVICE_LIST[$((selection-1))]}"
-    log_info "Seleccionado: $DEVICE_SERIAL"
+    if [[ -n "${CI:-}" ]]; then
+        DEVICE_SERIAL="${DEVICE_LIST[0]}"
+        log_info "CI: múltiples dispositivos — auto-seleccionado el primero: $DEVICE_SERIAL"
+    else
+        echo -e "${BOLD}Dispositivos conectados:${NC}"
+        i=1
+        for dev in "${DEVICE_LIST[@]}"; do
+            MODEL=$(adb -s "$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r\n' || echo "Desconocido")
+            API=$(adb -s "$dev" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r\n' || echo "?")
+            printf "  ${BOLD}[%d]${NC} %-25s %s (API %s)\n" "$i" "$dev" "$MODEL" "$API"
+            i=$((i+1))
+        done
+        echo ""
+        printf "${BOLD}Selecciona [1-%d]: ${NC}" "$DEVICE_COUNT"
+        read -r selection
+        [[ "$selection" =~ ^[0-9]+$ ]] && \
+        [[ "$selection" -ge 1 ]] && \
+        [[ "$selection" -le "$DEVICE_COUNT" ]] || \
+            log_error "Selección inválida: '$selection'"
+        DEVICE_SERIAL="${DEVICE_LIST[$((selection-1))]}"
+        log_info "Seleccionado: $DEVICE_SERIAL"
+    fi
 fi
 
 # Mostrar info del dispositivo
