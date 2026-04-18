@@ -44,6 +44,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Evita que git convierta LF→CRLF en Windows — los scripts bash
+          # necesitan LF o bash falla con "$'\r': command not found"
+          eol: lf
 
       - name: Configurar Java 17
         uses: actions/setup-java@v4
@@ -79,10 +83,6 @@ jobs:
             $skip = if ("${{ github.event.inputs.skip_build }}" -eq "true") { "--skip-build" } else { "" }
             "skip_build=$skip" | Out-File $env:GITHUB_OUTPUT -Append
           }
-
-      - name: Normalizar line endings de scripts
-        shell: cmd
-        run: git config core.autocrlf false && git checkout -- scripts/
 
       - name: Ejecutar tests
         shell: cmd
