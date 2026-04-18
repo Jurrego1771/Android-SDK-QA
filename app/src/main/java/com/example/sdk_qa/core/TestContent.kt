@@ -39,11 +39,11 @@ object TestContent {
         /** Primer episodio para modo manual (custom). Reutiliza el mismo por ahora */
         const val EPISODE_CUSTOM_1 = "69e14468941e7a8050a8584f"
 
-        /** Segundo episodio para modo manual. TODO: reemplazar con episodio 2 real */
-        const val EPISODE_CUSTOM_2 = "TODO_EPISODE_CUSTOM_2_ID"
+        /** Segundo episodio para modo manual — reutiliza el mismo para validar el callback */
+        const val EPISODE_CUSTOM_2 = "69e14468941e7a8050a8584f"
 
-        /** Tercer episodio para modo manual. TODO: reemplazar con episodio 3 real */
-        const val EPISODE_CUSTOM_3 = "TODO_EPISODE_CUSTOM_3_ID"
+        /** Tercer episodio para modo manual — reutiliza el mismo para validar el callback */
+        const val EPISODE_CUSTOM_3 = "69e14468941e7a8050a8584f"
 
         /** VOD con múltiples anuncios IMA configurados */
         const val VOD_WITH_ADS = "696bc8a832ce0ef08c6fa0ef"
