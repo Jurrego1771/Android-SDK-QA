@@ -185,12 +185,14 @@ else
     fi
 fi
 
-# Mostrar info del dispositivo
-MODEL=$(adb -s "$DEVICE_SERIAL" shell getprop ro.product.model    2>/dev/null | tr -d '\r\n' || echo "?")
-BRAND=$(adb -s "$DEVICE_SERIAL" shell getprop ro.product.brand    2>/dev/null | tr -d '\r\n' || echo "?")
-ANDROID=$(adb -s "$DEVICE_SERIAL" shell getprop ro.build.version.release 2>/dev/null | tr -d '\r\n' || echo "?")
-API=$(adb -s "$DEVICE_SERIAL" shell getprop ro.build.version.sdk  2>/dev/null | tr -d '\r\n' || echo "?")
-CHARS=$(adb -s "$DEVICE_SERIAL" shell getprop ro.build.characteristics 2>/dev/null | tr -d '\r\n' || echo "")
+# Mostrar info del dispositivo — una sola conexión adb para todas las props
+_PROPS=$(adb -s "$DEVICE_SERIAL" shell "getprop ro.product.model && getprop ro.product.brand && getprop ro.build.version.release && getprop ro.build.version.sdk && getprop ro.build.characteristics" 2>/dev/null | tr -d '\r')
+MODEL=$(  sed -n '1p' <<< "$_PROPS")
+BRAND=$(  sed -n '2p' <<< "$_PROPS")
+ANDROID=$(sed -n '3p' <<< "$_PROPS")
+API=$(    sed -n '4p' <<< "$_PROPS")
+CHARS=$(  sed -n '5p' <<< "$_PROPS")
+MODEL=${MODEL:-?}; BRAND=${BRAND:-?}; ANDROID=${ANDROID:-?}; API=${API:-?}; CHARS=${CHARS:-}
 IS_TV=$(echo "$CHARS" | grep -c "tv" || true)
 IS_FIRE=$(echo "$BRAND" | grep -ic "amazon" || true)
 

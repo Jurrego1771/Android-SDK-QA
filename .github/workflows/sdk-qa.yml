@@ -1,11 +1,18 @@
 name: SDK QA
 
 on:
-  # Cada push a main — build fresco + tests medium (~8 min)
+  # Solo cuando cambia código relevante — ignora docs, workflows, etc.
   push:
     branches: [main]
+    paths:
+      - 'app/src/**'
+      - 'app/build.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'scripts/**'
 
-  # Nightly 2am — suite completa
+  # Nightly 2am — suite completa (sin filtro de paths)
   schedule:
     - cron: '0 2 * * *'
 
@@ -41,28 +48,16 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
 
+    env:
+      JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # Evita que git convierta LF→CRLF en Windows — los scripts bash
-          # necesitan LF o bash falla con "$'\r': command not found"
-          eol: lf
 
-      - name: Configurar Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-
+      - name: Fijar autocrlf en git del runner
+        shell: pwsh
+        run: git config --global core.autocrlf false
 
       - name: Determinar parámetros del run
         id: params
@@ -96,7 +91,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;$env:PATH"
-          & "C:\Program Files\Git\bin\bash.exe" -c "sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh && bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
+          & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
           exit $LASTEXITCODE
 
 
