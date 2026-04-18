@@ -91,12 +91,13 @@ jobs:
             | Out-File local.properties -Encoding utf8 -NoNewline
 
       - name: Fijar line endings y ejecutar tests
-        shell: cmd
+        shell: pwsh
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          set "PATH=C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;%PATH%"
-          "C:\Program Files\Git\bin\bash.exe" -c "sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh && bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
+          $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;$env:PATH"
+          & "C:\Program Files\Git\bin\bash.exe" -c "sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh && bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
+          exit $LASTEXITCODE
 
 
       - name: Subir reporte HTML

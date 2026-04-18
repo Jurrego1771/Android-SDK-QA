@@ -312,11 +312,15 @@ if [[ "$NO_REPORT" == false ]]; then
     adb -s "$DEVICE_SERIAL" shell rm -f /sdcard/sdk_qa_session.mp4 2>/dev/null || true
 
     log_info "Iniciando screenrecord en el dispositivo..."
-    # screenrecord corre en el device; adb shell bloquea el host hasta que el proceso termine o muera
-    adb -s "$DEVICE_SERIAL" shell screenrecord --time-limit 1800 /sdcard/sdk_qa_session.mp4 &
-    SCREENRECORD_PID=$!
-    sleep 1  # Dale tiempo al proceso de arrancar
-    log_ok "Grabando (PID host: $SCREENRECORD_PID)"
+    # Verificar que screenrecord esté disponible (algunos TV/devices no lo tienen)
+    if adb -s "$DEVICE_SERIAL" shell command -v screenrecord &>/dev/null 2>&1; then
+        adb -s "$DEVICE_SERIAL" shell screenrecord --time-limit 1800 /sdcard/sdk_qa_session.mp4 &
+        SCREENRECORD_PID=$!
+        sleep 1
+        log_ok "Grabando (PID host: $SCREENRECORD_PID)"
+    else
+        log_warn "screenrecord no disponible en este dispositivo — omitiendo grabación"
+    fi
 fi
 
 # ─── Paso 7: Ejecutar tests ───────────────────────────────────────────────────
