@@ -104,15 +104,6 @@ done
 [[ "$SIZE_FILTER" =~ ^(medium|large|all)$ ]] || \
     log_error "--size debe ser: medium | large | all (recibido: '$SIZE_FILTER')"
 
-# CI runner fix — locate adb
-log_info "OSTYPE: $OSTYPE"
-log_info "adb en PATH: $(command -v adb 2>/dev/null || echo AUSENTE)"
-log_info "Probando /c/Users/Neo/.../platform-tools: $(ls /c/Users/Neo/AppData/Local/Android/Sdk/platform-tools/adb.exe 2>/dev/null && echo SI || echo NO)"
-log_info "Probando /mnt/c/Users/Neo/.../platform-tools: $(ls /mnt/c/Users/Neo/AppData/Local/Android/Sdk/platform-tools/adb.exe 2>/dev/null && echo SI || echo NO)"
-log_info "PATH primeros 3: $(echo "$PATH" | tr ':' '\n' | head -3 | tr '\n' '|')"
-# Agregar ambas variantes (Git Bash y WSL)
-export PATH="/c/Users/Neo/AppData/Local/Android/Sdk/platform-tools:/mnt/c/Users/Neo/AppData/Local/Android/Sdk/platform-tools:/c/ProgramData/chocolatey/bin:${PATH}"
-log_info "adb tras fix: $(command -v adb 2>/dev/null || echo 'NO ENCONTRADO')"
 command -v adb &>/dev/null || \
     log_error "adb no encontrado. Agrega Android SDK Platform Tools al PATH."
 

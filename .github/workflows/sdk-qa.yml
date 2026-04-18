@@ -89,8 +89,8 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          set "PATH=C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;%PATH%"
-          bash -c "sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh && bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
+          set "PATH=C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;%PATH%"
+          "C:\Program Files\Git\bin\bash.exe" -c "sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh && bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
 
 
       - name: Subir reporte HTML
