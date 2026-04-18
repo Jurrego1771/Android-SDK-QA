@@ -314,23 +314,30 @@ adb -s "$DEVICE_SERIAL" shell am force-stop "${APP_PACKAGE}.test" 2>/dev/null ||
 sleep 1
 log_ok "Procesos detenidos"
 
-# ─── Paso 6: Grabar pantalla ──────────────────────────────────────────────────
+# ─── Paso 6: Grabar pantalla con scrcpy ──────────────────────────────────────
 log_step "Grabación de pantalla"
 
 SCREENRECORD_PID=""
-if [[ "$NO_REPORT" == false ]]; then
-    # Borrar grabación anterior en el device
-    adb -s "$DEVICE_SERIAL" shell rm -f /sdcard/sdk_qa_session.mp4 2>/dev/null || true
+VIDEO_PATH="${REPORT_DIR}/videos/session.mp4"
+mkdir -p "${REPORT_DIR}/videos"
 
-    log_info "Iniciando screenrecord en el dispositivo..."
-    # Verificar que screenrecord esté disponible (algunos TV/devices no lo tienen)
-    if adb -s "$DEVICE_SERIAL" shell command -v screenrecord &>/dev/null 2>&1; then
-        adb -s "$DEVICE_SERIAL" shell screenrecord --time-limit 1800 /sdcard/sdk_qa_session.mp4 &
+if [[ "$NO_REPORT" == false ]]; then
+    if command -v scrcpy &>/dev/null; then
+        log_info "Iniciando grabación con scrcpy..."
+        # --no-display: sin ventana (CI headless)
+        # --record: guarda directo en el host, sin adb pull posterior
+        scrcpy -s "$DEVICE_SERIAL" --no-display --record "$VIDEO_PATH" \
+            </dev/null >/dev/null 2>&1 &
         SCREENRECORD_PID=$!
-        sleep 1
-        log_ok "Grabando (PID host: $SCREENRECORD_PID)"
+        sleep 2
+        if kill -0 "$SCREENRECORD_PID" 2>/dev/null; then
+            log_ok "Grabando con scrcpy (PID: $SCREENRECORD_PID)"
+        else
+            SCREENRECORD_PID=""
+            log_warn "scrcpy falló al iniciar — omitiendo grabación"
+        fi
     else
-        log_warn "screenrecord no disponible en este dispositivo — omitiendo grabación"
+        log_warn "scrcpy no encontrado en PATH — omitiendo grabación"
     fi
 fi
 
@@ -383,14 +390,38 @@ ELAPSED=$((END_TS - START_TS))
 MINUTES=$((ELAPSED / 60))
 SECONDS_REM=$((ELAPSED % 60))
 
+# ─── Paso 7b: Screenshot via adb para tests fallidos (fallback al device-side) ─
+# SdkEvidenceRule intenta takeScreenshot() desde el test; en algunos TV retorna null.
+# Como respaldo, si hay fallos capturamos la pantalla actual con adb screencap.
+if [[ ${#FAILED_TESTS[@]} -eq 0 && -n "$INSTRUMENT_RAW" ]]; then
+    # Detectar fallos desde el raw antes del parseo completo
+    _HAS_ERRORS=$(grep -c "^Error in " "$INSTRUMENT_RAW" 2>/dev/null || echo 0)
+else
+    _HAS_ERRORS=${#FAILED_TESTS[@]}
+fi
+
+SCREENSHOT_DIR="${REPORT_DIR}/screenshots"
+mkdir -p "$SCREENSHOT_DIR"
+
+if [[ "$_HAS_ERRORS" -gt 0 && "$NO_REPORT" == false ]]; then
+    log_info "Capturando screenshot del estado actual del device..."
+    adb -s "$DEVICE_SERIAL" exec-out screencap -p \
+        > "${SCREENSHOT_DIR}/device_on_failure.png" 2>/dev/null \
+        && log_ok "Screenshot capturado" \
+        || log_warn "No se pudo capturar screenshot vía adb screencap"
+fi
+
 # ─── Paso 8: Detener grabación ────────────────────────────────────────────────
 if [[ -n "$SCREENRECORD_PID" ]]; then
     log_info "Deteniendo grabación..."
-    # SIGINT hace que screenrecord finalice limpiamente y cierre el mp4
-    adb -s "$DEVICE_SERIAL" shell pkill -2 screenrecord 2>/dev/null || true
+    # scrcpy termina limpiamente con SIGTERM — cierra y finaliza el mp4
+    kill "$SCREENRECORD_PID" 2>/dev/null || true
     wait "$SCREENRECORD_PID" 2>/dev/null || true
-    sleep 2  # Esperar a que el proceso del device vacíe el archivo
-    log_ok "Grabación finalizada"
+    if [[ -f "$VIDEO_PATH" ]]; then
+        log_ok "Grabación finalizada: $VIDEO_PATH"
+    else
+        log_warn "Video no generado (scrcpy puede requerir interacción manual en primer uso)"
+    fi
 fi
 
 # ─── Paso 9: Parsear resultados del raw file ──────────────────────────────────

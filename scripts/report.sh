@@ -34,12 +34,12 @@ if [[ -n "$DEVICE_SERIAL" ]]; then
         && log_ok "Screenshots descargados" \
         || log_warn "No se encontraron screenshots (normal si todos pasaron)"
 
-    log_info "Descargando video..."
-    adb -s "$DEVICE_SERIAL" pull \
-        "/sdcard/sdk_qa_session.mp4" \
-        "$OUTPUT_DIR/videos/session.mp4" 2>/dev/null \
-        && log_ok "Video descargado" \
-        || log_warn "No se encontró video de sesión"
+    # El video lo graba scrcpy directo en el host — no necesita adb pull
+    if [[ -f "$OUTPUT_DIR/videos/session.mp4" ]]; then
+        log_ok "Video disponible: $OUTPUT_DIR/videos/session.mp4"
+    else
+        log_warn "No se encontró video de sesión"
+    fi
 fi
 
 # ─── 2. Leer resultados ───────────────────────────────────────────────────────
