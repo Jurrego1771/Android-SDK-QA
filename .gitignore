@@ -27,3 +27,6 @@ build/
 # Secrets locales — nunca commitear
 .env
 scripts/.env
+
+# Java heap dumps
+*.hprof

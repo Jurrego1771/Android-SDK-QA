@@ -49,7 +49,7 @@ object TestContent {
         const val VOD_WITH_ADS = "696bc8a832ce0ef08c6fa0ef"
 
         /** VOD con DRM Widevine. TODO: reemplazar cuando se tenga ID */
-        const val VOD_DRM = "TODO_VOD_DRM_ID"
+        const val VOD_DRM = "69b0918a741d2bbba0cacf78"
 
         /** URL directa de HLS público — no requiere API, para tests de red */
         const val SRC_DIRECT_HLS = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
