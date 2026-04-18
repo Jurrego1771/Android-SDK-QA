@@ -314,32 +314,10 @@ adb -s "$DEVICE_SERIAL" shell am force-stop "${APP_PACKAGE}.test" 2>/dev/null ||
 sleep 1
 log_ok "Procesos detenidos"
 
-# ─── Paso 6: Grabar pantalla con scrcpy ──────────────────────────────────────
-log_step "Grabación de pantalla"
-
+# ─── Paso 6: Grabación de pantalla ───────────────────────────────────────────
+# Deshabilitada temporalmente — scrcpy requiere configuración adicional en CI
 SCREENRECORD_PID=""
-VIDEO_PATH="${REPORT_DIR}/videos/session.mp4"
-mkdir -p "${REPORT_DIR}/videos"
-
-if [[ "$NO_REPORT" == false ]]; then
-    if command -v scrcpy &>/dev/null; then
-        log_info "Iniciando grabación con scrcpy..."
-        # --no-display: sin ventana (CI headless)
-        # --record: guarda directo en el host, sin adb pull posterior
-        scrcpy -s "$DEVICE_SERIAL" --no-display --record "$VIDEO_PATH" \
-            </dev/null >/dev/null 2>&1 &
-        SCREENRECORD_PID=$!
-        sleep 2
-        if kill -0 "$SCREENRECORD_PID" 2>/dev/null; then
-            log_ok "Grabando con scrcpy (PID: $SCREENRECORD_PID)"
-        else
-            SCREENRECORD_PID=""
-            log_warn "scrcpy falló al iniciar — omitiendo grabación"
-        fi
-    else
-        log_warn "scrcpy no encontrado en PATH — omitiendo grabación"
-    fi
-fi
+VIDEO_PATH=""
 
 # ─── Paso 7: Ejecutar tests ───────────────────────────────────────────────────
 log_step "Ejecutando tests"
@@ -390,18 +368,7 @@ ELAPSED=$((END_TS - START_TS))
 MINUTES=$((ELAPSED / 60))
 SECONDS_REM=$((ELAPSED % 60))
 
-# ─── Paso 8: Detener grabación ────────────────────────────────────────────────
-if [[ -n "$SCREENRECORD_PID" ]]; then
-    log_info "Deteniendo grabación..."
-    # scrcpy termina limpiamente con SIGTERM — cierra y finaliza el mp4
-    kill "$SCREENRECORD_PID" 2>/dev/null || true
-    wait "$SCREENRECORD_PID" 2>/dev/null || true
-    if [[ -f "$VIDEO_PATH" ]]; then
-        log_ok "Grabación finalizada: $VIDEO_PATH"
-    else
-        log_warn "Video no generado (scrcpy puede requerir interacción manual en primer uso)"
-    fi
-fi
+# ─── Paso 8: (grabación deshabilitada) ───────────────────────────────────────
 
 # ─── Paso 9: Parsear resultados del raw file ──────────────────────────────────
 # Python imprime comandos bash que eval pobla PASSED_TESTS / FAILED_TESTS.
