@@ -84,16 +84,23 @@ jobs:
             "skip_build=$skip" | Out-File $env:GITHUB_OUTPUT -Append
           }
 
+      - name: Fijar line endings LF
+        shell: pwsh
+        run: |
+          foreach ($f in @('scripts/run-tests.sh','scripts/report.sh','scripts/notify-slack.sh')) {
+            $content = [System.IO.File]::ReadAllText($f) -replace "`r`n", "`n" -replace "`r", "`n"
+            [System.IO.File]::WriteAllText($f, $content, [System.Text.UTF8Encoding]::new($false))
+          }
+
       - name: Ejecutar tests
-        shell: bash
+        shell: cmd
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          sed -i 's/\r//' scripts/run-tests.sh scripts/report.sh scripts/notify-slack.sh
-          bash scripts/run-tests.sh \
-            --target "${{ steps.params.outputs.target }}" \
-            --size "${{ steps.params.outputs.size }}" \
-            ${{ steps.params.outputs.skip_build }}
+        run: >
+          bash scripts/run-tests.sh
+          --target "${{ steps.params.outputs.target }}"
+          --size "${{ steps.params.outputs.size }}"
+          ${{ steps.params.outputs.skip_build }}
 
       - name: Subir reporte HTML
         uses: actions/upload-artifact@v4
