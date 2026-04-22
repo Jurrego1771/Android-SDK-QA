@@ -5,6 +5,10 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
+import com.example.sdk_qa.scenarios.video.VideoEpisodeApiScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoLiveScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoVodScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoLiveDvrScenarioActivity
 import com.example.sdk_qa.utils.SdkTestRule
 import com.example.sdk_qa.utils.assertNoErrorFired
 import com.example.sdk_qa.utils.awaitCallback
@@ -234,7 +238,7 @@ class LifecycleTest {
     }
 
     // -------------------------------------------------------------------------
-    // [LIFECYCLE-DESTROY-01] onDestroy libera el player — sin leak
+    // [LIFECYCLE-DESTROY-01] onDestroy libera el player — sin leak (HLS directo)
     //
     // El cierre explícito del scenario fuerza onDestroy.
     // BaseScenarioActivity.onDestroy() llama releasePlayer().
@@ -249,5 +253,65 @@ class LifecycleTest {
         // Cierre explícito → onDestroy → releasePlayer()
         scenario.close()
         // LeakCanary corre aquí automáticamente via SdkTestRule
+    }
+
+    // -------------------------------------------------------------------------
+    // [LIFECYCLE-DESTROY-02] VOD — onDestroy no leakea el player
+    //
+    // Mismo patrón que DESTROY-01 pero con contenido VOD de la plataforma.
+    // Verifica que el SDK libera correctamente al destruir el Activity.
+    // -------------------------------------------------------------------------
+    @Test
+    @MediumTest
+    fun vod_onDestroy_releasesPlayer_noLeak() {
+        val scenario = ActivityScenario.launch(VideoVodScenarioActivity::class.java)
+        scenario.awaitCallback("onReady", TIMEOUT)
+
+        scenario.close()
+    }
+
+    // -------------------------------------------------------------------------
+    // [LIFECYCLE-DESTROY-03] Live — onDestroy no leakea el player
+    //
+    // El stream live es de larga duración — el SDK debe liberar todos los
+    // recursos (ExoPlayer, MediaSession, audio focus) al destruir el Activity.
+    // -------------------------------------------------------------------------
+    @Test
+    @MediumTest
+    fun live_onDestroy_releasesPlayer_noLeak() {
+        val scenario = ActivityScenario.launch(VideoLiveScenarioActivity::class.java)
+        scenario.awaitCallback("onReady", TIMEOUT)
+
+        scenario.close()
+    }
+
+    // -------------------------------------------------------------------------
+    // [LIFECYCLE-DESTROY-04] Live DVR — onDestroy no leakea el player
+    //
+    // DVR mantiene un buffer adicional. Verifica que ese buffer también se
+    // libera correctamente al destruir el Activity.
+    // -------------------------------------------------------------------------
+    @Test
+    @MediumTest
+    fun liveDvr_onDestroy_releasesPlayer_noLeak() {
+        val scenario = ActivityScenario.launch(VideoLiveDvrScenarioActivity::class.java)
+        scenario.awaitCallback("onReady", TIMEOUT)
+
+        scenario.close()
+    }
+
+    // -------------------------------------------------------------------------
+    // [LIFECYCLE-DESTROY-05] Episode — onDestroy no leakea el player
+    //
+    // El modo episodio registra listeners de "siguiente episodio". Verifica
+    // que esos listeners no retienen el Activity después de onDestroy.
+    // -------------------------------------------------------------------------
+    @Test
+    @MediumTest
+    fun episode_onDestroy_releasesPlayer_noLeak() {
+        val scenario = ActivityScenario.launch(VideoEpisodeApiScenarioActivity::class.java)
+        scenario.awaitCallback("onReady", TIMEOUT)
+
+        scenario.close()
     }
 }

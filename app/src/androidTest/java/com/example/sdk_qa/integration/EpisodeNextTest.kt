@@ -6,10 +6,16 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import com.example.sdk_qa.scenarios.video.VideoEpisodeApiScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoEpisodeCustomScenarioActivity
+import com.example.sdk_qa.utils.OverlayText
 import com.example.sdk_qa.utils.SdkTestRule
+import com.example.sdk_qa.utils.assertCallbackNotFired
 import com.example.sdk_qa.utils.assertNoErrorFired
+import com.example.sdk_qa.utils.assertNotVisible
+import com.example.sdk_qa.utils.assertVisible
 import com.example.sdk_qa.utils.awaitCallback
 import com.example.sdk_qa.utils.getCallbackCaptor
+import com.example.sdk_qa.utils.uiDevice
+import com.example.sdk_qa.utils.waitAndClick
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
@@ -21,19 +27,17 @@ import org.junit.runner.RunWith
  * Verifica dos modos del SDK:
  *
  * MODO API — el SDK resuelve el siguiente episodio desde la plataforma.
- *   El cliente no interviene. El overlay aparece automáticamente.
+ *   El overlay aparece automáticamente con dos botones:
+ *   - "Seguir viendo"     → descarta overlay, episodio continúa hasta el final
+ *   - "Siguiente episodio"→ dispara onNext + onNewSourceAdded, carga el siguiente
  *
  * MODO CUSTOM — el cliente controla la lista de episodios.
  *   El SDK dispara [nextEpisodeIncoming] para que el cliente llame
  *   [updateNextEpisode(config)] con el siguiente.
  *
- * Callbacks verificados:
- *   - nextEpisodeIncoming — SDK avisa que el overlay está por aparecer
- *   - onNext             — el player avanzó al siguiente episodio
- *   - onNewSourceAdded   — el SDK cargó el nuevo contenido
- *
- * Los tests de seek son @LargeTest porque necesitan esperar que el contenido
- * cargue, buscar cerca del final, y esperar el callback de navegación.
+ * IMPORTANTE: onNext NO se dispara automáticamente en modo API.
+ *   Requiere que el usuario presione "Siguiente episodio" o que el countdown
+ *   del overlay expire. Los tests usan UiAutomator para simular el press.
  */
 @RunWith(AndroidJUnit4::class)
 class EpisodeNextTest {
@@ -42,10 +46,11 @@ class EpisodeNextTest {
     val sdkRule = SdkTestRule()
 
     private val TIMEOUT_READY = 20_000L
-    private val TIMEOUT_NAV   = 30_000L // navegación requiere esperar el overlay + auto-advance
+    private val TIMEOUT_NAV   = 35_000L // navegación: espera overlay + press + carga
+    private val TIMEOUT_OVERLAY = 8_000L
 
     // =========================================================================
-    // MODO API
+    // MODO API — callbacks
     // =========================================================================
 
     // -------------------------------------------------------------------------
@@ -63,8 +68,8 @@ class EpisodeNextTest {
     // -------------------------------------------------------------------------
     // [EPISODE-API-02] nextEpisodeIncoming dispara cuando se acerca el final
     //
-    // El scenario tiene nextEpisodeTime = 15 — el overlay aparece 15s antes
-    // del final. Hacemos seek a 20s antes del final para activarlo.
+    // nextEpisodeTime = 15 → overlay 15s antes del final.
+    // Seek a 20s antes del final activa el overlay a los ~5s.
     // -------------------------------------------------------------------------
     @Test
     @LargeTest
@@ -73,17 +78,11 @@ class EpisodeNextTest {
             scenario.awaitCallback("onReady", TIMEOUT_READY)
 
             var duration = 0L
-            scenario.onActivity { activity ->
-                duration = activity.player?.msPlayer?.duration ?: 0L
-            }
-
-            assertWithMessage("El episodio debe tener duración conocida para este test")
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
                 .that(duration).isGreaterThan(30_000L)
 
-            // Seek 20s antes del final para activar el overlay (nextEpisodeTime = 15)
-            scenario.onActivity { activity ->
-                activity.player?.msPlayer?.seekTo(duration - 20_000L)
-            }
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
 
             scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
             scenario.assertNoErrorFired()
@@ -91,10 +90,10 @@ class EpisodeNextTest {
     }
 
     // -------------------------------------------------------------------------
-    // [EPISODE-API-03] onNext dispara después de nextEpisodeIncoming
+    // [EPISODE-API-03] onNext dispara cuando el usuario presiona "Siguiente"
     //
-    // En modo API el SDK avanza automáticamente al siguiente episodio.
-    // onNext confirma que el player ya está reproduciendo el siguiente.
+    // El SDK no auto-avanza — muestra overlay con botones y espera interacción.
+    // UiAutomator simula el press en "Siguiente episodio".
     // -------------------------------------------------------------------------
     @Test
     @LargeTest
@@ -103,21 +102,19 @@ class EpisodeNextTest {
             scenario.awaitCallback("onReady", TIMEOUT_READY)
 
             var duration = 0L
-            scenario.onActivity { activity ->
-                duration = activity.player?.msPlayer?.duration ?: 0L
-            }
-
-            assertWithMessage("El episodio debe tener duración conocida para este test")
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
                 .that(duration).isGreaterThan(30_000L)
 
-            scenario.onActivity { activity ->
-                activity.player?.msPlayer?.seekTo(duration - 20_000L)
-            }
-
-            // Esperar la secuencia completa: incoming → (overlay) → next
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
             scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
-            scenario.awaitCallback("onNext", TIMEOUT_NAV)
 
+            // Simular press en "Siguiente episodio"
+            val clicked = uiDevice().waitAndClick(OverlayText.NEXT_EPISODE, TIMEOUT_OVERLAY)
+            assertWithMessage("Botón '${OverlayText.NEXT_EPISODE}' no apareció en el overlay")
+                .that(clicked).isTrue()
+
+            scenario.awaitCallback("onNext", TIMEOUT_NAV)
             scenario.assertNoErrorFired()
         }
     }
@@ -132,24 +129,127 @@ class EpisodeNextTest {
             scenario.awaitCallback("onReady", TIMEOUT_READY)
 
             var duration = 0L
-            scenario.onActivity { activity ->
-                duration = activity.player?.msPlayer?.duration ?: 0L
-            }
-
-            assertWithMessage("El episodio debe tener duración conocida para este test")
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
                 .that(duration).isGreaterThan(30_000L)
 
-            scenario.onActivity { activity ->
-                activity.player?.msPlayer?.seekTo(duration - 20_000L)
-            }
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
 
-            scenario.awaitCallback("onNext",         TIMEOUT_NAV)
+            uiDevice().waitAndClick(OverlayText.NEXT_EPISODE, TIMEOUT_OVERLAY)
+
+            scenario.awaitCallback("onNext",          TIMEOUT_NAV)
             scenario.awaitCallback("onNewSourceAdded", TIMEOUT_NAV)
 
-            // Verificar secuencia correcta: incoming → next → newSource
             val captor = scenario.getCallbackCaptor()
-            assertWithMessage("nextEpisodeIncoming debe haber ocurrido")
+            assertWithMessage("nextEpisodeIncoming debe haber ocurrido antes de onNext")
                 .that(captor.hasEvent("nextEpisodeIncoming")).isTrue()
+
+            scenario.assertNoErrorFired()
+        }
+    }
+
+    // =========================================================================
+    // MODO API — UI del overlay
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // [EPISODE-API-05] Overlay es visible tras nextEpisodeIncoming
+    //
+    // Verifica que ambos botones del overlay estén en pantalla.
+    // -------------------------------------------------------------------------
+    @Test
+    @LargeTest
+    fun episodeApi_overlay_isVisible_after_nextEpisodeIncoming() {
+        ActivityScenario.launch(VideoEpisodeApiScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onReady", TIMEOUT_READY)
+
+            var duration = 0L
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
+                .that(duration).isGreaterThan(30_000L)
+
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+
+            val device = uiDevice()
+            device.assertVisible(OverlayText.NEXT_EPISODE,  TIMEOUT_OVERLAY)
+            device.assertVisible(OverlayText.KEEP_WATCHING, TIMEOUT_OVERLAY)
+
+            scenario.assertNoErrorFired()
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // [EPISODE-API-06] "Seguir viendo" descarta el overlay sin navegar
+    //
+    // Al presionar "Seguir viendo":
+    //   - El overlay desaparece
+    //   - onNext NO se dispara
+    //   - El episodio sigue reproduciéndose
+    // -------------------------------------------------------------------------
+    @Test
+    @LargeTest
+    fun episodeApi_keepWatching_dismissesOverlay_noNavigation() {
+        ActivityScenario.launch(VideoEpisodeApiScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onReady", TIMEOUT_READY)
+
+            var duration = 0L
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
+                .that(duration).isGreaterThan(30_000L)
+
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+
+            val device = uiDevice()
+            val clicked = device.waitAndClick(OverlayText.KEEP_WATCHING, TIMEOUT_OVERLAY)
+            assertWithMessage("Botón '${OverlayText.KEEP_WATCHING}' no apareció en el overlay")
+                .that(clicked).isTrue()
+
+            // Overlay debe desaparecer
+            device.assertNotVisible(OverlayText.NEXT_EPISODE)
+            device.assertNotVisible(OverlayText.KEEP_WATCHING)
+
+            // onNext NO debe haberse disparado
+            scenario.assertCallbackNotFired("onNext")
+            scenario.assertCallbackNotFired("onNewSourceAdded")
+            scenario.assertNoErrorFired()
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // [EPISODE-API-07] "Siguiente episodio" navega al siguiente y el overlay desaparece
+    //
+    // Al presionar "Siguiente episodio":
+    //   - onNext se dispara
+    //   - onNewSourceAdded confirma que cargó el nuevo contenido
+    //   - El overlay desaparece
+    // -------------------------------------------------------------------------
+    @Test
+    @LargeTest
+    fun episodeApi_nextButton_navigatesAndDismissesOverlay() {
+        ActivityScenario.launch(VideoEpisodeApiScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onReady", TIMEOUT_READY)
+
+            var duration = 0L
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
+                .that(duration).isGreaterThan(30_000L)
+
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+
+            val device = uiDevice()
+            val clicked = device.waitAndClick(OverlayText.NEXT_EPISODE, TIMEOUT_OVERLAY)
+            assertWithMessage("Botón '${OverlayText.NEXT_EPISODE}' no apareció en el overlay")
+                .that(clicked).isTrue()
+
+            scenario.awaitCallback("onNext",           TIMEOUT_NAV)
+            scenario.awaitCallback("onNewSourceAdded", TIMEOUT_NAV)
+
+            // Overlay debe desaparecer tras navegar
+            device.assertNotVisible(OverlayText.NEXT_EPISODE)
 
             scenario.assertNoErrorFired()
         }
@@ -173,10 +273,6 @@ class EpisodeNextTest {
 
     // -------------------------------------------------------------------------
     // [EPISODE-CUSTOM-02] nextEpisodeIncoming dispara en modo custom
-    //
-    // En modo custom el SDK también dispara nextEpisodeIncoming — es la señal
-    // para que el cliente llame updateNextEpisode(). La activity ya lo hace
-    // en onNextEpisodeIncoming() mediante VideoEpisodeCustomScenarioActivity.
     // -------------------------------------------------------------------------
     @Test
     @LargeTest
@@ -185,18 +281,39 @@ class EpisodeNextTest {
             scenario.awaitCallback("onReady", TIMEOUT_READY)
 
             var duration = 0L
-            scenario.onActivity { activity ->
-                duration = activity.player?.msPlayer?.duration ?: 0L
-            }
-
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
             assertWithMessage("El episodio custom debe tener duración conocida")
                 .that(duration).isGreaterThan(30_000L)
 
-            scenario.onActivity { activity ->
-                activity.player?.msPlayer?.seekTo(duration - 20_000L)
-            }
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
 
             scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+            scenario.assertNoErrorFired()
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // [EPISODE-CUSTOM-03] "Siguiente episodio" navega en modo custom
+    // -------------------------------------------------------------------------
+    @Test
+    @LargeTest
+    fun episodeCustom_nextButton_fires_onNext() {
+        ActivityScenario.launch(VideoEpisodeCustomScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onReady", TIMEOUT_READY)
+
+            var duration = 0L
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio custom debe tener duración conocida")
+                .that(duration).isGreaterThan(30_000L)
+
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+
+            val clicked = uiDevice().waitAndClick(OverlayText.NEXT_EPISODE, TIMEOUT_OVERLAY)
+            assertWithMessage("Botón '${OverlayText.NEXT_EPISODE}' no apareció en el overlay")
+                .that(clicked).isTrue()
+
+            scenario.awaitCallback("onNext", TIMEOUT_NAV)
             scenario.assertNoErrorFired()
         }
     }

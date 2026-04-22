@@ -3,3 +3,4 @@
 # El script intenta conectar a cada uno si no hay dispositivos disponibles al iniciar.
 192.168.0.46:5555
 192.168.0.11:5555
+192.168.0.35:5555  # Fire Stick

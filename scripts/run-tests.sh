@@ -119,34 +119,122 @@ echo -e ""
 # ─── Paso 1: Selección de dispositivo ─────────────────────────────────────────
 log_step "Dispositivo"
 
-# Obtener lista de dispositivos conectados
-DEVICES=$(adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1}' || true)
-DEVICE_COUNT=$(echo "$DEVICES" | grep -c . 2>/dev/null || echo 0)
+# Devuelve seriales de dispositivos actualmente autorizados en adb
+get_connected_devices() {
+    adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1}' || true
+}
 
-if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
-    if [[ -f "$KNOWN_DEVICES_FILE" ]]; then
-        log_warn "Sin dispositivos — intentando reconectar desde ${KNOWN_DEVICES_FILE}..."
-        while IFS= read -r known_ip; do
-            [[ -z "$known_ip" || "$known_ip" == \#* ]] && continue
-            log_info "Probando $known_ip..."
-            adb connect "$known_ip" 2>&1 | grep -v "^$" || true
-            sleep 2
-            DEVICES=$(adb devices 2>/dev/null | tail -n +2 | grep "device$" | awk '{print $1}' || true)
-            DEVICE_COUNT=$(echo "$DEVICES" | grep -c . 2>/dev/null || echo 0)
-            if [[ "$DEVICE_COUNT" -gt 0 ]]; then
-                log_ok "Conectado a $known_ip"
-                break
-            fi
-        done < "$KNOWN_DEVICES_FILE"
+# Ping a IP (extrae host de "host:port"). 0 = alcanzable, 1 = sin respuesta.
+ping_host() {
+    local host="${1%%:*}"
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        ping -n 1 -w 1000 "$host" &>/dev/null
+    else
+        ping -c 1 -W 1 "$host" &>/dev/null
     fi
+}
+
+# Intenta adb connect y verifica que el serial aparezca en "adb devices".
+# Imprime el serial conectado en stdout si tiene éxito. Retorna 0/1.
+try_adb_connect() {
+    local entry="$1"
+    adb connect "$entry" 2>&1 | grep -v "^$" >&2 || true
+    sleep 1
+    local connected
+    connected=$(get_connected_devices)
+    if echo "$connected" | grep -qF "$entry"; then
+        echo "$entry"
+        return 0
+    fi
+    return 1
+}
+
+DEVICES=$(get_connected_devices)
+DEVICE_COUNT=0
+[[ -n "$DEVICES" ]] && DEVICE_COUNT=$(echo "$DEVICES" | wc -l | tr -d ' ')
+
+# ── Si --device especificado y no está conectado, intentar conectar primero ──
+if [[ -n "$DEVICE_SERIAL" ]] && ! echo "$DEVICES" | grep -qF "$DEVICE_SERIAL"; then
+    log_warn "--device $DEVICE_SERIAL no conectado — intentando adb connect..."
+    if try_adb_connect "$DEVICE_SERIAL" >/dev/null; then
+        log_ok "Conectado a $DEVICE_SERIAL"
+        DEVICES=$(get_connected_devices)
+        DEVICE_COUNT=$(echo "$DEVICES" | wc -l | tr -d ' ')
+    else
+        log_error "No se pudo conectar a '$DEVICE_SERIAL'."
+    fi
+fi
+
+# ── Si no hay ningún dispositivo, intentar desde .known-devices con ping ──────
+if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
+    if [[ ! -f "$KNOWN_DEVICES_FILE" ]]; then
+        log_error "Sin dispositivos conectados.\n  Crea ${KNOWN_DEVICES_FILE} con una IP:puerto por línea."
+    fi
+
+    # Leer lista (ignorar comentarios y blancos)
+    KNOWN_IPS=()
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        KNOWN_IPS+=("$line")
+    done < "$KNOWN_DEVICES_FILE"
+
+    [[ ${#KNOWN_IPS[@]} -eq 0 ]] && \
+        log_error "Sin dispositivos conectados y ${KNOWN_DEVICES_FILE} está vacío."
+
+    log_warn "Sin dispositivos — ping a ${#KNOWN_IPS[@]} conocidos..."
+
+    # Ping en paralelo — resultados en archivos temporales
+    _PING_TMP=$(mktemp -d)
+    for _entry in "${KNOWN_IPS[@]}"; do
+        (
+            if ping_host "$_entry"; then
+                echo ok > "${_PING_TMP}/${_entry//[.:\/ ]/_}"
+            else
+                echo fail > "${_PING_TMP}/${_entry//[.:\/ ]/_}"
+            fi
+        ) &
+    done
+    wait  # todos los pings terminan aquí
+
+    REACHABLE=()
+    for _entry in "${KNOWN_IPS[@]}"; do
+        _key="${_entry//[.:\/ ]/_}"
+        _res=$(cat "${_PING_TMP}/${_key}" 2>/dev/null || echo fail)
+        if [[ "$_res" == "ok" ]]; then
+            REACHABLE+=("$_entry")
+            log_ok  "  PING OK   $_entry"
+        else
+            log_warn "  sin resp  $_entry"
+        fi
+    done
+    rm -rf "$_PING_TMP"
+
+    if [[ ${#REACHABLE[@]} -eq 0 ]]; then
+        log_error "Ningún dispositivo responde al ping.\n  IPs probadas: ${KNOWN_IPS[*]}"
+    fi
+
+    log_info "${#REACHABLE[@]} accesible(s) — intentando adb connect en orden..."
+
+    for _entry in "${REACHABLE[@]}"; do
+        log_info "Conectando a $_entry..."
+        if try_adb_connect "$_entry" >/dev/null; then
+            log_ok "Conectado a $_entry"
+            DEVICES=$(get_connected_devices)
+            DEVICE_COUNT=$(echo "$DEVICES" | wc -l | tr -d ' ')
+            break
+        fi
+        log_warn "adb connect $_entry — no apareció en adb devices, probando siguiente..."
+    done
+
     if [[ -z "$DEVICES" || "$DEVICE_COUNT" -eq 0 ]]; then
-        log_error "No hay dispositivos conectados.\n  Agrega IPs a ${KNOWN_DEVICES_FILE} para reconexión automática."
+        log_error "No fue posible conectar a ningún dispositivo.\n  Accesibles por ping: ${REACHABLE[*]}"
     fi
     log_ok "Reconexión exitosa"
 fi
 
+# ── Selección final de serial ─────────────────────────────────────────────────
 if [[ -n "$DEVICE_SERIAL" ]]; then
-    echo "$DEVICES" | grep -q "^${DEVICE_SERIAL}$" || \
+    echo "$DEVICES" | grep -qF "$DEVICE_SERIAL" || \
         log_error "Dispositivo '$DEVICE_SERIAL' no encontrado.\n  Disponibles:\n$(echo "$DEVICES" | sed 's/^/    /')"
     log_info "Usando: $DEVICE_SERIAL (especificado con --device)"
 
@@ -209,6 +297,30 @@ printf "  %-12s %s\n" "Tipo:"     "$DETECTED_TYPE"
 # Avisar si el --target no coincide con el dispositivo detectado
 if [[ "$TARGET" != "all" && "$TARGET" != "$DETECTED_TYPE" ]]; then
     log_warn "--target=$TARGET pero el dispositivo parece ser '$DETECTED_TYPE'"
+fi
+
+# ─── Paso 1b: Keep-awake (Fire TV / Fire Stick) ───────────────────────────────
+# Fire Stick entra en reposo y pierde la conexión ADB durante tests largos.
+# Se deshabilita el timeout de pantalla y el screensaver antes de cualquier test.
+if [[ "$DETECTED_TYPE" == "firetv" ]]; then
+    log_step "Keep-awake Fire TV"
+    _adb() { adb -s "$DEVICE_SERIAL" shell "$@" 2>/dev/null || true; }
+
+    # Pantalla siempre encendida mientras haya alimentación (AC=1, USB=2, AC+USB=3)
+    _adb settings put global stay_on_while_plugged_in 3
+    # Timeout de pantalla al máximo (Integer.MAX_VALUE ms ≈ 24 días)
+    _adb settings put system screen_off_timeout 2147483647
+    # Screensaver/Daydream deshabilitado
+    _adb settings put secure screensaver_enabled 0
+    # Apagar la función "display sleep" de Fire OS (si existe en esta versión)
+    _adb settings put system screen_brightness_mode 0
+    # Evitar que el launcher entre en modo bajo consumo
+    _adb settings put global low_power 0
+    # Despertar pantalla ahora por si ya estaba apagada
+    _adb input keyevent KEYCODE_WAKEUP
+
+    log_ok "Keep-awake aplicado — Fire Stick no entrará en reposo durante la sesión"
+    unset -f _adb
 fi
 
 # ─── Paso 2: Build ────────────────────────────────────────────────────────────
@@ -599,6 +711,16 @@ if [[ $N_FAIL -gt 0 ]]; then
     echo ""
     echo -e "  Logcat completo:  adb -s $DEVICE_SERIAL logcat -d -s SDK_QA,SDK_QA_FAIL"
     echo -e "  Solo este test:   ./scripts/run-tests.sh --class ${FAILED_TESTS[0]##*.} --skip-build"
+    exit 1
+elif [[ "$EXIT_CODE" -ne 0 && $N_PASS -eq 0 ]]; then
+    # adb instrument falló antes de correr cualquier test (crash, desconexión, clase no encontrada)
+    echo -e "${RED}${BOLD}╔══════════════════════════════════╗${NC}"
+    echo -e "${RED}${BOLD}║   ✗  RUNNER FALLÓ — 0 TESTS      ║${NC}"
+    echo -e "${RED}${BOLD}╚══════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  adb instrument salió con código $EXIT_CODE y no ejecutó ningún test."
+    echo -e "  Raw output: $INSTRUMENT_RAW"
+    echo -e "  Logcat: adb -s $DEVICE_SERIAL logcat -d -s AndroidRuntime,TestRunner"
     exit 1
 else
     echo -e "${GREEN}${BOLD}╔══════════════════════════════════╗${NC}"

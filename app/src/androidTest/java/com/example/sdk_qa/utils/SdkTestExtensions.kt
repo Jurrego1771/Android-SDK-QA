@@ -2,6 +2,10 @@ package com.example.sdk_qa.utils
 
 import android.util.Log
 import androidx.test.core.app.ActivityScenario
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.example.sdk_qa.core.BaseScenarioActivity
 import com.example.sdk_qa.core.CallbackCaptor
 import com.google.common.truth.Truth.assertWithMessage
@@ -155,4 +159,52 @@ fun <T : BaseScenarioActivity> ActivityScenario<T>.awaitAnyError(timeoutMs: Long
         Thread.sleep(200)
     }
     return false
+}
+
+// =============================================================================
+// UiAutomator — interacción con overlay del SDK
+// =============================================================================
+
+// Textos del overlay de siguiente episodio (SDK v10/v11 en español).
+// Si el SDK cambia los labels, actualizar aquí.
+internal object OverlayText {
+    const val NEXT_EPISODE   = "Siguiente"   // botón "Siguiente episodio"
+    const val KEEP_WATCHING  = "Seguir"      // botón "Seguir viendo"
+}
+
+/**
+ * Obtiene la instancia de UiDevice para interacción con la UI del sistema.
+ */
+fun uiDevice(): UiDevice =
+    UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+
+/**
+ * Espera a que aparezca un elemento con texto que contenga [textContains],
+ * luego lo clickea. Retorna true si encontró y clickeó el elemento.
+ */
+fun UiDevice.waitAndClick(textContains: String, timeoutMs: Long = 8_000L): Boolean {
+    val selector = By.textContains(textContains)
+    val appeared = wait(Until.hasObject(selector), timeoutMs)
+    if (!appeared) return false
+    findObject(selector)?.click()
+    return true
+}
+
+/**
+ * Verifica que un elemento con texto [textContains] sea visible en pantalla.
+ */
+fun UiDevice.assertVisible(textContains: String, timeoutMs: Long = 8_000L) {
+    val appeared = wait(Until.hasObject(By.textContains(textContains)), timeoutMs)
+    assertWithMessage("Elemento con texto '$textContains' no visible tras ${timeoutMs}ms")
+        .that(appeared).isTrue()
+}
+
+/**
+ * Verifica que un elemento con texto [textContains] NO sea visible en pantalla.
+ * Útil para confirmar que el overlay desapareció.
+ */
+fun UiDevice.assertNotVisible(textContains: String, timeoutMs: Long = 3_000L) {
+    val stillVisible = wait(Until.hasObject(By.textContains(textContains)), timeoutMs)
+    assertWithMessage("Elemento con texto '$textContains' debería haber desaparecido")
+        .that(stillVisible).isFalse()
 }

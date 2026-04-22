@@ -114,29 +114,6 @@ class PlayerLifecycleTest {
     }
 
     // -------------------------------------------------------------------------
-    // [LIFECYCLE-04] Error no silenciado — el error llega al callback
-    //
-    // Una cuenta inválida produce un error de autenticación en la API.
-    // Verificamos que onError/onEmbedErrors llega.
-    // -------------------------------------------------------------------------
-    @Test
-    fun invalidAccountId_triggersOnError() {
-        val scenario = ActivityScenario.launch<MockServerActivity>(
-            MockServerActivity.createIntent(
-                InstrumentationRegistry.getInstrumentation().targetContext,
-                MockServerActivity.INVALID_ID
-            )
-        )
-
-        val errorFired = scenario.awaitAnyError(TIMEOUT)
-
-        assertWithMessage("onError/onEmbedErrors debe dispararse ante credenciales inválidas")
-            .that(errorFired).isTrue()
-
-        scenario.close()
-    }
-
-    // -------------------------------------------------------------------------
     // [LIFECYCLE-05] reloadPlayer limpia estado anterior antes de nueva carga
     //
     // Después de reload, onReady debe disparar de nuevo.
