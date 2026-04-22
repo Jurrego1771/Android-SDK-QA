@@ -345,11 +345,32 @@ fi
 log_step "Instalación en $DEVICE_SERIAL"
 
 log_info "Instalando app..."
-adb -s "$DEVICE_SERIAL" install -r -t "$APK_APP" 2>&1 | grep -v "^$" | head -5
+_INSTALL_OUT=$(adb -s "$DEVICE_SERIAL" install -r -t "$APK_APP" 2>&1)
+if echo "$_INSTALL_OUT" | grep -qi "FAILED\|error"; then
+    # INSTALL_FAILED_UPDATE_INCOMPATIBLE: desinstala y reintenta
+    if echo "$_INSTALL_OUT" | grep -qi "UPDATE_INCOMPATIBLE\|SIGNATURES_DO_NOT_MATCH"; then
+        log_warn "Firma incompatible — desinstalando versión previa..."
+        adb -s "$DEVICE_SERIAL" uninstall "com.example.sdk_qa" 2>/dev/null || true
+        adb -s "$DEVICE_SERIAL" install -r -t "$APK_APP" 2>&1 | grep -v "^$" \
+            || log_error "Install falló tras desinstalar. Output:\n$_INSTALL_OUT"
+    else
+        log_error "adb install app falló:\n$_INSTALL_OUT"
+    fi
+fi
 log_ok "App instalada"
 
 log_info "Instalando APK de tests..."
-adb -s "$DEVICE_SERIAL" install -r -t "$APK_TEST" 2>&1 | grep -v "^$" | head -5
+_INSTALL_OUT=$(adb -s "$DEVICE_SERIAL" install -r -t "$APK_TEST" 2>&1)
+if echo "$_INSTALL_OUT" | grep -qi "FAILED\|error"; then
+    if echo "$_INSTALL_OUT" | grep -qi "UPDATE_INCOMPATIBLE\|SIGNATURES_DO_NOT_MATCH"; then
+        log_warn "Firma incompatible — desinstalando APK de tests previo..."
+        adb -s "$DEVICE_SERIAL" uninstall "com.example.sdk_qa.test" 2>/dev/null || true
+        adb -s "$DEVICE_SERIAL" install -r -t "$APK_TEST" 2>&1 | grep -v "^$" \
+            || log_error "Install test APK falló tras desinstalar. Output:\n$_INSTALL_OUT"
+    else
+        log_error "adb install test APK falló:\n$_INSTALL_OUT"
+    fi
+fi
 log_ok "APK de tests instalado"
 
 # ─── Paso 4: Lanzar app ───────────────────────────────────────────────────────

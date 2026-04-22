@@ -39,7 +39,7 @@ on:
 
 # Cancelar runs anteriores del mismo branch si llega uno nuevo
 concurrency:
-  group: sdk-qa-${{ github.ref }}
+  group: sdk-qa-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -50,6 +50,7 @@ jobs:
 
     env:
       JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
