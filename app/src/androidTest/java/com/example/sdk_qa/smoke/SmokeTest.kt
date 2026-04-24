@@ -42,6 +42,7 @@ class SmokeTest {
     @Test
     fun vod_playerContainer_isVisible() {
         ActivityScenario.launch(VideoVodScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("playerViewReady", TIMEOUT)
             onView(withId(R.id.player_container)).check(matches(isDisplayed()))
         }
     }
