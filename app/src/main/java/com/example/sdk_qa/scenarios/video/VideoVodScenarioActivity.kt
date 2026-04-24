@@ -19,7 +19,7 @@ class VideoVodScenarioActivity : BaseScenarioActivity() {
         id = TestContent.Video.VOD_LONG
         accountID = TestContent.ACCOUNT_ID
         type = MediastreamPlayerConfig.VideoTypes.VOD
-        environment = TestContent.ENV
+        environment = MediastreamPlayerConfig.Environment.PRODUCTION
         autoplay = true
         isDebug = true
     }

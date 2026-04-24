@@ -93,18 +93,23 @@ object TestContent {
     }
 
     // -------------------------------------------------------------------------
-    // DRM  (contenido en entorno DEV — el scenario sobreescribe ENV)
+    // DRM  (contenido en entorno DEV — Axinom Widevine)
     // -------------------------------------------------------------------------
     object Drm {
-        /** Live con DRM Widevine — solo disponible en DEV */
+        /** Live con DRM Widevine */
         const val LIVE_ID = "699afcb05a41925324fa4605"
 
         /** Entorno requerido para el contenido DRM */
         val ENV = MediastreamPlayerConfig.Environment.DEV
 
-        // Axinom Widevine License URL (referencia — el SDK la usa internamente):
-        // https://d231f6fd.drm-widevine-licensing.axprod.net/AcquireLicense
-        // Communication Key ID: 20f3aae7-608c-4a42-b830-b332015b5e65
-        // TODO: cuando SDK exponga DrmData API, agregar LICENSE_URL y HEADERS aquí
+        /** Servidor de licencias Axinom (tenant: d231f6fd) */
+        const val LICENSE_URL = "https://d231f6fd.drm-widevine-licensing.axprod.net/AcquireLicense"
+
+        /**
+         * JWT de Axinom — EXPIRADO intencionalmente para validar error de expiración.
+         * expiration_date: 2026-04-23T18:39:15.317Z
+         * Communication Key ID: 24cff0fc-4fec-44f2-abe9-b36901 65b6ad
+         */
+        const val ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiMjRjZmYwZmMtNGZlYy00NGYyLWFiZTktYjM2OTAxNjViNmFkIiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsInZlcnNpb24iOjEsImV4cGlyYXRpb25fZGF0ZSI6IjIwMjYtMDQtMjRUMjE6MTI6MjEuNjEyWiIsImtleXMiOlt7ImlkIjoiMjRBRjZEN0YtREQ1Ri00NzlELUIwMUQtOTI3MTREMTk5MzdFIn1dfX0.6pYS9pBY6KGIStqNaQOXX6mfHvMpOtN57y5ry-Nkluo"
     }
 }
