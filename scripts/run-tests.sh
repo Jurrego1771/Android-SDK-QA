@@ -402,7 +402,24 @@ case "$TARGET" in
         log_info "Target: Mobile      — excluye @TvOnly y @FireTvOnly"
         ;;
     all)
-        log_info "Target: Todos los dispositivos — sin filtro de tipo"
+        # Auto-apply annotation filter based on detected device type
+        case "$DETECTED_TYPE" in
+            tv)
+                INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.FireTvOnly"
+                log_info "Target: all (TV detectado) — excluye @MobileOnly y @FireTvOnly"
+                ;;
+            firetv)
+                INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.TvOnly"
+                log_info "Target: all (FireTV detectado) — excluye @MobileOnly y @TvOnly"
+                ;;
+            mobile)
+                INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.TvOnly,${ANNOTATION_PKG}.FireTvOnly"
+                log_info "Target: all (Mobile detectado) — excluye @TvOnly y @FireTvOnly"
+                ;;
+            *)
+                log_info "Target: Todos los dispositivos — sin filtro de tipo"
+                ;;
+        esac
         ;;
 esac
 

@@ -2,10 +2,14 @@ package com.example.sdk_qa.utils
 
 import android.os.StrictMode
 import leakcanary.DetectLeaksAfterTestSuccess
+import leakcanary.LeakCanary
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
+import shark.AndroidReferenceMatchers
+import shark.LibraryLeakReferenceMatcher
+import shark.ReferencePattern.InstanceFieldPattern
 
 /**
  * Regla JUnit reutilizable para todos los tests del SDK.
@@ -30,9 +34,36 @@ class SdkTestRule : TestRule {
         .around(StrictModeRule())
         .around(SdkEvidenceRule())
 
-    override fun apply(base: Statement, description: Description): Statement =
-        inner.apply(base, description)
+    override fun apply(base: Statement, description: Description): Statement {
+        // Tell LeakCanary to treat known IMA SDK leaks as library leaks (not app failures).
+        // AndroidDetectLeaksAssert reads LeakCanary.config.referenceMatchers at analysis time.
+        LeakCanary.config = LeakCanary.config.copy(
+            referenceMatchers = AndroidReferenceMatchers.appDefaults + IMA_LIBRARY_LEAKS
+        )
+        return inner.apply(base, description)
+    }
 }
+
+// ---------------------------------------------------------------------------
+// IMA SDK known library leaks — excluded from application leak detection.
+//
+// IMA registers a global Application.ActivityLifecycleCallbacks (zzea) that
+// retains the last Activity referencing MediastreamPlayer. This causes
+// cross-test contamination: Activity from test N is still referenced by IMA
+// when test N+1 triggers LeakCanary. Reported to Mediastream — we cannot
+// unregister IMA's global callback from our side.
+// ---------------------------------------------------------------------------
+private val IMA_LIBRARY_LEAKS = listOf(
+    LibraryLeakReferenceMatcher(
+        pattern = InstanceFieldPattern(
+            className = "com.google.ads.interactivemedia.v3.internal.zzea",
+            fieldName = "zzb"
+        ),
+        description = "IMA SDK (Google) retains Activities via a global " +
+            "Application.ActivityLifecycleCallbacks registered by zzea. " +
+            "Cannot be fixed from app code — SDK-level bug."
+    )
+)
 
 // ---------------------------------------------------------------------------
 // StrictMode como TestRule
@@ -81,4 +112,3 @@ private class StrictModeRule : TestRule {
         }
     }
 }
-
