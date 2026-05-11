@@ -301,13 +301,18 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
                 detail = data?.optString("title"),
                 category = LogCategory.SYSTEM)
 
-        override fun onAdEvents(type: AdEvent.AdEventType) =
+        override fun onAdEvents(type: AdEvent.AdEventType) {
+            callbackCaptor.recordEvent("onAdEvents")
+            callbackCaptor.recordEvent("onAdEvents:${type.name}")
             log("onAdEvents", detail = type.name, category = LogCategory.AD)
+        }
 
-        override fun onAdErrorEvent(error: AdError) =
+        override fun onAdErrorEvent(error: AdError) {
+            callbackCaptor.recordEvent("onAdErrorEvent")
             log("onAdErrorEvent",
                 detail = "${error.errorCode}: ${error.message}",
                 category = LogCategory.AD)
+        }
 
         override fun onCastAvailable(state: Boolean?) =
             log("onCastAvailable", detail = "available=$state", category = LogCategory.CAST)
