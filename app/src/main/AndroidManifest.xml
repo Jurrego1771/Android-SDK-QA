@@ -72,6 +72,14 @@
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:supportsPictureInPicture="true" />
 
+        <!-- [02-D] Live D -->
+        <activity
+            android:name=".scenarios.video.VideoLiveDScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
         <!-- [03] Live + DVR -->
         <activity
             android:name=".scenarios.video.VideoLiveDvrScenarioActivity"

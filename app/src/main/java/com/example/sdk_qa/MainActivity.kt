@@ -18,6 +18,7 @@ import com.example.sdk_qa.scenarios.video.VideoDrmScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoEpisodeApiScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoEpisodeCustomScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoLiveDvrScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoLiveDScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoLiveScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoPipScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoReelsScenarioActivity
@@ -62,6 +63,12 @@ class MainActivity : AppCompatActivity() {
             description = "Stream en vivo sin DVR — reconnection, callbacks",
             status = PENDING,
             activityClass = VideoLiveScenarioActivity::class.java
+        ),
+        ScenarioListItem.Scenario(
+            title = "Live D",
+            description = "Stream en vivo sin DVR — variante D",
+            status = PENDING,
+            activityClass = VideoLiveDScenarioActivity::class.java
         ),
         ScenarioListItem.Scenario(
             title = "Live + DVR",
