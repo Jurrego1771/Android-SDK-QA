@@ -1,6 +1,7 @@
 package com.example.sdk_qa.scenarios.video
 
 import am.mediastre.mediastreamplatformsdkandroid.MediastreamPlayerConfig
+import android.content.Context
 import android.content.Intent
 import android.view.View
 import android.widget.LinearLayout
@@ -28,9 +29,10 @@ class VideoFullscreenOverrideScenarioActivity : BaseScenarioActivity() {
         const val EXTRA_ENABLE_OFF_OVERRIDE = "enable_off_override"
 
         fun intentWithOverrides(
+            context: Context,
             enableOn: Boolean = false,
             enableOff: Boolean = false
-        ): Intent = Intent(Intent.ACTION_MAIN).apply {
+        ): Intent = Intent(context, VideoFullscreenOverrideScenarioActivity::class.java).apply {
             putExtra(EXTRA_ENABLE_ON_OVERRIDE,  enableOn)
             putExtra(EXTRA_ENABLE_OFF_OVERRIDE, enableOff)
         }
@@ -46,10 +48,12 @@ class VideoFullscreenOverrideScenarioActivity : BaseScenarioActivity() {
         val enableOff = intent.getBooleanExtra(EXTRA_ENABLE_OFF_OVERRIDE, false)
 
         return MediastreamPlayerConfig().apply {
-            src      = TestContent.Video.SRC_DIRECT_HLS
-            type     = MediastreamPlayerConfig.VideoTypes.VOD
-            autoplay = true
-            isDebug  = true
+            id        = TestContent.Video.VOD_SHORT
+            accountID = TestContent.ACCOUNT_ID
+            type      = MediastreamPlayerConfig.VideoTypes.VOD
+            environment = TestContent.ENV
+            autoplay  = true
+            isDebug   = true
 
             if (enableOn) {
                 onFullscreenOnClick = java.util.function.Consumer { _ ->

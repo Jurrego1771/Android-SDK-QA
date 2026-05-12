@@ -3,10 +3,9 @@ package com.example.sdk_qa.integration
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.platform.app.InstrumentationRegistry
 import com.example.sdk_qa.annotation.MobileOnly
 import com.example.sdk_qa.scenarios.video.VideoFullscreenOverrideScenarioActivity
-import com.example.sdk_qa.scenarios.video.VideoFullscreenOverrideScenarioActivity.Companion.EXTRA_ENABLE_OFF_OVERRIDE
-import com.example.sdk_qa.scenarios.video.VideoFullscreenOverrideScenarioActivity.Companion.EXTRA_ENABLE_ON_OVERRIDE
 import com.example.sdk_qa.utils.SdkTestRule
 import com.example.sdk_qa.utils.assertCallbackNotFired
 import com.example.sdk_qa.utils.assertNoErrorFired
@@ -51,7 +50,7 @@ class FullscreenOverrideTest {
     // -------------------------------------------------------------------------
     @Test
     fun playerWithBothOverrides_onReady_fires() {
-        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(
+        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(InstrumentationRegistry.getInstrumentation().targetContext,
             enableOn = true, enableOff = true
         )
         ActivityScenario.launch<VideoFullscreenOverrideScenarioActivity>(intent).use { scenario ->
@@ -82,7 +81,7 @@ class FullscreenOverrideTest {
     @Test
     @MobileOnly // fullscreen buttons are hidden on TV (isDeviceTV() check in SDK Customizer)
     fun fullscreenOnOverride_isInvoked_onButtonClick() {
-        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(enableOn = true)
+        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(InstrumentationRegistry.getInstrumentation().targetContext,enableOn = true)
         ActivityScenario.launch<VideoFullscreenOverrideScenarioActivity>(intent).use { scenario ->
             scenario.awaitCallback("onReady", TIMEOUT)
 
@@ -110,7 +109,7 @@ class FullscreenOverrideTest {
     @Test
     @MobileOnly
     fun fullscreenOnOverride_preventsDefaultEnterFullscreen() {
-        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(enableOn = true)
+        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(InstrumentationRegistry.getInstrumentation().targetContext,enableOn = true)
         ActivityScenario.launch<VideoFullscreenOverrideScenarioActivity>(intent).use { scenario ->
             scenario.awaitCallback("onReady", TIMEOUT)
             scenario.onActivity { it.simulateFullscreenOnClick() }
@@ -144,7 +143,7 @@ class FullscreenOverrideTest {
     @Test
     @MobileOnly
     fun fullscreenOffOverride_firesWithoutFullscreenGuard() {
-        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(
+        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(InstrumentationRegistry.getInstrumentation().targetContext,
             enableOn = true,   // evita que isOnFullscreen se ponga true
             enableOff = true
         )
@@ -212,7 +211,7 @@ class FullscreenOverrideTest {
     @Test
     @MobileOnly
     fun bothOverrides_eachCalledExactlyOnce_onDoubleClick() {
-        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(
+        val intent = VideoFullscreenOverrideScenarioActivity.intentWithOverrides(InstrumentationRegistry.getInstrumentation().targetContext,
             enableOn = true, enableOff = true
         )
         ActivityScenario.launch<VideoFullscreenOverrideScenarioActivity>(intent).use { scenario ->
