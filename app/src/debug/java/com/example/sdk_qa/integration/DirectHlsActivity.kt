@@ -12,8 +12,10 @@ class DirectHlsActivity : BaseScenarioActivity() {
 
     companion object {
         fun buildDirectConfig() = MediastreamPlayerConfig().apply {
-            src = TestContent.Video.SRC_DIRECT_HLS
+            id = TestContent.Video.VOD_SHORT
+            accountID = TestContent.ACCOUNT_ID
             type = MediastreamPlayerConfig.VideoTypes.VOD
+            environment = TestContent.ENV
             autoplay = true
             isDebug = false
         }
