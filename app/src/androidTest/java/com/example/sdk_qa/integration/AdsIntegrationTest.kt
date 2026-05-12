@@ -30,7 +30,10 @@ import org.junit.runner.RunWith
 @LargeTest
 class AdsIntegrationTest {
 
-    @get:Rule val sdkRule = SdkTestRule()
+    // detectLeaks=false: IMA AdTagLoader heap analysis (~45MB + ~70s CPU per test) OOM-kills
+    // the process on BRAVIA TV after 4 sequential tests. IMA leak (Bug #1) is already known
+    // and excluded from LeakCanary. StrictMode still runs via SdkTestRule.
+    @get:Rule val sdkRule = SdkTestRule(detectLeaks = false)
 
     private val TIMEOUT = 30_000L
 

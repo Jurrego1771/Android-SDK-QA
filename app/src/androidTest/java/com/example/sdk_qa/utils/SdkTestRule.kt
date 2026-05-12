@@ -1,6 +1,7 @@
 package com.example.sdk_qa.utils
 
 import android.os.StrictMode
+import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.DetectLeaksAfterTestSuccess
 import leakcanary.LeakCanary
 import org.junit.rules.RuleChain
@@ -16,23 +17,32 @@ import shark.ReferencePattern.InstanceFieldPattern
  *
  * Combina en una sola declaración:
  *   1. DetectLeaksAfterTestSuccess — falla si el SDK retiene objetos después del test
+ *      (omitido cuando detectLeaks = false — usar para tests con IMA que consumen
+ *      demasiada RAM en el análisis de heap en dispositivos TV con memoria limitada)
  *   2. StrictMode                  — detecta network/disk en main thread (log, no death)
  *   3. SdkEvidenceRule             — placeholder para evidencia adicional
  *
  * Uso:
  *   @get:Rule val sdkRule = SdkTestRule()
+ *   @get:Rule val sdkRule = SdkTestRule(detectLeaks = false)  // para AdsIntegrationTest
  *
  * Para tests que también necesitan ActivityScenarioRule, encadenar con RuleChain:
  *   @get:Rule val rules = RuleChain
  *       .outerRule(SdkTestRule())
  *       .around(ActivityScenarioRule(MyActivity::class.java))
  */
-class SdkTestRule : TestRule {
+class SdkTestRule(private val detectLeaks: Boolean = true) : TestRule {
 
-    private val inner: RuleChain = RuleChain
-        .outerRule(DetectLeaksAfterTestSuccess())
-        .around(StrictModeRule())
-        .around(SdkEvidenceRule())
+    private val inner: RuleChain = if (detectLeaks) {
+        RuleChain
+            .outerRule(DetectLeaksAfterTestSuccess())
+            .around(StrictModeRule())
+            .around(SdkEvidenceRule())
+    } else {
+        RuleChain
+            .outerRule(StrictModeRule())
+            .around(SdkEvidenceRule())
+    }
 
     override fun apply(base: Statement, description: Description): Statement {
         // Tell LeakCanary to treat known IMA SDK leaks as library leaks (not app failures).
@@ -40,7 +50,18 @@ class SdkTestRule : TestRule {
         LeakCanary.config = LeakCanary.config.copy(
             referenceMatchers = AndroidReferenceMatchers.appDefaults + IMA_LIBRARY_LEAKS
         )
+        // Remove HPROF files from previous tests before each test runs.
+        // Ads tests each trigger a ~45MB heap dump; 5+ dumps fill storage and crash the process.
+        purgeStaleHprofs()
         return inner.apply(base, description)
+    }
+
+    private fun purgeStaleHprofs() {
+        try {
+            InstrumentationRegistry.getInstrumentation().targetContext.filesDir
+                .listFiles { f -> f.name.endsWith(".hprof") }
+                ?.forEach { it.delete() }
+        } catch (_: Exception) { /* best-effort */ }
     }
 }
 
@@ -62,6 +83,16 @@ private val IMA_LIBRARY_LEAKS = listOf(
         description = "IMA SDK (Google) retains Activities via a global " +
             "Application.ActivityLifecycleCallbacks registered by zzea. " +
             "Cannot be fixed from app code — SDK-level bug."
+    ),
+    LibraryLeakReferenceMatcher(
+        pattern = InstanceFieldPattern(
+            className = "androidx.media3.exoplayer.ima.AdTagLoader\$\$ExternalSyntheticLambda1",
+            fieldName = "f\$0"
+        ),
+        description = "Media3 IMA schedules a delayed Runnable on the main thread that captures " +
+            "AdTagLoader as f\$0. AdTagLoader retains Activity-bound objects (configuration, " +
+            "adDisplayContainer, …) until the message fires ~2-5s after Activity#onDestroy. " +
+            "SDK bug #1 — AdTagLoader is a Media3/IMA internal; cannot fix from app side."
     )
 )
 
