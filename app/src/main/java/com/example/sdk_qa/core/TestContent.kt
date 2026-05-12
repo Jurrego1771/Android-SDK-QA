@@ -48,6 +48,10 @@ object TestContent {
         /** VOD con múltiples anuncios IMA configurados */
         const val VOD_WITH_ADS = "696bc8a832ce0ef08c6fa0ef"
 
+        /** VOD con subtítulos (WebVTT o ASS/SSA) configurados en la plataforma.
+         *  TODO: reemplazar con ID real — actualmente alias de VOD_LONG */
+        const val VOD_WITH_SUBTITLES = VOD_LONG
+
         /** VOD con DRM Widevine. TODO: reemplazar cuando se tenga ID */
         const val VOD_DRM = "69b0918a741d2bbba0cacf78"
 

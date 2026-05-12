@@ -329,4 +329,89 @@ class EpisodeNextTest {
             scenario.assertNoErrorFired()
         }
     }
+
+    // =========================================================================
+    // ORDEN DE CALLBACKS — garantías de secuencia
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // [EPISODE-API-08] Orden garantizado: nextEpisodeIncoming → onNext → onNewSourceAdded
+    //
+    // Un integrador que actualiza UI en cada callback asume este orden. Si el SDK
+    // enviara onNext antes de nextEpisodeIncoming, o onNewSourceAdded antes de
+    // onNext, el estado de la UI quedaría inconsistente.
+    // -------------------------------------------------------------------------
+    @Test
+    @MobileOnly
+    @LargeTest
+    fun episodeApi_callbackOrder_nextEpisodeIncoming_before_onNext_before_onNewSourceAdded() {
+        ActivityScenario.launch(VideoEpisodeApiScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onReady", TIMEOUT_READY)
+
+            var duration = 0L
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio debe tener duración conocida")
+                .that(duration).isGreaterThan(30_000L)
+
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+
+            uiDevice().waitAndClick(OverlayText.NEXT_EPISODE, TIMEOUT_OVERLAY)
+
+            scenario.awaitCallback("onNext",           TIMEOUT_NAV)
+            scenario.awaitCallback("onNewSourceAdded", TIMEOUT_NAV)
+
+            val order              = scenario.getCallbackCaptor().eventOrderSnapshot()
+            val nextIncomingIdx    = order.indexOf("nextEpisodeIncoming")
+            val onNextIdx          = order.indexOf("onNext")
+            val onNewSourceAddedIdx = order.indexOf("onNewSourceAdded")
+
+            assertWithMessage(
+                "nextEpisodeIncoming debe llegar antes que onNext\n  Orden: $order"
+            ).that(nextIncomingIdx).isLessThan(onNextIdx)
+
+            assertWithMessage(
+                "onNext debe llegar antes que onNewSourceAdded\n  Orden: $order"
+            ).that(onNextIdx).isLessThan(onNewSourceAddedIdx)
+
+            scenario.assertNoErrorFired()
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // [EPISODE-CUSTOM-04] Modo custom: nextEpisodeIncoming llega antes que onNext
+    //
+    // En modo custom el cliente recibe nextEpisodeIncoming y debe llamar
+    // updateNextEpisode() antes de que el usuario presione "Siguiente".
+    // El SDK no debe disparar onNext sin nextEpisodeIncoming previo.
+    // -------------------------------------------------------------------------
+    @Test
+    @MobileOnly
+    @LargeTest
+    fun episodeCustom_callbackOrder_nextEpisodeIncoming_before_onNext() {
+        ActivityScenario.launch(VideoEpisodeCustomScenarioActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onReady", TIMEOUT_READY)
+
+            var duration = 0L
+            scenario.onActivity { duration = it.player?.msPlayer?.duration ?: 0L }
+            assertWithMessage("El episodio custom debe tener duración conocida")
+                .that(duration).isGreaterThan(30_000L)
+
+            scenario.onActivity { it.player?.msPlayer?.seekTo(duration - 20_000L) }
+            scenario.awaitCallback("nextEpisodeIncoming", TIMEOUT_NAV)
+
+            uiDevice().waitAndClick(OverlayText.NEXT_EPISODE, TIMEOUT_OVERLAY)
+            scenario.awaitCallback("onNext", TIMEOUT_NAV)
+
+            val order           = scenario.getCallbackCaptor().eventOrderSnapshot()
+            val nextIncomingIdx = order.indexOf("nextEpisodeIncoming")
+            val onNextIdx       = order.indexOf("onNext")
+
+            assertWithMessage(
+                "nextEpisodeIncoming debe llegar antes que onNext en modo custom\n  Orden: $order"
+            ).that(nextIncomingIdx).isLessThan(onNextIdx)
+
+            scenario.assertNoErrorFired()
+        }
+    }
 }

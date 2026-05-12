@@ -112,6 +112,14 @@
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:supportsPictureInPicture="true" />
 
+        <!-- [17] Subtítulos — WebVTT / ASS·SSA / CEA-608 -->
+        <activity
+            android:name=".scenarios.video.VideoSubtitleScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
         <!-- [07] DRM Widevine -->
         <activity
             android:name=".scenarios.video.VideoDrmScenarioActivity"
