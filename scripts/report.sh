@@ -55,93 +55,75 @@ REPORT_DATE=$(date "+%Y-%m-%d %H:%M:%S")
 HAS_VIDEO=false
 [[ -f "$OUTPUT_DIR/videos/session.mp4" ]] && HAS_VIDEO=true
 
-# Leer JSON con python si está disponible, si no usar variables pasadas
-TOTAL=$(python3 -c "import json,sys; d=json.load(open('$RESULTS_JSON')); print(d['summary']['total'])" 2>/dev/null || echo "?")
-PASSED=$(python3 -c "import json,sys; d=json.load(open('$RESULTS_JSON')); print(d['summary']['passed'])" 2>/dev/null || echo "?")
-FAILED=$(python3 -c "import json,sys; d=json.load(open('$RESULTS_JSON')); print(d['summary']['failed'])" 2>/dev/null || echo "?")
-DURATION=$(python3 -c "import json,sys; d=json.load(open('$RESULTS_JSON')); print(d['summary']['duration'])" 2>/dev/null || echo "?")
+# Leer JSON con node
+_json_field() { node -e "try{const d=JSON.parse(require('fs').readFileSync('$RESULTS_JSON','utf8'));console.log(d.summary['$1']);}catch(e){console.log('?');}" 2>/dev/null || echo "?"; }
+TOTAL=$(_json_field total)
+PASSED=$(_json_field passed)
+FAILED=$(_json_field failed)
+DURATION=$(_json_field duration)
 
 # Generar filas de tests desde el JSON
-TESTS_HTML=$(PYTHONUTF8=1 python3 - <<'PYEOF'
-import json, os, base64, sys
-sys.stdout.reconfigure(encoding='utf-8')
+TESTS_HTML=$(node - "$RESULTS_JSON" "$OUTPUT_DIR/screenshots" <<'JSEOF'
+const fs = require('fs'), path = require('path');
+const [resultsJson, screenshotsDir] = process.argv.slice(2);
 
-results_json = sys.argv[1] if len(sys.argv) > 1 else "ai-output/test-results.json"
-screenshots_dir = sys.argv[2] if len(sys.argv) > 2 else "ai-output/report/screenshots"
+let data;
+try { data = JSON.parse(fs.readFileSync(resultsJson, 'utf8')); }
+catch(_) { process.exit(0); }
 
-try:
-    with open(results_json) as f:
-        data = json.load(f)
-except:
-    print("")
-    sys.exit(0)
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const statusMap = { passed: ['pass','✓'], failed: ['fail','✗'], skipped: ['skip','⊘'] };
 
-html = ""
-for test in data.get("tests", []):
-    name      = test.get("name", "")
-    cls       = test.get("class", "")
-    status    = test.get("status", "unknown")
-    duration  = test.get("duration", "")
-    error     = test.get("error", "")
-    callbacks_fired   = test.get("callbacks_fired", [])
-    callbacks_missing = test.get("callbacks_missing", [])
+let html = '';
+for (const test of (data.tests || [])) {
+    const name = test.name || '', cls = test.class || '';
+    const status = test.status || 'unknown', dur = test.duration || '';
+    const error = test.error || '';
+    const [statusClass, statusIcon] = statusMap[status] || ['skip','?'];
 
-    status_class = {"passed": "pass", "failed": "fail", "skipped": "skip"}.get(status, "skip")
-    status_icon  = {"passed": "✓", "failed": "✗", "skipped": "⊘"}.get(status, "?")
+    // Screenshot embebido en base64
+    let screenshotHtml = '';
+    if (status === 'failed' && fs.existsSync(screenshotsDir)) {
+        const safe = name.replace(/[ /]/g,'_').slice(0,80);
+        const candidates = [
+            path.join(screenshotsDir, `${cls}_${safe}.png`),
+            path.join(screenshotsDir, `${cls.split('.').pop()}_${safe}.png`),
+            ...fs.readdirSync(screenshotsDir)
+                .filter(f => f.includes(safe.slice(0,30)))
+                .map(f => path.join(screenshotsDir, f))
+        ];
+        for (const p of candidates) {
+            if (fs.existsSync(p)) {
+                const b64 = fs.readFileSync(p).toString('base64');
+                screenshotHtml = `<div class="screenshot"><img src="data:image/png;base64,${b64}" alt="screenshot" onclick="this.classList.toggle('zoom')"/><p>Screenshot al momento del fallo</p></div>`;
+                break;
+            }
+        }
+    }
 
-    # Screenshot embebido
-    screenshot_html = ""
-    if status == "failed":
-        # Buscar screenshot por nombre de clase+método
-        safe_method = name.replace(" ", "_").replace("/", "_")[:80]
-        candidates = [
-            os.path.join(screenshots_dir, f"{cls}_{safe_method}.png"),
-            os.path.join(screenshots_dir, f"{cls.split('.')[-1]}_{safe_method}.png"),
-        ]
-        # También buscar cualquier archivo que contenga el nombre del test
-        if os.path.isdir(screenshots_dir):
-            for f in os.listdir(screenshots_dir):
-                if safe_method[:30] in f or name.replace(" ","_")[:30] in f:
-                    candidates.insert(0, os.path.join(screenshots_dir, f))
-
-        for path in candidates:
-            if os.path.isfile(path):
-                with open(path, "rb") as img:
-                    b64 = base64.b64encode(img.read()).decode()
-                screenshot_html = f'<div class="screenshot"><img src="data:image/png;base64,{b64}" alt="screenshot" onclick="this.classList.toggle(\'zoom\')"/><p>Screenshot al momento del fallo</p></div>'
-                break
-
-    # Error detail
-    error_html = ""
-    if error:
-        cb_html = ""
-        if callbacks_fired or callbacks_missing:
-            fired_str   = ", ".join(callbacks_fired)   if callbacks_fired   else "ninguno"
-            missing_str = ", ".join(callbacks_missing) if callbacks_missing else "ninguno"
-            cb_html = f"""
+    let errorHtml = '';
+    if (error) {
+        const cbFired   = (test.callbacks_fired   || []).join(', ') || 'ninguno';
+        const cbMissing = (test.callbacks_missing || []).join(', ') || 'ninguno';
+        const cbHtml = (test.callbacks_fired || test.callbacks_missing) ? `
             <div class="callbacks">
-                <span class="cb-fired">✓ Recibidos: {fired_str}</span>
-                <span class="cb-missing">✗ Faltantes: {missing_str}</span>
-            </div>"""
-        error_html = f"""
-        <div class="error-detail">
-            <pre class="error-msg">{error}</pre>
-            {cb_html}
-            {screenshot_html}
-        </div>"""
+                <span class="cb-fired">✓ Recibidos: ${esc(cbFired)}</span>
+                <span class="cb-missing">✗ Faltantes: ${esc(cbMissing)}</span>
+            </div>` : '';
+        errorHtml = `<div class="error-detail"><pre class="error-msg">${esc(error)}</pre>${cbHtml}${screenshotHtml}</div>`;
+    }
 
-    html += f"""
-    <tr class="{status_class}" onclick="toggleDetail(this)">
-        <td class="status-icon">{status_icon}</td>
-        <td class="test-name"><span class="class-name">{cls.split(".")[-1]}</span>.{name}</td>
-        <td class="duration">{duration}</td>
-    </tr>"""
-    if error_html:
-        html += f'<tr class="detail-row {status_class}-detail"><td colspan="3">{error_html}</td></tr>'
-
-print(html)
-PYEOF
-"$RESULTS_JSON" "$OUTPUT_DIR/screenshots" 2>/dev/null || echo "<!-- no test data -->")
+    const shortCls = cls.split('.').pop();
+    html += `\n    <tr class="${statusClass}" onclick="toggleDetail(this)">
+        <td class="status-icon">${statusIcon}</td>
+        <td class="test-name"><span class="class-name">${esc(shortCls)}</span>.${esc(name)}</td>
+        <td class="duration">${esc(dur)}</td>
+    </tr>`;
+    if (errorHtml) html += `\n<tr class="detail-row ${statusClass}-detail"><td colspan="3">${errorHtml}</td></tr>`;
+}
+process.stdout.write(html);
+JSEOF
+2>/dev/null || echo "<!-- no test data -->")
 
 VIDEO_SECTION=""
 if $HAS_VIDEO; then

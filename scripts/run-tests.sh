@@ -521,62 +521,55 @@ SECONDS_REM=$((ELAPSED % 60))
 # ─── Paso 8: (grabación deshabilitada) ───────────────────────────────────────
 
 # ─── Paso 9: Parsear resultados del raw file ──────────────────────────────────
-# Python imprime comandos bash que eval pobla PASSED_TESTS / FAILED_TESTS.
-# Se evita temp-file para no tener problemas de path MSYS↔Windows en Python.exe.
+# Node.js imprime comandos bash que eval pobla PASSED_TESTS / FAILED_TESTS.
 PASSED_TESTS=()
 FAILED_TESTS=()
 FAILED_REASONS=()
 
-eval "$(python3 - "$INSTRUMENT_RAW" <<'PYEOF'
-import sys, re, shlex
+eval "$(node - "$INSTRUMENT_RAW" <<'JSEOF'
+const fs = require('fs');
+const rawPath = process.argv[2];
+let content = '';
+try { content = fs.readFileSync(rawPath, 'utf8'); } catch(_) { process.exit(0); }
 
-raw_path = sys.argv[1]
-try:
-    with open(raw_path, encoding='utf-8', errors='replace') as f:
-        content = f.read()
-except Exception:
-    sys.exit(0)
+const passed = [], failed = [];
+let currentClass = '', inError = false, errorEntry = null;
 
-passed = []
-failed  = []
-current_class = ""
-in_error   = False
-error_entry = None
+for (const line of content.split(/\r?\n/)) {
+    const suiteM = line.match(/^(com\.example\.sdk_qa\.\S+?):(.*)/);
+    if (suiteM) {
+        currentClass = suiteM[1];
+        for (const ch of suiteM[2]) {
+            if (ch === '.') passed.push({ cls: currentClass, test: 'unknown' });
+        }
+        inError = false; errorEntry = null;
+        continue;
+    }
+    const errM = line.match(/^Error in (\w+)\(/);
+    if (errM) {
+        if (passed.length && passed[passed.length-1].test === 'unknown') passed.pop();
+        errorEntry = { cls: currentClass, test: errM[1], reason: '' };
+        failed.push(errorEntry);
+        inError = true;
+        continue;
+    }
+    if (inError && errorEntry && !errorEntry.reason) {
+        const s = line.trim();
+        if (s && !s.startsWith('at ') && s !== '') errorEntry.reason = s.slice(0, 200);
+    }
+    if (line.trim() === '.') {
+        passed.push({ cls: currentClass, test: 'unknown' });
+        inError = false; errorEntry = null;
+    }
+}
 
-for line in content.splitlines():
-    m = re.match(r'^(com\.example\.sdk_qa\.\S+?):(.*)', line)
-    if m:
-        current_class = m.group(1)
-        for ch in m.group(2):
-            if ch == '.':
-                passed.append({"class": current_class, "test": "unknown"})
-        in_error = False; error_entry = None
-        continue
-
-    em = re.match(r'^Error in (\w+)\(', line)
-    if em:
-        if passed and passed[-1]["test"] == "unknown":
-            passed.pop()
-        error_entry = {"class": current_class, "test": em.group(1), "reason": ""}
-        failed.append(error_entry)
-        in_error = True
-        continue
-
-    if in_error and error_entry and not error_entry["reason"]:
-        s = line.strip()
-        if s and not s.startswith("at ") and not re.match(r'^\s*$', s):
-            error_entry["reason"] = s[:200]
-
-    if line.strip() == ".":
-        passed.append({"class": current_class, "test": "unknown"})
-        in_error = False; error_entry = None
-
-for t in passed:
-    print("PASSED_TESTS+=(" + shlex.quote(t['class'] + "." + t['test']) + ")")
-for t in failed:
-    print("FAILED_TESTS+=(" + shlex.quote(t['class'] + "." + t['test']) + ")")
-    print("FAILED_REASONS+=(" + shlex.quote(t['reason']) + ")")
-PYEOF
+const q = s => "'" + s.replace(/'/g, "'\\''") + "'";
+for (const t of passed)  process.stdout.write('PASSED_TESTS+=(' + q(t.cls + '.' + t.test) + ')\n');
+for (const t of failed) {
+    process.stdout.write('FAILED_TESTS+=(' + q(t.cls + '.' + t.test) + ')\n');
+    process.stdout.write('FAILED_REASONS+=(' + q(t.reason) + ')\n');
+}
+JSEOF
 )"
 
 # ─── Paso 9b: Screenshot via adb si hubo fallos (fallback al device-side) ────
@@ -624,77 +617,51 @@ fi
 if [[ "$NO_REPORT" == false ]]; then
     log_info "Generando test-results.json..."
 
-    python3 - "$INSTRUMENT_RAW" "$RESULTS_JSON" "${MINUTES}m${SECONDS_REM}s" <<'PYEOF'
-import json, sys, re
+    node - "$INSTRUMENT_RAW" "$RESULTS_JSON" "${MINUTES}m${SECONDS_REM}s" <<'JSEOF'
+const fs = require('fs');
+const [rawPath, outPath, duration] = process.argv.slice(2);
+let content = '';
+try { content = fs.readFileSync(rawPath, 'utf8'); } catch(_) {}
 
-raw_path  = sys.argv[1]
-out_path  = sys.argv[2]
-duration  = sys.argv[3]
+const passedTests = [], failedTests = [];
+let currentClass = '', inError = false, errorEntry = null;
 
-try:
-    with open(raw_path, encoding='utf-8', errors='replace') as f:
-        content = f.read()
-except Exception:
-    content = ""
-
-passed_tests = []
-failed_tests = []
-current_class = ""
-in_error = False
-error_entry = None
-
-for line in content.splitlines():
-    # Suite header: "com.example.sdk_qa.foo.BarTest:...E."
-    m = re.match(r'^(com\.example\.sdk_qa\.(\S+?)):(.*)$', line)
-    if m:
-        current_class = m.group(1)
-        trail = m.group(3)
-        for ch in trail:
-            if ch == '.':
-                passed_tests.append({"name": "—", "class": current_class, "status": "passed", "duration": ""})
-        in_error = False
-        error_entry = None
-        continue
-
-    # Error block start
-    em = re.match(r'^Error in (\w+)\(', line)
-    if em:
-        error_entry = {"name": em.group(1), "class": current_class,
-                       "status": "failed", "duration": "", "error": ""}
-        failed_tests.append(error_entry)
-        in_error = True
-        continue
-
-    # Collect stack/reason — grab first non-boilerplate line
-    if in_error and error_entry and not error_entry["error"]:
-        s = line.strip()
-        if s and not s.startswith("at ") and not s.startswith("expected") \
-             and not s.startswith("Recibidos") and not s.startswith("Faltantes") \
-             and not re.match(r'^\s*$', s):
-            error_entry["error"] = s
-
-    # Lone dot = pass after an error block
-    if line.strip() == ".":
-        passed_tests.append({"name": "—", "class": current_class, "status": "passed", "duration": ""})
-        in_error = False
-        error_entry = None
-
-n_pass = len(passed_tests)
-n_fail = len(failed_tests)
-
-result = {
-    "tests": failed_tests + passed_tests,
-    "summary": {
-        "total": n_pass + n_fail,
-        "passed": n_pass,
-        "failed": n_fail,
-        "duration": duration
+for (const line of content.split(/\r?\n/)) {
+    const suiteM = line.match(/^(com\.example\.sdk_qa\.\S+?):(.*)/);
+    if (suiteM) {
+        currentClass = suiteM[1];
+        for (const ch of suiteM[2]) {
+            if (ch === '.') passedTests.push({ name: '—', class: currentClass, status: 'passed', duration: '' });
+        }
+        inError = false; errorEntry = null;
+        continue;
+    }
+    const errM = line.match(/^Error in (\w+)\(/);
+    if (errM) {
+        errorEntry = { name: errM[1], class: currentClass, status: 'failed', duration: '', error: '' };
+        failedTests.push(errorEntry);
+        inError = true;
+        continue;
+    }
+    if (inError && errorEntry && !errorEntry.error) {
+        const s = line.trim();
+        if (s && !s.startsWith('at ') && !s.startsWith('expected') &&
+            !s.startsWith('Recibidos') && !s.startsWith('Faltantes'))
+            errorEntry.error = s;
+    }
+    if (line.trim() === '.') {
+        passedTests.push({ name: '—', class: currentClass, status: 'passed', duration: '' });
+        inError = false; errorEntry = null;
     }
 }
 
-with open(out_path, 'w', encoding='utf-8') as f:
-    json.dump(result, f, indent=2, ensure_ascii=False)
-PYEOF
+const result = {
+    tests: [...failedTests, ...passedTests],
+    summary: { total: passedTests.length + failedTests.length,
+               passed: passedTests.length, failed: failedTests.length, duration }
+};
+fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
+JSEOF
 
     log_ok "test-results.json generado: $RESULTS_JSON"
 fi
@@ -719,17 +686,13 @@ fi
 if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
     log_step "Notificación Slack"
 
-    # Extraer versión del SDK desde build.gradle.kts (Python para compatibilidad con Git Bash)
-    SDK_VER=$(python3 - "${PROJECT_ROOT}/app/build.gradle.kts" <<'PYSDK'
-import sys, re
-try:
-    text = open(sys.argv[1], encoding='utf-8').read()
-    m = re.search(r'mediastreamplatformsdkandroid:([^"]+)', text)
-    print(m.group(1) if m else "desconocida")
-except Exception:
-    print("desconocida")
-PYSDK
-)
+    # Extraer versión del SDK desde build.gradle.kts
+    SDK_VER=$(node -e "
+const fs=require('fs');
+try{const t=fs.readFileSync('${PROJECT_ROOT}/app/build.gradle.kts','utf8');
+const m=t.match(/mediastreamplatformsdkandroid:([^\"]+)/);
+console.log(m?m[1]:'desconocida');}catch(e){console.log('desconocida');}
+")
 
     DEVICE_LABEL="${BRAND:-} ${MODEL:-} (Android ${ANDROID:-?} · API ${API:-?})"
 

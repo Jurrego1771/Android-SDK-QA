@@ -31,102 +31,63 @@ if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
     exit 0
 fi
 
-command -v curl    &>/dev/null || { log_warn "curl no encontrado — saltando notificación"; exit 0; }
-command -v python3 &>/dev/null || { log_warn "python3 no encontrado — saltando notificación"; exit 0; }
+command -v curl &>/dev/null || { log_warn "curl no encontrado — saltando notificación"; exit 0; }
+command -v node &>/dev/null || { log_warn "node no encontrado — saltando notificación"; exit 0; }
 
 # ─── Leer resultados y construir payload ──────────────────────────────────────
 log_info "Preparando mensaje Slack..."
 
-PAYLOAD=$(PYTHONUTF8=1 python3 - "$RESULTS_JSON" "$DEVICE_INFO" "$RUN_URL" "$SDK_VERSION" <<'PYEOF'
-import json, sys, datetime
+PAYLOAD=$(node - "$RESULTS_JSON" "$DEVICE_INFO" "$RUN_URL" "$SDK_VERSION" <<'JSEOF'
+const fs = require('fs');
+const [resultsJson, deviceInfo, runUrl, sdkVersion] = process.argv.slice(2);
 
-results_json = sys.argv[1]
-device_info  = sys.argv[2]
-run_url      = sys.argv[3]
-sdk_version  = sys.argv[4]
+let data;
+try { data = JSON.parse(fs.readFileSync(resultsJson, 'utf8')); }
+catch(e) { console.log(JSON.stringify({text: ':warning: SDK QA: no se pudo leer resultados (' + e.message + ')'})); process.exit(0); }
 
-try:
-    with open(results_json) as f:
-        data = json.load(f)
-except Exception as e:
-    print(json.dumps({"text": f":warning: SDK QA: no se pudo leer resultados ({e})"}))
-    sys.exit(0)
+const s       = data.summary || {};
+const passed  = s.passed   || 0;
+const failed  = s.failed   || 0;
+const duration= s.duration || '?';
+const tests   = data.tests || [];
+const now     = new Date().toISOString().slice(0,16).replace('T',' ');
 
-summary  = data.get("summary", {})
-total    = summary.get("total",    0)
-passed   = summary.get("passed",   0)
-failed   = summary.get("failed",   0)
-duration = summary.get("duration", "?")
-tests    = data.get("tests", [])
-now      = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+const allPassed   = failed === 0;
+const headerEmoji = allPassed ? ':white_check_mark:' : ':red_circle:';
+const headerText  = 'SDK QA Smoke — ' + (allPassed ? 'PASÓ' : 'FALLÓ');
+const color       = allPassed ? '#22c55e' : '#ef4444';
 
-all_passed = failed == 0
-header_emoji = ":white_check_mark:" if all_passed else ":red_circle:"
-header_text  = f"SDK QA Smoke — {'PASÓ' if all_passed else 'FALLÓ'}"
-color        = "#22c55e" if all_passed else "#ef4444"
+const fields = [
+    {type:'mrkdwn', text:`*Tests:*\n✓ ${passed} pasaron   ✗ ${failed} fallaron`},
+    {type:'mrkdwn', text:`*Duración:*\n${duration}`},
+    {type:'mrkdwn', text:`*SDK Version:*\n\`${sdkVersion}\``},
+    {type:'mrkdwn', text:`*Device:*\n${deviceInfo}`},
+    {type:'mrkdwn', text:`*Fecha:*\n${now}`},
+];
 
-# Campos del resumen
-fields = [
-    {"type": "mrkdwn", "text": f"*Tests:*\n✓ {passed} pasaron   ✗ {failed} fallaron"},
-    {"type": "mrkdwn", "text": f"*Duración:*\n{duration}"},
-    {"type": "mrkdwn", "text": f"*SDK Version:*\n`{sdk_version}`"},
-    {"type": "mrkdwn", "text": f"*Device:*\n{device_info}"},
-    {"type": "mrkdwn", "text": f"*Fecha:*\n{now}"},
-]
+const blocks = [
+    {type:'header', text:{type:'plain_text', text:`${headerEmoji}  ${headerText}`, emoji:true}},
+    {type:'section', fields}
+];
 
-blocks = [
-    {
-        "type": "header",
-        "text": {"type": "plain_text", "text": f"{header_emoji}  {header_text}", "emoji": True}
-    },
-    {
-        "type": "section",
-        "fields": fields
-    }
-]
-
-# Lista de fallos (máx 10 para no saturar el mensaje)
-failed_tests = [t for t in tests if t.get("status") == "failed"]
-if failed_tests:
-    fail_lines = []
-    for t in failed_tests[:10]:
-        name  = t.get("name", "")
-        cls   = t.get("class", "").split(".")[-1]
-        error = t.get("error", "")
-        # Primera línea del error (la más informativa)
-        first_line = error.strip().split("\n")[0][:120] if error else ""
-        fail_lines.append(f"• *{cls}.{name}*\n  `{first_line}`" if first_line else f"• *{cls}.{name}*")
-    if len(failed_tests) > 10:
-        fail_lines.append(f"_... y {len(failed_tests) - 10} más_")
-
-    blocks.append({
-        "type": "section",
-        "text": {"type": "mrkdwn", "text": "*Tests fallidos:*\n" + "\n".join(fail_lines)}
-    })
-
-# Botón con link al run (si está disponible)
-if run_url:
-    blocks.append({
-        "type": "actions",
-        "elements": [{
-            "type": "button",
-            "text": {"type": "plain_text", "text": "Ver detalles →", "emoji": True},
-            "url": run_url,
-            "style": "primary" if all_passed else "danger"
-        }]
-    })
-
-blocks.append({"type": "divider"})
-
-payload = {
-    "attachments": [{
-        "color": color,
-        "blocks": blocks
-    }]
+const failedTests = tests.filter(t => t.status === 'failed');
+if (failedTests.length) {
+    const lines = failedTests.slice(0,10).map(t => {
+        const cls = (t.class||'').split('.').pop();
+        const first = (t.error||'').trim().split('\n')[0].slice(0,120);
+        return first ? `• *${cls}.${t.name}*\n  \`${first}\`` : `• *${cls}.${t.name}*`;
+    });
+    if (failedTests.length > 10) lines.push(`_... y ${failedTests.length - 10} más_`);
+    blocks.push({type:'section', text:{type:'mrkdwn', text:'*Tests fallidos:*\n' + lines.join('\n')}});
 }
 
-print(json.dumps(payload, ensure_ascii=False))
-PYEOF
+if (runUrl) blocks.push({type:'actions', elements:[{type:'button',
+    text:{type:'plain_text', text:'Ver detalles →', emoji:true},
+    url:runUrl, style: allPassed ? 'primary' : 'danger'}]});
+
+blocks.push({type:'divider'});
+console.log(JSON.stringify({attachments:[{color, blocks}]}));
+JSEOF
 )
 
 # ─── Enviar a Slack ───────────────────────────────────────────────────────────
