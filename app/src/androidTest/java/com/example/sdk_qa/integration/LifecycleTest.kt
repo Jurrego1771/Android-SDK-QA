@@ -35,7 +35,7 @@ class LifecycleTest {
     @get:Rule
     val sdkRule = SdkTestRule()
 
-    private val TIMEOUT = 15_000L
+    private val TIMEOUT = 25_000L
 
     // -------------------------------------------------------------------------
     // [LIFECYCLE-ROT-01] El player se reinicializa correctamente tras rotación

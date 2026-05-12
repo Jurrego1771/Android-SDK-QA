@@ -66,30 +66,77 @@ val shouldEnterPiP = when (msConfig?.pip) {
 
 ## Uso desde la Activity del cliente
 
+### Por qué NO usar `onUserLeaveHint()`
+
+La documentación del SDK (y múltiples fuentes) indica usar `onUserLeaveHint()` como trigger. Esto es **insuficiente**:
+
+- La guía oficial de Android dice que dispara en Home y Recientes, pero en la práctica **es inconsistente en dispositivos con capas OEM** (Samsung One UI, Xiaomi HyperOS), donde el botón de Recientes no lo dispara de forma confiable.
+- Bug confirmado en SDK 10.0.3-alpha06: PiP no se activaba al presionar Recientes, el audio continuaba pero sin ventana flotante.
+
+### Patron correcto por version de API
+
 ```kotlin
 class VideoActivity : AppCompatActivity() {
     private lateinit var player: MediastreamPlayer
 
-    // 1. Habilitar PiP en el Manifest (en el proyecto cliente, NO en el SDK)
+    // 1. Habilitar PiP en el Manifest
     // android:supportsPictureInPicture="true"
     // android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
 
-    // 2. Iniciar PiP (por ejemplo al presionar el boton home o un boton custom)
-    fun onUserPressHome() {
-        player.startPiP()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // ... init player ...
+
+        // API 31+ (Android 12+): recomendacion oficial de Google.
+        // El sistema gestiona la transicion para Home, Recientes y gestos de navegacion.
+        // No requiere ningun trigger manual.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            setPictureInPictureParams(
+                PictureInPictureParams.Builder()
+                    .setAutoEnterEnabled(true)
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+            )
+        }
     }
 
-    // 3. OBLIGATORIO: notificar al SDK cuando cambia el estado de PiP
+    // API 26–30: onPause() cubre Home y Recientes.
+    // Guardias obligatorias:
+    //   !isFinishing     → evita entrar en PiP al presionar Atras
+    //   player.isPlaying → evita falsos positivos (notificaciones, dialogos del sistema, llamadas)
+    override fun onPause() {
+        super.onPause()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            !isFinishing &&
+            player.isPlaying
+        ) {
+            player.startPiP()
+        }
+    }
+
+    // OBLIGATORIO: notificar al SDK cuando cambia el estado de PiP.
+    // Si no se llama, el SDK no ajusta su UI (controles no se ocultan).
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         player.onPictureInPictureModeChanged(isInPictureInPictureMode)
-        // El SDK delega a MediastreamPlayerPip.onPictureInPictureModeChanged()
     }
 }
 ```
+
+### Resumen de cobertura por trigger
+
+| Accion del usuario | `onUserLeaveHint()` | `onPause()` + guardias | `setAutoEnterEnabled` (API 31+) |
+|---|---|---|---|
+| Boton Home | ✅ | ✅ | ✅ |
+| Boton Recientes | ⚠️ inconsistente en OEMs | ✅ | ✅ |
+| Gesto swipe-up | ⚠️ inconsistente | ✅ | ✅ |
+| Boton Atras | ✅ no dispara | ✅ bloqueado por `!isFinishing` | ✅ no dispara |
+| Notificacion / dialogo encima | ✅ no dispara | ✅ bloqueado por `isPlaying` | ✅ no dispara |
+| Llamada entrante | ✅ no dispara | ✅ bloqueado por `isPlaying` | ✅ no dispara |
 
 ---
 
@@ -112,7 +159,9 @@ class VideoActivity : AppCompatActivity() {
 - **Aspect ratio fijo:** siempre 16:9. No apto para contenido vertical o 4:3
 - **Requiere Activity:** `MediastreamPlayerPip` necesita una `Activity` en su constructor. Si el player se inicializa sin Activity (desde Service), PiP no esta disponible (`pipHandler` sera null)
 - **API 26 minimo:** en dispositivos con Android 7.x, `startPiP()` no hace nada
-- **`onPictureInPictureModeChanged` es el cliente el responsable** de llamarlo — si no lo hace, el SDK no ajusta su UI correctamente
+- **`onPictureInPictureModeChanged` es responsabilidad del cliente** llamarlo — si no lo hace, el SDK no ajusta su UI correctamente
+- **`onUserLeaveHint()` es inconsistente en OEMs:** Samsung One UI y Xiaomi HyperOS no garantizan su disparo al presionar Recientes — no usar como unico trigger
+- **`onPause()` sin guardias genera falsos positivos:** notificaciones, dialogos del sistema y llamadas entrantes tambien disparan `onPause()` — las guardias `!isFinishing` e `isPlaying` son obligatorias
 
 ---
 
@@ -137,6 +186,22 @@ class VideoActivity : AppCompatActivity() {
 - [ ] `startPiP()` cuando `pipHandler` es null (sin Activity) no crashea
 - [ ] Cliente NO llama a `onPictureInPictureModeChanged()` → SDK no crashea (solo UI incorrecta)
 
+### Trigger — Home vs Recientes
+- [ ] Boton Home activa PiP correctamente (API 26+)
+- [ ] Boton Recientes activa PiP correctamente (API 26+)
+- [ ] Gesto swipe-up activa PiP correctamente (API 31+)
+- [ ] Boton Atras NO entra en PiP
+- [ ] Bajar barra de notificaciones con video pausado NO entra en PiP
+- [ ] Llamada entrante con video pausado NO entra en PiP
+
 ---
 
-*Feature: 14-pip | SDK v9.9.0 | 2026-04-16*
+## Historial de hallazgos QA
+
+| Fecha | Version SDK | Hallazgo |
+|---|---|---|
+| 2026-05-12 | 10.0.3-alpha06 | PiP no se activaba con boton Recientes en dispositivos OEM. Causa: `onUserLeaveHint()` no confiable en Samsung/Xiaomi. Fix: `onPause()` + guardias para API 26-30, `setAutoEnterEnabled` para API 31+. Gap reportado en docs oficiales del SDK. |
+
+---
+
+*Feature: 14-pip | SDK v9.9.0 | Actualizado 2026-05-12*

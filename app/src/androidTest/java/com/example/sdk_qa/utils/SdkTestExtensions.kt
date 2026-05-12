@@ -208,3 +208,19 @@ fun UiDevice.assertNotVisible(textContains: String, timeoutMs: Long = 3_000L) {
     assertWithMessage("Elemento con texto '$textContains' debería haber desaparecido")
         .that(stillVisible).isFalse()
 }
+
+// ---------------------------------------------------------------------------
+// Emulator detection
+// IMA ads hang on emulators (ad loads but renderer can't play it → stuck in
+// CONTENT_PAUSE_REQUESTED). Tests that require IMA to resolve should skip.
+// ---------------------------------------------------------------------------
+fun isEmulator(): Boolean = android.os.Build.FINGERPRINT.startsWith("generic")
+    || android.os.Build.FINGERPRINT.startsWith("unknown")
+    || android.os.Build.MODEL.contains("google_sdk", ignoreCase = true)
+    || android.os.Build.MODEL.contains("Emulator", ignoreCase = true)
+    || android.os.Build.MODEL.contains("Android SDK built for", ignoreCase = true)
+    || android.os.Build.HARDWARE.contains("goldfish", ignoreCase = true)
+    || android.os.Build.HARDWARE.contains("ranchu", ignoreCase = true)
+    || android.os.Build.PRODUCT.startsWith("sdk")
+    || android.os.Build.PRODUCT.startsWith("vbox")
+    || android.os.Build.PRODUCT.startsWith("emulator")

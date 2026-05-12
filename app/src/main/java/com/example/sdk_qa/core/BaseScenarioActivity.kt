@@ -93,9 +93,16 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         return super.dispatchKeyEvent(event)
     }
 
-    override fun onUserLeaveHint() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try { player?.startPiP() } catch (_: Exception) { /* PiP not supported */ }
+    // onUserLeaveHint only fires for Home — NOT for Recents.
+    // API 26-30: onPause + !isFinishing covers both; !isFinishing blocks Back-press.
+    // API 31+: setAutoEnterEnabled(true) lets the system handle both buttons natively.
+    override fun onPause() {
+        super.onPause()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            !isFinishing
+        ) {
+            try { player?.startPiP() } catch (_: Exception) { }
         }
     }
 
@@ -148,6 +155,16 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         player?.addPlayerCallback(buildLoggingCallback())
         onPlayerCreated()
         statusHandler.post(statusRunnable)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                setPictureInPictureParams(
+                    android.app.PictureInPictureParams.Builder()
+                        .setAutoEnterEnabled(true)
+                        .setAspectRatio(android.util.Rational(16, 9))
+                        .build()
+                )
+            } catch (_: Exception) { /* activity may not support PiP in test context */ }
+        }
     }
 
     // -------------------------------------------------------------------------

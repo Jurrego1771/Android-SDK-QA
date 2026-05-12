@@ -9,7 +9,9 @@ import com.example.sdk_qa.scenarios.audio.AudioVodScenarioActivity
 import com.example.sdk_qa.utils.assertNoErrorFired
 import com.example.sdk_qa.utils.awaitCallback
 import com.example.sdk_qa.utils.getCallbackCaptor
+import com.example.sdk_qa.utils.isEmulator
 import com.google.common.truth.Truth.assertWithMessage
+import org.junit.Assume
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -132,6 +134,10 @@ class AudioIntegrationTest {
     @Test
     @MediumTest
     fun audioLive_onReady_fires() {
+        // Audio.LIVE has IMA pre-roll configured at platform level.
+        // On emulators, IMA loads the ad (LOADED) but the renderer can't play it →
+        // CONTENT_PAUSE_REQUESTED never resolves → onReady never fires → timeout + crash.
+        Assume.assumeFalse("Skipped on emulator: IMA pre-roll hangs (no renderer)", isEmulator())
         ActivityScenario.launch(AudioLiveScenarioActivity::class.java).use { scenario ->
             scenario.awaitCallback("onReady", TIMEOUT_MEDIUM)
             scenario.assertNoErrorFired()
@@ -144,6 +150,7 @@ class AudioIntegrationTest {
     @Test
     @MediumTest
     fun audioLive_callbacks_arriveOnMainThread() {
+        Assume.assumeFalse("Skipped on emulator: IMA pre-roll hangs (no renderer)", isEmulator())
         ActivityScenario.launch(AudioLiveScenarioActivity::class.java).use { scenario ->
             scenario.awaitCallback("onReady", TIMEOUT_MEDIUM)
 

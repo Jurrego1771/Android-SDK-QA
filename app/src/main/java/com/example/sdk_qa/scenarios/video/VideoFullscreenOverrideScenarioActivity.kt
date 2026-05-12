@@ -83,9 +83,13 @@ class VideoFullscreenOverrideScenarioActivity : BaseScenarioActivity() {
     fun simulateFullscreenOffClick() = clickSdkButton("btn_fullscreen_off")
 
     private fun clickSdkButton(name: String) {
-        val sdkPkg = "am.mediastre.mediastreamplatformsdkandroid"
-        val resId = resources.getIdentifier(name, "id", sdkPkg)
-        check(resId != 0) { "Resource $sdkPkg:id/$name not found — SDK version may not support this" }
+        // resources.getIdentifier with the SDK package fails on AGP 8+ non-transitive R;
+        // reflection on the SDK R$id class is the reliable cross-AGP approach.
+        val resId = runCatching {
+            Class.forName("am.mediastre.mediastreamplatformsdkandroid.R\$id")
+                .getField(name).getInt(null)
+        }.getOrElse { 0 }
+        check(resId != 0) { "Field R.id.$name not found in SDK — SDK version may not support this" }
         val btn: View? = binding.playerView.findViewById(resId)
         checkNotNull(btn) { "Button $name not in PlayerView hierarchy — Customizer may not have run yet" }
         btn.performClick()

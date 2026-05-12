@@ -687,12 +687,15 @@ if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
     log_step "Notificación Slack"
 
     # Extraer versión del SDK desde build.gradle.kts
-    SDK_VER=$(node -e "
-const fs=require('fs');
-try{const t=fs.readFileSync('${PROJECT_ROOT}/app/build.gradle.kts','utf8');
-const m=t.match(/mediastreamplatformsdkandroid:([^\"]+)/);
-console.log(m?m[1]:'desconocida');}catch(e){console.log('desconocida');}
-")
+    SDK_VER=$(node - "${PROJECT_ROOT}/app/build.gradle.kts" <<'JSVER'
+const fs = require('fs');
+try {
+    const t = fs.readFileSync(process.argv[2], 'utf8');
+    const m = t.match(/mediastreamplatformsdkandroid:([^"]+)/);
+    console.log(m ? m[1] : 'desconocida');
+} catch(_) { console.log('desconocida'); }
+JSVER
+)
 
     DEVICE_LABEL="${BRAND:-} ${MODEL:-} (Android ${ANDROID:-?} · API ${API:-?})"
 

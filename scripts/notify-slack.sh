@@ -54,11 +54,11 @@ const now     = new Date().toISOString().slice(0,16).replace('T',' ');
 
 const allPassed   = failed === 0;
 const headerEmoji = allPassed ? ':white_check_mark:' : ':red_circle:';
-const headerText  = 'SDK QA Smoke — ' + (allPassed ? 'PASÓ' : 'FALLÓ');
+const headerText  = 'SDK QA Android — ' + (allPassed ? 'PASO' : 'FALLO');
 const color       = allPassed ? '#22c55e' : '#ef4444';
 
 const fields = [
-    {type:'mrkdwn', text:`*Tests:*\n✓ ${passed} pasaron   ✗ ${failed} fallaron`},
+    {type:'mrkdwn', text:`*Tests:*\n:white_check_mark: ${passed} pasaron   :x: ${failed} fallaron`},
     {type:'mrkdwn', text:`*Duración:*\n${duration}`},
     {type:'mrkdwn', text:`*SDK Version:*\n\`${sdkVersion}\``},
     {type:'mrkdwn', text:`*Device:*\n${deviceInfo}`},

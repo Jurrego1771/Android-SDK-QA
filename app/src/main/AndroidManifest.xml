@@ -177,28 +177,32 @@
             android:name=".scenarios.audio.AudioLiveScenarioActivity"
             android:exported="false"
             android:theme="@style/Theme.Sdkqa.Scenario"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:supportsPictureInPicture="true" />
 
         <!-- [13] Audio VOD — podcast bajo demanda -->
         <activity
             android:name=".scenarios.audio.AudioVodScenarioActivity"
             android:exported="false"
             android:theme="@style/Theme.Sdkqa.Scenario"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:supportsPictureInPicture="true" />
 
         <!-- [14] Audio Episode — episodios de podcast -->
         <activity
             android:name=".scenarios.audio.AudioEpisodeScenarioActivity"
             android:exported="false"
             android:theme="@style/Theme.Sdkqa.Scenario"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:supportsPictureInPicture="true" />
 
         <!-- [15] Audio + Service — radio con notificación y background playback -->
         <activity
             android:name=".scenarios.audio.AudioWithServiceScenarioActivity"
             android:exported="false"
             android:theme="@style/Theme.Sdkqa.Scenario"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:supportsPictureInPicture="true" />
 
         <!-- =================================================================
              SDK Services (declarados aquí para que el SDK los encuentre)

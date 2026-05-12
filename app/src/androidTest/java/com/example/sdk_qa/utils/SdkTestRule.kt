@@ -66,14 +66,17 @@ class SdkTestRule(private val detectLeaks: Boolean = true) : TestRule {
 }
 
 // ---------------------------------------------------------------------------
-// IMA SDK known library leaks — excluded from application leak detection.
-//
-// IMA registers a global Application.ActivityLifecycleCallbacks (zzea) that
-// retains the last Activity referencing MediastreamPlayer. This causes
-// cross-test contamination: Activity from test N is still referenced by IMA
-// when test N+1 triggers LeakCanary. Reported to Mediastream — we cannot
-// unregister IMA's global callback from our side.
+// Known SDK / platform library leaks — excluded from application leak detection.
 // ---------------------------------------------------------------------------
+
+// IMA SDK (Google): retains last Activity via global Application.ActivityLifecycleCallbacks.
+// Cross-test contamination: Activity from test N still referenced by IMA in test N+1.
+// Reported to Mediastream — cannot unregister IMA's global callback from app code.
+
+// WebView (Chromium): addWebMessageListener() creates a WebMessageListenerHolder whose
+// native global reference (field "a") prevents the detached WebView — and the Activity it
+// was inflated into — from being collected. Triggered by the SDK's JS bridge setup.
+// SDK bug #3 — cannot fix from app side.
 private val IMA_LIBRARY_LEAKS = listOf(
     LibraryLeakReferenceMatcher(
         pattern = InstanceFieldPattern(
@@ -93,6 +96,26 @@ private val IMA_LIBRARY_LEAKS = listOf(
             "AdTagLoader as f\$0. AdTagLoader retains Activity-bound objects (configuration, " +
             "adDisplayContainer, …) until the message fires ~2-5s after Activity#onDestroy. " +
             "SDK bug #1 — AdTagLoader is a Media3/IMA internal; cannot fix from app side."
+    ),
+    LibraryLeakReferenceMatcher(
+        pattern = InstanceFieldPattern(
+            className = "org.chromium.android_webview.WebMessageListenerHolder",
+            fieldName = "a"
+        ),
+        description = "Android WebView retains Activity via WebMessageListenerHolder.a after " +
+            "addWebMessageListener() is called. The SDK uses this for its JS bridge; the native " +
+            "global reference prevents the detached WebView from being collected. " +
+            "SDK bug #3 — cannot fix from app side."
+    ),
+    LibraryLeakReferenceMatcher(
+        pattern = InstanceFieldPattern(
+            className = "com.google.ads.interactivemedia.v3.impl.zzdi",
+            fieldName = "zza"
+        ),
+        description = "IMA SDK posts a delayed Handler message (zzdi.zza → zzbn → AdTagLoader " +
+            "→ applicationAdErrorListener → MediastreamPlayer lambda → Activity). Same root cause " +
+            "as Bug #1 (AdTagLoader ExternalSyntheticLambda1) but via zzdi Runnable. " +
+            "Cannot fix from app side."
     )
 )
 
