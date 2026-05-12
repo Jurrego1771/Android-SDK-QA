@@ -160,6 +160,14 @@
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:supportsPictureInPicture="true" />
 
+        <!-- [18] Fullscreen Override (feat/allow-override-rotation) — onFullscreenOnClick + onFullscreenOffClick -->
+        <activity
+            android:name=".scenarios.video.VideoFullscreenOverrideScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
         <!-- =================================================================
              AUDIO Scenarios
              ================================================================= -->

@@ -71,8 +71,8 @@ dependencies {
     // Media3 UI (PlayerView en layouts XML)
     implementation("androidx.media3:media3-ui:1.5.0")
 
-    // Mediastream SDK
-    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.4-alpha05")
+    // Mediastream SDK — 10.0.5-alpha01 adds onFullscreenOnClick override API
+    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.5-alpha01")
 
     // --- Test dependencies ---
     testImplementation(libs.junit)
