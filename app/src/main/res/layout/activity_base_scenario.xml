@@ -7,6 +7,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black">
@@ -99,6 +100,21 @@
                 android:paddingRight="8dp" />
 
         </LinearLayout>
+
+        <!-- Métricas QoE — TTFF, rebuffer, bitrate, dropped frames (estilo Mux/THEOplayer) -->
+        <TextView
+            android:id="@+id/tv_metrics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="6dp"
+            android:textColor="@color/accent_cyan"
+            android:textSize="11sp"
+            android:lineSpacingMultiplier="1.1"
+            android:fontFamily="monospace"
+            tools:text="TTFF 1.2s   BUF 8.4s   BW 5.2 Mbps" />
 
         <!-- Separador -->
         <View

@@ -71,8 +71,13 @@ dependencies {
     // Media3 UI (PlayerView en layouts XML)
     implementation("androidx.media3:media3-ui:1.5.0")
 
+    // Media3 ExoPlayer — tipos ExoPlayer/AnalyticsListener para el colector de métricas QoE.
+    // El SDK ya lo expone transitivamente (api 1.9.0); se declara explícito para fijar el
+    // contrato de compilación del PlaybackMetrics. Gradle reconcilia a la versión más alta.
+    implementation("androidx.media3:media3-exoplayer:1.5.0")
+
     // Mediastream SDK — 10.0.5-alpha01 adds onFullscreenOnClick override API
-    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.5-alpha01")
+    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.7")
 
     // --- Test dependencies ---
     testImplementation(libs.junit)

@@ -33,6 +33,7 @@ import java.util.Locale
  * - Bottom sheet deslizable con log de callbacks + botones de acción
  * - Por defecto el panel está oculto — tap FAB para abrir/cerrar
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 abstract class BaseScenarioActivity : AppCompatActivity() {
 
     protected lateinit var binding: ActivityBaseScenarioBinding
@@ -41,6 +42,9 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
 
     /** Captura eventos de callbacks del SDK. Disponible para tests instrumentados. */
     val callbackCaptor = CallbackCaptor()
+
+    /** Métricas QoE (TTFF, rebuffer, bitrate, dropped frames). Disponible para tests. */
+    val playbackMetrics = PlaybackMetrics()
 
     private val logAdapter = LogEntryAdapter()
     private lateinit var sheetBehavior: BottomSheetBehavior<*>
@@ -85,6 +89,7 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         statusHandler.removeCallbacks(statusRunnable)
+        playbackMetrics.detach()
         player?.releasePlayer()
     }
 
@@ -174,8 +179,12 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     private fun refreshStatus() {
         val exo = player?.msPlayer ?: run {
             binding.tvStatus.text = "⬛  --:-- / --:--"
+            binding.tvMetrics.text = ""
             return
         }
+        // Engancha (o re-engancha si la instancia cambió por Cast) — idempotente y barato.
+        playbackMetrics.attachTo(exo)
+
         val icon = when {
             exo.isPlaying -> "▶"
             exo.playbackState == androidx.media3.common.Player.STATE_BUFFERING -> "⟳"
@@ -186,6 +195,22 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         val dur = if (exo.duration > 0) exo.duration / 1000 else -1L
         val durStr = if (dur > 0) fmt(dur) else "--:--"
         binding.tvStatus.text = "$icon  ${fmt(pos)} / $durStr   ${getScenarioTitle()}"
+        binding.tvMetrics.text = renderMetrics(playbackMetrics.snapshot(exo))
+    }
+
+    /** Construye el bloque QoE multilínea que se muestra bajo el status. */
+    private fun renderMetrics(m: PlaybackMetrics.Snapshot): CharSequence {
+        val ttff = if (m.ttffMs >= 0) "${m.ttffMs / 1000.0}s" else "…"
+        val buf = "%.1fs".format(m.bufferHealthMs / 1000.0)
+        val bw = PlaybackMetrics.formatBitrate(m.measuredBandwidthBps)
+        val br = PlaybackMetrics.formatBitrate(m.currentBitrateBps)
+        val rebuf = "${m.rebufferCount} (${m.rebufferMs}ms · ${PlaybackMetrics.formatRatio(m.rebufferRatio)})"
+        val errLine = if (m.loadErrorCount > 0) "  ERR ${m.loadErrorCount}: ${m.lastLoadError}" else ""
+        return buildString {
+            append("TTFF $ttff   BUF $buf   BW $bw\n")
+            append("BR $br  ×${m.bitrateSwitches}sw   ${m.resolution} ${m.videoCodec}\n")
+            append("REBUF $rebuf   DROP ${m.droppedFrames}$errLine")
+        }
     }
 
     private fun fmt(s: Long) = "%02d:%02d".format(s / 60, s % 60)
