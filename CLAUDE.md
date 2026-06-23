@@ -99,10 +99,15 @@ adb shell am instrument -w -e class com.example.sdk_qa.integration.<Clase> \
   player) y **BACK** lo cierra sin salir del escenario. Verificado en BRAVIA.
 - `playbackMetrics` y `callbackCaptor` están expuestos para tests instrumentados.
 - **Session export (Capa C, debug-only)**: al cerrar un escenario, `SessionExporter`
-  (`app/src/debug/.../debug/`) escribe un JSON normalizado del timeline a
+  (`app/src/debug/.../debug/`) escribe un JSON normalizado a
   `getExternalFilesDir("sessions")/<scenario>-sdk<version>-<ts>.json`, para **diff entre
-  versiones del SDK**. Normalizado (offsets relativos, thread main/background, claves ordenadas,
-  sin session IDs ni CDN URL) → el diff resalta comportamiento. Recuperar:
+  versiones del SDK**. **Timeline unificado** (schema v2): fusiona callbacks del SDK
+  (`CallbackCaptor`) con eventos discretos de ExoPlayer (`SessionRecorder`: `video_format`/bitrate,
+  `buffering_start/end`, `dropped_frames`, `load_error`+httpStatus, `player_error`, `first_frame`),
+  ordenados por reloj monotónico compartido. `SessionRecorder` es un `AnalyticsListener` separado,
+  read-only, todo en runCatching (no afecta reproducción ni tests; verificado con
+  `CallbackOrderTest`). Normalizado (offsets relativos, thread main/background, claves ordenadas,
+  sin session IDs ni CDN URL). Recuperar:
   `adb pull /sdcard/Android/data/com.example.sdk_qa/files/sessions`.
   > Nota: los campos numéricos (ttffMs, rebufferMs, offsetMs) varían por red incluso en la misma
   > versión. Para comparar **timing** captura N sesiones/versión y compara medianas; lo que

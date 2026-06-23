@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-06-23 (cont.) — Capa C pieza 1: grabación de eventos discretos en timeline unificado
+
+**Contexto / plan del usuario**
+Roadmap de 3 capas (A=Debug Panel ✅, B=Maestro ⏸️, C=Session Export). Secuencia acordada:
+(1) grabación estandarizada/estable que NO afecte tests → (2) base confiable de tests por
+función/escenario → (3) corrida + subir a 10.0.8 + comparar. Esta sesión = pieza (1).
+
+**Qué se hizo** (`1aafd97`)
+Promovió el export de "resumen" (contadores) a "grabación" (stream cronológico). Además de los
+callbacks del SDK, ahora graba los eventos discretos de ExoPlayer y los fusiona en un solo
+`timeline` ordenado por reloj monotónico compartido (schema v2):
+`video_format`(bitrate/res/codec, abrSwitch), `buffering_start`(initial)/`buffering_end`(durMs),
+`dropped_frames`, `load_error`(+httpStatus, sin URL), `player_error`, `first_frame`.
+
+**Decisiones de diseño (clave: no tocar main / no romper tests)**
+- `SessionRecorder` = `AnalyticsListener` **separado** del `PlaybackMetrics` de producción, en
+  `src/debug`. Read-only, cada override en runCatching → un bug jamás propaga a ExoPlayer/test.
+  Lista acotada a 2000 eventos (flag `truncated`).
+- Escritura **síncrona** en onDestroy (un Thread de fondo podía no escribir si el proceso se
+  recicla). Archivo de pocos KB → bloqueo despreciable.
+- Enganche con reintentos en onResume (msPlayer nace unos ms después); los eventos de arranque
+  que se pierdan están cubiertos por los callbacks del SDK.
+
+**Verificado en A53**
+- Timeline de 8 eventos fusionando sdk+exo: onBuffering, buffering_start(initial), video_format
+  (1.44Mbps/854x480/avc1), first_frame, buffering_end(1781ms), onReady, onPlay, playerViewReady.
+- **No afecta tests**: `CallbackOrderTest` → BUILD SUCCESSFUL, 0 failed (2 skips intencionales).
+
+**Gotchas de testing aprendidos**
+- En API 36 (A53) la Activity entra en **PiP automático** al salir → BACK/HOME no la destruyen.
+  Activar `always_finish_activities=1` ROMPE el ciclo de Samsung (no exporta). Con todo en default,
+  BACK simple cierra y dispara onDestroy→export bien.
+- Rutas `/sdcard/...` en Git Bash se manglean: usar `MSYS_NO_PATHCONV=1` para adb shell/pull.
+
+**Siguiente paso (según el plan del usuario)**
+Pieza (1) lista y estable. Sigue: **(2) base confiable de tests por función/escenario**, y luego
+**(3)** subir a 10.0.8 y comparar (existe el binario). El `scripts/session-diff` (pieza 2 del
+recorder) queda para cuando haya las dos versiones grabadas.
+
+---
+
 ## 2026-06-23 (cont.) — Capa C: Session Export a JSON normalizado para diff entre versiones
 
 **Objetivo**
