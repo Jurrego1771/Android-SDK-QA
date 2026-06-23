@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sdk-qa-exploratory": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "tools/exploratory-mcp/src/server.mjs"
+      ],
+      "env": {}
+    }
+  }
+}

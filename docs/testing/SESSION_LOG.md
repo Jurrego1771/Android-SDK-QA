@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-06-23 (cont.) — Decisión de navegación: MCP custom validado (ni Maestro ni Appium)
+
+**Objetivo de la sesión**
+Resolver la fricción de navegación en device (taps ciegos, `uiautomator dump` se cuelga con video
+por "could not get idle state"). Pregunta abierta: ¿Maestro o Appium?
+
+**Hallazgo**
+El repo YA tenía la solución, implementada pero sin probar:
+- `DeepLinkRouterActivity` → `sdkqa://scenario/<key>` lanza cualquier escenario determinista
+  (las Activities son `exported=false`; el router debug-only las lanza desde el mismo uid).
+- `tools/exploratory-mcp` → servidor MCP custom (stdio, Node) con 9 tools: `navigate_deeplink`,
+  `tap`, `observe_screenshot/ui_hierarchy/logcat/session_state/crashes/network/analytics`.
+
+**Qué se hizo**
+- Validado el MCP end-to-end con `test-client.mjs` contra el A53: navega, screenshot, dump,
+  logcat (capturó el snapshot del Debug Panel), y `observe_session_state` leyó el estado interno
+  del player (position/duration/isPlaying/config/eventos) vía el bridge debug.
+- Probado el deep link directo: `am start -d sdkqa://scenario/vod` → ok, WARM, 279ms.
+
+**Decisión (registrada en CLAUDE.md)**
+Ni Maestro ni Appium por ahora. El harness adb+bridge cubre ~90%; `observe_session_state` da
+introspección del player que Maestro/Appium NO pueden. El único gap (tap por selector vs
+coordenadas) se cubre derivando `bounds` de `observe_ui_hierarchy`. Si eso resultara frágil →
+Maestro (no Appium) para la Fase 3. El plan original del harness (`exploratory-ai.md`) ya
+reservaba Appium solo para F3.
+
+**Entregables**
+- `CLAUDE.md` (nuevo) — documenta el harness arriba para que cada sesión lo sepa desde el inicio.
+- `.mcp.json` — conecta `sdk-qa-exploratory` a Claude Code (`claude mcp add -s project`).
+  Activación: reiniciar Claude Code + aprobar el server + `/mcp` para verificar.
+
+**Commits**
+- `307dc72` docs: add CLAUDE.md
+- (este) `.mcp.json` + SESSION_LOG
+
+**Siguiente paso**
+Tras reconectar, usar las tools MCP en vez de adb manual. Pendientes del overlay siguen vivos
+(#3 señales en HUD, #7 D-pad en BRAVIA) + repetir baseline QoE en TV/Fire TV.
+
+---
+
 ## 2026-06-23 (cont.) — Evaluación del Debug Overlay + color-coding por umbral
 
 **Objetivo de la sesión**
