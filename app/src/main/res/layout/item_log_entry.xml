@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
@@ -7,15 +8,33 @@
     android:paddingVertical="5dp"
     android:gravity="top">
 
-    <TextView
-        android:id="@+id/tv_timestamp"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/log_timestamp"
-        android:textSize="10sp"
-        android:fontFamily="monospace"
+        android:orientation="vertical"
         android:layout_marginEnd="8dp"
-        android:layout_marginTop="2dp" />
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/tv_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/log_timestamp"
+            android:textSize="10sp"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/tv_delta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:textColor="@color/accent_cyan"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:visibility="gone"
+            tools:text="+123ms" />
+
+    </LinearLayout>
 
     <View
         android:id="@+id/view_category_dot"

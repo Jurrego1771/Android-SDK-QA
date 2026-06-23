@@ -6,7 +6,9 @@ data class LogEntry(
     val timestamp: String,
     val event: String,
     val detail: String?,
-    val category: LogCategory
+    val category: LogCategory,
+    /** ms transcurridos desde el evento anterior (clock monotónico). -1 = primer evento. */
+    val deltaMs: Long = -1L
 )
 
 enum class LogCategory(val color: Int) {

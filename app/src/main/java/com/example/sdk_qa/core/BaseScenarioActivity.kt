@@ -47,6 +47,8 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     val playbackMetrics = PlaybackMetrics()
 
     private val logAdapter = LogEntryAdapter()
+    /** elapsedRealtime del último evento logueado, para deltas inter-callback. -1 = aún ninguno. */
+    @Volatile private var lastEventElapsedMs = -1L
     private lateinit var sheetBehavior: BottomSheetBehavior<*>
     private val statusHandler = Handler(Looper.getMainLooper())
     private val timestampFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
@@ -137,7 +139,10 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
             itemAnimator = null
         }
 
-        binding.btnClearLog.setOnClickListener { logAdapter.clear() }
+        binding.btnClearLog.setOnClickListener {
+            logAdapter.clear()
+            synchronized(this) { lastEventElapsedMs = -1L }
+        }
         binding.btnCopySnapshot.setOnClickListener { copySnapshotToClipboard() }
     }
 
@@ -387,6 +392,15 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         detail: String? = null,
         category: LogCategory = LogCategory.LIFECYCLE
     ) {
+        // Delta inter-callback: capturamos el clock monotónico al llegar el evento (no en bind,
+        // que se recicla) y lo restamos contra el anterior. Sincronizado porque los callbacks
+        // del SDK pueden llegar fuera del main thread.
+        val deltaMs = synchronized(this) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            val d = if (lastEventElapsedMs < 0) -1L else now - lastEventElapsedMs
+            lastEventElapsedMs = now
+            d
+        }
         Log.d("SDK_QA", "[$category] $event${if (detail != null) " — $detail" else ""}")
         runOnUiThread {
             logAdapter.addEntry(
@@ -394,7 +408,8 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
                     timestamp = timestampFmt.format(Date()),
                     event = event,
                     detail = detail,
-                    category = category
+                    category = category,
+                    deltaMs = deltaMs
                 )
             )
             binding.recyclerLog.scrollToPosition(logAdapter.itemCount - 1)

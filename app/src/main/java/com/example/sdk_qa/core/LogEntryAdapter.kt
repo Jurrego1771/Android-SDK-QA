@@ -40,6 +40,7 @@ class LogEntryAdapter : RecyclerView.Adapter<LogEntryAdapter.VH>() {
 
     class VH(view: View) : RecyclerView.ViewHolder(view) {
         private val tvTimestamp: TextView = view.findViewById(R.id.tv_timestamp)
+        private val tvDelta: TextView = view.findViewById(R.id.tv_delta)
         private val tvEvent: TextView = view.findViewById(R.id.tv_event)
         private val tvDetail: TextView = view.findViewById(R.id.tv_detail)
         private val viewDot: View = view.findViewById(R.id.view_category_dot)
@@ -50,6 +51,13 @@ class LogEntryAdapter : RecyclerView.Adapter<LogEntryAdapter.VH>() {
             tvEvent.setTextColor(entry.category.color)
             viewDot.background.setTint(entry.category.color)
 
+            if (entry.deltaMs >= 0) {
+                tvDelta.text = formatDelta(entry.deltaMs)
+                tvDelta.visibility = View.VISIBLE
+            } else {
+                tvDelta.visibility = View.GONE
+            }
+
             if (entry.detail != null) {
                 tvDetail.text = entry.detail
                 tvDetail.visibility = View.VISIBLE
@@ -57,5 +65,9 @@ class LogEntryAdapter : RecyclerView.Adapter<LogEntryAdapter.VH>() {
                 tvDetail.visibility = View.GONE
             }
         }
+
+        /** ms → "+123ms" o "+1.2s" para deltas largos. */
+        private fun formatDelta(ms: Long): String =
+            if (ms < 1000) "+${ms}ms" else "+%.1fs".format(ms / 1000.0)
     }
 }
