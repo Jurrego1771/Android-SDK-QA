@@ -14,7 +14,9 @@ import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.sdk_qa.databinding.ActivityBaseScenarioBinding
@@ -89,10 +91,33 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         binding = ActivityBaseScenarioBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        applyWindowInsets()
         setupDebugSheet()
         setupFab()
         initPlayer()
         setupActionButtons(binding.actionButtons)
+    }
+
+    /**
+     * Edge-to-edge: el player dibuja a pantalla completa, así que sus controles (cast, dismiss,
+     * barra de progreso) y el panel de debug quedarían bajo la status bar / nav bar.
+     *
+     * El SDK puede insetar sus propios controles, pero solo si `appHandlesWindowInsets = false`;
+     * por defecto viene `true` ("la app maneja los insets") y entonces el SDK no hace nada. Honramos
+     * ese contrato aquí: paddeamos el contenedor del player por las system bars. Hacerlo sobre la
+     * vista (no sobre el config) lo hace robusto a `reloadPlayer(buildConfig())`, que re-crea el
+     * config con el flag en su default.
+     */
+    private fun applyWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Player: padding completo → el video y los controles del SDK no quedan bajo las barras.
+            binding.playerContainer.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            // Panel de debug: solo padding inferior → sus botones quedan sobre la nav bar.
+            binding.debugSheet.setPadding(0, 0, 0, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     override fun onDestroy() {
