@@ -144,6 +144,41 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
             synchronized(this) { lastEventElapsedMs = -1L }
         }
         binding.btnCopySnapshot.setOnClickListener { copySnapshotToClipboard() }
+        setupLogFilter()
+    }
+
+    /**
+     * Crea un filter-chip por categoría (multi-selección). Ninguno marcado = mostrar todo.
+     * El borde y el texto van con el color de la categoría para atarlo al punto del log.
+     */
+    private fun setupLogFilter() {
+        val group = binding.chipGroupFilter
+        for (cat in LogCategory.values()) {
+            val chip = com.google.android.material.chip.Chip(this).apply {
+                text = cat.name
+                tag = cat
+                isCheckable = true
+                isCloseIconVisible = false
+                isCheckedIconVisible = true
+                setTextColor(cat.color)
+                chipStrokeWidth = 1f
+                chipStrokeColor = android.content.res.ColorStateList.valueOf(cat.color)
+                setOnCheckedChangeListener { _, _ -> applyLogFilter() }
+            }
+            group.addView(chip)
+        }
+    }
+
+    /** Lee los chips marcados y pasa el conjunto de categorías al adapter. */
+    private fun applyLogFilter() {
+        val selected = buildSet {
+            for (i in 0 until binding.chipGroupFilter.childCount) {
+                val chip = binding.chipGroupFilter.getChildAt(i)
+                    as? com.google.android.material.chip.Chip ?: continue
+                if (chip.isChecked) (chip.tag as? LogCategory)?.let { add(it) }
+            }
+        }
+        logAdapter.setFilter(selected)
     }
 
     private fun setupFab() {
