@@ -20,6 +20,10 @@ class CallbackCaptor {
     private val fired = ConcurrentHashMap.newKeySet<String>()
     private val eventThreads = ConcurrentHashMap<String, String>() // event → thread name
     private val eventOrder = Collections.synchronizedList(mutableListOf<String>())
+    private val timeline = Collections.synchronizedList(mutableListOf<TimedEvent>())
+
+    /** Evento con su instante (clock monotónico) y si llegó en el main thread. Para el export de sesión. */
+    data class TimedEvent(val name: String, val elapsedRealtimeMs: Long, val onMainThread: Boolean)
 
     /**
      * Registra que el evento [name] ocurrió.
@@ -29,6 +33,8 @@ class CallbackCaptor {
         fired.add(name)
         eventThreads[name] = Thread.currentThread().name
         eventOrder.add(name)
+        val onMain = Thread.currentThread() === Looper.getMainLooper().thread
+        timeline.add(TimedEvent(name, android.os.SystemClock.elapsedRealtime(), onMain))
         // Si ya hay un latch esperando, lo libera. Si no, crea uno resuelto
         // para que awaitEvent() futuro retorne true inmediatamente.
         latches.getOrPut(name) { CountDownLatch(1) }.countDown()
@@ -61,7 +67,14 @@ class CallbackCaptor {
         latches.clear()
         eventThreads.clear()
         eventOrder.clear()
+        timeline.clear()
     }
+
+    /**
+     * Timeline ordenado con timing: cada evento con su instante monotónico y si llegó en el main
+     * thread. Base del session export (Capa C) — permite derivar offsets relativos para diff.
+     */
+    fun timelineSnapshot(): List<TimedEvent> = synchronized(timeline) { timeline.toList() }
 
     /** Lista de todos los eventos registrados hasta ahora (orden de inserción no garantizado). */
     fun allEvents(): Set<String> = fired.toSet()
