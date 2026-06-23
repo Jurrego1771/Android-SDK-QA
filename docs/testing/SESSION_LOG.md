@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-23 (cont.) — Evaluación del Debug Overlay + color-coding por umbral
+
+**Objetivo de la sesión**
+Evaluar críticamente el debug overlay actual vs apps de referencia (ExoPlayer demo, Mux,
+THEOplayer) y empezar a cerrar brechas. Cambios subidos directo a `main` (no branch).
+
+**Evaluación — brechas priorizadas**
+- 🔴 Alto impacto: (1) métricas sin color por umbral; (2) no se puede exportar/copiar el
+  snapshot desde la app; (3) faltan señales que el SDK SÍ expone (`getCurrentUrl()` = CDN,
+  `getPBId/getSId/getUId` = session IDs, `getCurrentVideoPlayingFormat`).
+- 🟡 Medio: (4) log sin deltas entre callbacks; (5) rebuffer ratio mezcla cold+warm (falta
+  ventana móvil); (6) log no filtrable por categoría.
+- 🟢 Bajo / verificar: (7) D-pad en TV — el `BottomSheetBehavior` + FAB podrían NO ser
+  navegables con control remoto (riesgo real, testean en BRAVIA; sin confirmar).
+
+**Qué se hizo**
+- Implementada la mejora #1 (color-coding por umbral). Cada valor QoE se pinta verde/ámbar/rojo
+  según el ideal de industria (distinto de los ceilings de CI). Lógica en
+  `PlaybackMetrics.Health` (dominio testeable); render con `ForegroundColorSpan` por valor.
+- Verificado en A53: TTFF 3.7s → ámbar; buffer/rebuffer/dropped → verde. El régimen cold/warm
+  ahora es visible de un vistazo.
+
+**Commit**
+- `b95ba1b` feat(observability): color-code QoE metrics by industry threshold (en `main`)
+
+**Siguiente paso (roadmap del overlay)**
+1. #2 Export/share snapshot (copiar al portapapeles / intent share) — antesala del session export.
+2. #3 Añadir al HUD las señales del SDK que faltan (CDN URL, session IDs, formato).
+3. #7 Verificar D-pad en la BRAVIA antes de invertir más en el overlay para TV.
+
+---
+
 ## 2026-06-23 (cont.) — Baseline limpio + calibración de gates
 
 **Objetivo de la sesión**
