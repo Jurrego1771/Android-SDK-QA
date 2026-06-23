@@ -27,13 +27,25 @@ THEOplayer) y empezar a cerrar brechas. Cambios subidos directo a `main` (no bra
 - Verificado en A53: TTFF 3.7s → ámbar; buffer/rebuffer/dropped → verde. El régimen cold/warm
   ahora es visible de un vistazo.
 
-**Commit**
-- `b95ba1b` feat(observability): color-code QoE metrics by industry threshold (en `main`)
+**Commits**
+- `b95ba1b` color-code QoE metrics by industry threshold
+- `96c06c7` export QA snapshot to clipboard (mejora #2 — ver abajo)
+
+**Mejora #2 completada — Export snapshot**
+Botón "Copiar" en el panel → arma un reporte markdown (device, SDK version, contenido + CDN URL,
+session IDs pbId/sId/uId, estado, métricas QoE, timeline de callbacks) y lo copia al portapapeles
+para pegar en un ticket. Cubre #2 y, de paso, gran parte de #3 (CDN URL, session IDs, formato ya
+van en el reporte). Cada getter del SDK en runCatching → si falta en el binario, degrada a "—".
+Verificado en A53: el reporte trae la CDN URL real y los session IDs. Durante la prueba el HUD
+cazó un `SocketTimeoutException` que el SDK reintentó sin disparar onError (bug de error
+silencioso de sdk_known_bugs) — capturado por onLoadError.
 
 **Siguiente paso (roadmap del overlay)**
-1. #2 Export/share snapshot (copiar al portapapeles / intent share) — antesala del session export.
-2. #3 Añadir al HUD las señales del SDK que faltan (CDN URL, session IDs, formato).
-3. #7 Verificar D-pad en la BRAVIA antes de invertir más en el overlay para TV.
+1. ✅ #1 color-coding por umbral — hecho.
+2. ✅ #2 export snapshot al portapapeles — hecho (incluye CDN URL + session IDs de #3).
+3. #3 (parcial) — el HUD en vivo aún no muestra CDN URL / session IDs (sí van en el export);
+   evaluar si vale mostrarlos en el HUD o basta con el export.
+4. #7 Verificar D-pad en la BRAVIA antes de invertir más en el overlay para TV.
 
 ---
 
