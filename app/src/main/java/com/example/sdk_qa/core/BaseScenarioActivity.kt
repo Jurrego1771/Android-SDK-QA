@@ -199,6 +199,43 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         val durStr = if (dur > 0) fmt(dur) else "--:--"
         binding.tvStatus.text = "$icon  ${fmt(pos)} / $durStr   ${getScenarioTitle()}"
         binding.tvMetrics.text = renderMetrics(playbackMetrics.snapshot(exo))
+        binding.tvSdkSignals.text = renderSdkSignals()
+    }
+
+    /**
+     * Señales que el SDK expone pero el HUD QoE no cubre — oro para debugging:
+     * CDN/manifest servido (getCurrentUrl), formato confirmado (HLS/DASH) y los session IDs
+     * (pbId/sId/uId) para correlacionar con el backend de analytics. Mismos getters que el export;
+     * cada uno en runCatching → si falta en el binario degrada a "—" sin romper el HUD.
+     */
+    private fun renderSdkSignals(): CharSequence {
+        val p = player
+        val label = PlaybackMetrics.Health.NEUTRAL.color and 0x66FFFFFF.toInt() // cyan atenuado
+        val value = PlaybackMetrics.Health.NEUTRAL.color
+        fun sdk(block: () -> String?): String =
+            runCatching { block() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: "—"
+
+        val sb = android.text.SpannableStringBuilder()
+        // Línea 1: formato + CDN/manifest (acortado a host/…/archivo para caber de un vistazo)
+        sb.colored("FMT ", label); sb.colored(sdk { p?.getCurrentVideoPlayingFormat() }, value)
+        sb.colored("  CDN ", label); sb.colored(shortenUrl(sdk { p?.getCurrentUrl() }), value)
+        sb.append("\n")
+        // Línea 2: session IDs para correlacionar con analytics
+        sb.colored("pb ", label); sb.colored(sdk { p?.getPBId() }, value)
+        sb.colored("  s ", label); sb.colored(sdk { p?.getSId() }, value)
+        sb.colored("  u ", label); sb.colored(sdk { p?.getUId() }, value)
+        return sb
+    }
+
+    /** Acorta una URL a `host/…/último-segmento` (sin query) para que quepa en el HUD. */
+    private fun shortenUrl(url: String): String {
+        if (url == "—") return url
+        return runCatching {
+            val u = android.net.Uri.parse(url)
+            val host = u.host ?: return url
+            val last = u.lastPathSegment?.substringBefore('?')
+            if (last.isNullOrEmpty()) host else "$host/…/$last"
+        }.getOrDefault(url)
     }
 
     /**

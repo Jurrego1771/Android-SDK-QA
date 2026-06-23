@@ -129,6 +129,21 @@
             android:fontFamily="monospace"
             tools:text="TTFF 1.2s   BUF 8.4s   BW 5.2 Mbps" />
 
+        <!-- Señales del SDK — CDN/manifest servido, formato y session IDs (correlación analytics) -->
+        <TextView
+            android:id="@+id/tv_sdk_signals"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="6dp"
+            android:textColor="@color/accent_cyan"
+            android:textSize="11sp"
+            android:lineSpacingMultiplier="1.1"
+            android:fontFamily="monospace"
+            tools:text="FMT hls · CDN .../master.m3u8&#10;pb a1b2 · s c3d4 · u e5f6" />
+
         <!-- Separador -->
         <View
             android:layout_width="match_parent"
