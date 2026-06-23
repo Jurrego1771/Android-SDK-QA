@@ -43,16 +43,35 @@ import java.util.concurrent.TimeUnit
  *
  * Vive en app/src/debug → ausente en release builds.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class ObservabilityProvider : ContentProvider() {
 
     private var current = WeakReference<BaseScenarioActivity>(null)
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    // Enganche del recorder: msPlayer nace unos ms después de onResume, así que reintentamos
+    // hasta engancharlo (o agotar los intentos). Los eventos de arranque que se pierdan están
+    // cubiertos por los callbacks del SDK (onBuffering/onReady).
+    private var attachTries = 0
+    private val attachRunnable = object : Runnable {
+        override fun run() {
+            val a = current.get() ?: return
+            if (SessionExporter.attachRecorder(a)) return
+            if (++attachTries < 20) mainHandler.postDelayed(this, 300)
+        }
+    }
+
     override fun onCreate(): Boolean {
         val app = context?.applicationContext as? Application ?: return false
         app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityResumed(activity: Activity) {
-                if (activity is BaseScenarioActivity) current = WeakReference(activity)
+                if (activity is BaseScenarioActivity) {
+                    current = WeakReference(activity)
+                    // Arranca el enganche del recorder (Capa C).
+                    attachTries = 0
+                    mainHandler.removeCallbacks(attachRunnable)
+                    mainHandler.post(attachRunnable)
+                }
             }
             override fun onActivityPaused(activity: Activity) {
                 // Captura señales que solo viven con el player activo (format, versión del SDK)
@@ -68,6 +87,7 @@ class ObservabilityProvider : ContentProvider() {
                 // Capa C — al cerrar el escenario, vuelca el timeline normalizado a un JSON diffable.
                 val ctx = context
                 if (activity is BaseScenarioActivity && ctx != null) {
+                    mainHandler.removeCallbacks(attachRunnable)
                     SessionExporter.export(ctx, activity)
                 }
             }

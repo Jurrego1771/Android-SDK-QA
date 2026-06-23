@@ -28,14 +28,22 @@ import java.util.TreeSet
  *
  * Recuperar del device:  `adb pull /sdcard/Android/data/com.example.sdk_qa/files/sessions`
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 object SessionExporter {
 
     private const val TAG = "SDK_QA"
-    private const val SCHEMA = "sdkqa.session.v1"
+    private const val SCHEMA = "sdkqa.session.v2"
+
+    /** Grabador de eventos discretos del player; se fusiona con los callbacks del SDK al exportar. */
+    private val recorder = SessionRecorder()
 
     /** Datos legibles solo mientras el player vive; se capturan en onPause (antes del release). */
     @Volatile private var liveVersion: String? = null
     @Volatile private var liveFormat: String? = null
+
+    /** Engancha el recorder al ExoPlayer del escenario. Idempotente; true cuando quedó enganchado. */
+    fun attachRecorder(activity: BaseScenarioActivity): Boolean =
+        recorder.attachTo(activity.player?.msPlayer)
 
     /** Captura señales que requieren un player vivo (se pierden tras releasePlayer en onDestroy). */
     fun captureLive(activity: BaseScenarioActivity) {
@@ -57,39 +65,52 @@ object SessionExporter {
         val name = "${sanitize(scenario)}-sdk${sanitize(version)}-$ts.json"
         val body = stablePretty(json)
 
-        // Reset para que la próxima sesión no herede señales de esta.
+        // Reset para que la próxima sesión no herede señales de esta. El snapshot del recorder
+        // ya quedó dentro de `json`, así que es seguro soltarlo aquí.
         liveVersion = null; liveFormat = null
+        runCatching { recorder.detach(); recorder.reset() }
 
         val dir = context.getExternalFilesDir("sessions") ?: run {
             Log.w(TAG, "SessionExport: getExternalFilesDir nulo"); return
         }
-        Thread {
-            runCatching {
-                if (!dir.exists()) dir.mkdirs()
-                File(dir, name).writeText(body)
-                Log.d(TAG, "SessionExport → ${File(dir, name).absolutePath}")
-            }.onFailure { Log.w(TAG, "SessionExport: fallo al escribir: ${it.message}") }
-        }.start()
+        // Escritura SÍNCRONA: estamos en onDestroy y el proceso puede reciclarse justo después;
+        // un Thread de fondo podría no alcanzar a escribir. El archivo es de pocos KB → el bloqueo
+        // es despreciable y garantiza que el volcado se complete.
+        runCatching {
+            if (!dir.exists()) dir.mkdirs()
+            val f = File(dir, name)
+            f.writeText(body)
+            Log.d(TAG, "SessionExport → ${f.absolutePath}")
+        }.onFailure { Log.w(TAG, "SessionExport: fallo al escribir: ${it.message}") }
     }
 
     private fun buildJson(activity: BaseScenarioActivity): JSONObject {
-        val captor = activity.callbackCaptor
-        val timeline = captor.timelineSnapshot()
-        val origin = timeline.firstOrNull()?.elapsedRealtimeMs ?: 0L
+        // --- Fusión de las dos fuentes en un solo timeline, ordenado por el reloj compartido ---
+        // (elapsedRealtime). Cada entrada: instante absoluto + JSON (source/type/thread/payload).
+        // El offset se calcula tras ordenar, relativo al primer evento global.
+        data class Entry(val t: Long, val json: JSONObject)
+        val merged = ArrayList<Entry>()
 
-        val callbacks = JSONArray()
-        for (e in timeline) {
-            callbacks.put(
-                JSONObject()
-                    .put("event", e.name)
-                    .put("offsetMs", e.elapsedRealtimeMs - origin)
-                    .put("thread", if (e.onMainThread) "main" else "background")
-            )
+        // Fuente 1 — callbacks del SDK (CallbackCaptor, ya timestampeados).
+        for (e in activity.callbackCaptor.timelineSnapshot()) {
+            merged.add(Entry(e.elapsedRealtimeMs, JSONObject()
+                .put("source", "sdk")
+                .put("type", e.name)
+                .put("thread", if (e.onMainThread) "main" else "background")))
         }
+        // Fuente 2 — eventos discretos de ExoPlayer (SessionRecorder).
+        for (e in recorder.snapshot()) merged.add(Entry(e.elapsedRealtimeMs, e.json))
 
-        // offMainThread: nombres únicos de eventos que NO llegaron en el main thread.
+        merged.sortBy { it.t }
+        val origin = merged.firstOrNull()?.t ?: 0L
+
+        val timeline = JSONArray()
         val offMain = TreeSet<String>()
-        timeline.filter { !it.onMainThread }.forEach { offMain.add(it.name) }
+        for (e in merged) {
+            e.json.put("offsetMs", e.t - origin)
+            timeline.put(e.json)
+            if (e.json.optString("thread") == "background") offMain.add(e.json.optString("type"))
+        }
 
         val sdk = JSONObject().put("version", liveVersion ?: JSONObject.NULL)
 
@@ -103,7 +124,7 @@ object SessionExporter {
 
         val playback = JSONObject().put("format", liveFormat ?: JSONObject.NULL)
 
-        // Métricas: solo contadores de COMPORTAMIENTO (estables para comparar versiones).
+        // Métricas: contadores de COMPORTAMIENTO agregados (resumen estable, complementa el timeline).
         // Se omiten BW/bitrate instantáneos y ratio (dependen de red/duración de la corrida).
         val m = activity.playbackMetrics.snapshot(null)
         val metrics = JSONObject()
@@ -122,7 +143,9 @@ object SessionExporter {
             .put("sdk", sdk)
             .put("content", content)
             .put("playback", playback)
-            .put("callbacks", callbacks)
+            .put("eventCount", timeline.length())
+            .put("truncated", recorder.truncated)
+            .put("timeline", timeline)
             .put("offMainThread", JSONArray(offMain.toList()))
             .put("metrics", metrics)
     }
