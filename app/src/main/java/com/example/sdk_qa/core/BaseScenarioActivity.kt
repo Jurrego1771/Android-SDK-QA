@@ -200,19 +200,56 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         binding.tvMetrics.text = renderMetrics(playbackMetrics.snapshot(exo))
     }
 
-    /** Construye el bloque QoE multilínea que se muestra bajo el status. */
+    /**
+     * Construye el bloque QoE multilínea con color-coding por umbral: cada valor se pinta
+     * verde/ámbar/rojo según su salud frente al estándar de industria (ver PlaybackMetrics.Health).
+     * Lo informativo (BW, BR, resolución) queda en cyan neutral.
+     */
     private fun renderMetrics(m: PlaybackMetrics.Snapshot): CharSequence {
-        val ttff = if (m.ttffMs >= 0) "${m.ttffMs / 1000.0}s" else "…"
-        val buf = "%.1fs".format(m.bufferHealthMs / 1000.0)
-        val bw = PlaybackMetrics.formatBitrate(m.measuredBandwidthBps)
-        val br = PlaybackMetrics.formatBitrate(m.currentBitrateBps)
-        val rebuf = "${m.rebufferCount} (${m.rebufferMs}ms · ${PlaybackMetrics.formatRatio(m.rebufferRatio)})"
-        val errLine = if (m.loadErrorCount > 0) "  ERR ${m.loadErrorCount}: ${m.lastLoadError}" else ""
-        return buildString {
-            append("TTFF $ttff   BUF $buf   BW $bw\n")
-            append("BR $br  ×${m.bitrateSwitches}sw   ${m.resolution} ${m.videoCodec}\n")
-            append("REBUF $rebuf   DROP ${m.droppedFrames}$errLine")
+        val neutral = PlaybackMetrics.Health.NEUTRAL.color
+        val sb = android.text.SpannableStringBuilder()
+
+        // Línea 1: TTFF · BUF · BW
+        val ttffStr = if (m.ttffMs >= 0) "${m.ttffMs / 1000.0}s" else "…"
+        sb.append("TTFF "); sb.colored(ttffStr, PlaybackMetrics.ttffHealth(m.ttffMs).color)
+        sb.append("   BUF "); sb.colored(
+            "%.1fs".format(m.bufferHealthMs / 1000.0),
+            PlaybackMetrics.bufferHealthLevel(m.bufferHealthMs).color
+        )
+        sb.append("   BW "); sb.colored(PlaybackMetrics.formatBitrate(m.measuredBandwidthBps), neutral)
+        sb.append("\n")
+
+        // Línea 2: BR · switches · resolución codec (informativo)
+        sb.append("BR "); sb.colored(PlaybackMetrics.formatBitrate(m.currentBitrateBps), neutral)
+        sb.append("  ×${m.bitrateSwitches}sw   ")
+        sb.colored("${m.resolution} ${m.videoCodec}", neutral)
+        sb.append("\n")
+
+        // Línea 3: REBUF · DROP · ERR
+        sb.append("REBUF "); sb.colored(
+            "${m.rebufferCount} (${m.rebufferMs}ms · ${PlaybackMetrics.formatRatio(m.rebufferRatio)})",
+            PlaybackMetrics.rebufferRatioHealth(m.rebufferRatio).color
+        )
+        sb.append("   DROP "); sb.colored(
+            "${m.droppedFrames}", PlaybackMetrics.droppedFramesHealth(m.droppedFrames).color
+        )
+        if (m.loadErrorCount > 0) {
+            sb.append("   "); sb.colored(
+                "ERR ${m.loadErrorCount}: ${m.lastLoadError}",
+                PlaybackMetrics.loadErrorHealth(m.loadErrorCount).color
+            )
         }
+        return sb
+    }
+
+    /** Anexa [text] aplicándole un color de primer plano. */
+    private fun android.text.SpannableStringBuilder.colored(text: String, color: Int) {
+        val start = length
+        append(text)
+        setSpan(
+            android.text.style.ForegroundColorSpan(color),
+            start, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
     }
 
     private fun fmt(s: Long) = "%02d:%02d".format(s / 60, s % 60)

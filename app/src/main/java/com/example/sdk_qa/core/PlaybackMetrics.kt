@@ -259,7 +259,55 @@ class PlaybackMetrics : AnalyticsListener {
 
     private fun nowMs() = android.os.SystemClock.elapsedRealtime()
 
+    /**
+     * Nivel de salud de una métrica frente al estándar de la industria, para color-coding en el
+     * HUD. OJO: estos umbrales son los IDEALES de industria (lo que el usuario percibe como bueno),
+     * NO los techos generosos anti-flaky de los gates de CI (PlaybackQoeTest). Propósitos distintos:
+     * el HUD muestra la verdad cruda (TTFF de 3s = amarillo, no-óptimo) aunque el gate de CI lo
+     * tolere.
+     */
+    enum class Health(val color: Int) {
+        OK(android.graphics.Color.parseColor("#4CAF50")),      // verde
+        WARN(android.graphics.Color.parseColor("#FFC107")),    // ámbar
+        BAD(android.graphics.Color.parseColor("#F44336")),     // rojo
+        NEUTRAL(android.graphics.Color.parseColor("#4DD0E1"))  // cyan — informativo / desconocido
+    }
+
     companion object {
+        // --- Umbrales de salud (ideales de industria) ---
+
+        /** TTFF: verde < 2s (target VOD), ámbar < 4s, rojo ≥ 4s. */
+        fun ttffHealth(ms: Long): Health = when {
+            ms < 0 -> Health.NEUTRAL          // aún sin primer frame
+            ms < 2_000 -> Health.OK
+            ms < 4_000 -> Health.WARN
+            else -> Health.BAD
+        }
+
+        /** Buffer health: rojo < 3s (riesgo de stall), ámbar < 10s, verde ≥ 10s. */
+        fun bufferHealthLevel(ms: Long): Health = when {
+            ms < 3_000 -> Health.BAD
+            ms < 10_000 -> Health.WARN
+            else -> Health.OK
+        }
+
+        /** Rebuffer ratio: verde < 0.5% (target industria), ámbar < 2%, rojo ≥ 2%. */
+        fun rebufferRatioHealth(ratio: Double): Health = when {
+            ratio < 0.005 -> Health.OK
+            ratio < 0.02 -> Health.WARN
+            else -> Health.BAD
+        }
+
+        /** Dropped frames: verde 0, ámbar ≤ 30, rojo > 30. */
+        fun droppedFramesHealth(n: Int): Health = when {
+            n == 0 -> Health.OK
+            n <= 30 -> Health.WARN
+            else -> Health.BAD
+        }
+
+        /** Errores de carga: verde 0, rojo cualquiera. */
+        fun loadErrorHealth(n: Int): Health = if (n == 0) Health.OK else Health.BAD
+
         /** Formatea bps a una etiqueta legible: "2.4 Mbps", "640 kbps", "—". */
         fun formatBitrate(bps: Int): String = formatBitrate(bps.toLong())
 
