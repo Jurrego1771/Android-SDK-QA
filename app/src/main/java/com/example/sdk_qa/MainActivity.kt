@@ -13,6 +13,8 @@ import com.example.sdk_qa.scenarios.audio.AudioLiveScenarioActivity
 import com.example.sdk_qa.scenarios.audio.AudioVodScenarioActivity
 import com.example.sdk_qa.scenarios.audio.AudioWithServiceScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoAdsScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoCastLiveScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoCastVodScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoContentSwitcherActivity
 import com.example.sdk_qa.scenarios.video.VideoDrmScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoEpisodeApiScenarioActivity
@@ -123,6 +125,18 @@ class MainActivity : AppCompatActivity() {
             description = "Cambiar tipo de contenido sin destruir el player — VOD/Live/Episode/Audio",
             status = PENDING,
             activityClass = VideoContentSwitcherActivity::class.java
+        ),
+        ScenarioListItem.Scenario(
+            title = "Cast — VOD",
+            description = "VOD con Chromecast (castAvailable) — descubrir receptor, sesión, transferir",
+            status = PENDING,
+            activityClass = VideoCastVodScenarioActivity::class.java
+        ),
+        ScenarioListItem.Scenario(
+            title = "Cast — Live",
+            description = "Live con Chromecast (castAvailable) — sesión de cast en vivo",
+            status = PENDING,
+            activityClass = VideoCastLiveScenarioActivity::class.java
         ),
 
         // ---- AUDIO ----
