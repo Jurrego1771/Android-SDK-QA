@@ -9,7 +9,8 @@ tests de internals viven en `MediastreamPlatformSDKAndroid`.
   decir `10.0.8-alpha01` — discrepancia conocida, ver `qa-knowledge/core-player` CORE-LEARN-004).
 - Una sola app / un APK para móvil y TV; el SDK es adaptativo en runtime. Diferenciación por
   anotaciones `@MobileOnly`/`@TvOnly` + filtro `--target` en `scripts/run-tests.sh`.
-- Devices: A53 físico `R5CTB1W92KY` (USB); Sony BRAVIA `192.168.0.24:5555` (TV, WiFi).
+- Devices: A53 físico `R5CTB1W92KY` (USB); Sony BRAVIA `192.168.1.224:5555` (TV, WiFi — IP por
+  DHCP, puede cambiar; `BRAVIA_VU31`, requiere aceptar la autorización ADB en pantalla al conectar).
 
 ---
 
@@ -87,8 +88,15 @@ adb shell am instrument -w -e class com.example.sdk_qa.integration.<Clase> \
 `BaseScenarioActivity` tiene un panel (FAB 🐛 → bottom sheet) común a las 18 Activities:
 - **HUD QoE** color-coded por umbral de industria (`PlaybackMetrics` + `PlaybackMetrics.Health`):
   TTFF, buffer, bitrate/switches, rebuffer ratio, dropped frames, errores de carga silenciosos.
+- **Señales del SDK en el HUD vivo**: `getCurrentVideoPlayingFormat` (HLS/DASH), `getCurrentUrl`
+  (CDN/manifest, acortado a `host/…/archivo`), `getPBId/getSId/getUId` (session IDs).
+- **Log de callbacks** con **delta inter-evento** (`+123ms` / `+1.4s`, clock monotónico) y
+  **filtro por categoría** (chips multi-selección; ninguno = todo).
 - Botón **"Copiar"** → exporta un snapshot markdown (device, SDK, CDN URL, session IDs
   pbId/sId/uId, métricas, timeline de callbacks) al portapapeles y a logcat (`SDK_QA`).
+- **En TV (D-pad)**: el FAB no se puede tocar → **tecla MENU** (botón Opciones del remoto)
+  abre/cierra el panel; con el panel abierto el D-pad navega el overlay (no se reenvía al
+  player) y **BACK** lo cierra sin salir del escenario. Verificado en BRAVIA.
 - `playbackMetrics` y `callbackCaptor` están expuestos para tests instrumentados.
 
 ---

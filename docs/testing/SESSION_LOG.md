@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-06-23 (cont.) — Mejoras al Debug Overlay #3/#4/#6/#7 (harness MCP + BRAVIA)
+
+**Objetivo**
+Cerrar brechas del overlay usando el harness MCP recién validado (navigate_deeplink + tap +
+observe_*), sin adb manual. Cambios directos a `main`.
+
+**Qué se hizo (todo verificado en device)**
+- **#3 Señales del SDK en HUD vivo** (`f3e13ac`) — `getCurrentVideoPlayingFormat` (HLS/DASH),
+  `getCurrentUrl` (CDN/manifest, acortado a `host/…/archivo`), `getPBId/getSId/getUId` (session
+  IDs). Ya iban en el export; ahora también en el HUD. Cada getter en `runCatching` → "—" si falta.
+  Verificado en A53 vía MCP.
+- **#4 Deltas inter-callback en el log** (`4e791db`) — cada entrada muestra ms desde el evento
+  anterior (`+123ms` / `+1.4s`), clock monotónico (`elapsedRealtime`) capturado en `log()`, no en
+  `bind()`. Reset al "Limpiar". Verificado: onBuffering→onReady +1.6s, onReady→onPlay +3ms.
+- **#6 Filtro de log por categoría** (`5809b37`) — fila de filter-chips Material (multi-selección),
+  uno por `LogCategory`, coloreado con su color. Ninguno = todo. Adapter separa lista completa de
+  la visible (`rebuildVisible` + notifyDataSetChanged; lista ≤100, animator off). Verificado.
+- **#7 D-pad en TV** (`1edf317`) — el panel era inalcanzable en TV: FAB sin touch y `dispatchKeyEvent`
+  reenviaba todo el D-pad al player. Solución: **MENU** abre/cierra (interceptado antes del player),
+  **BACK** cierra si está abierto, y **con el panel abierto el D-pad NO va al player** → navega el
+  overlay con foco normal. `isTv` vía UiModeManager; foco salta al primer control al abrir.
+  **Verificado en BRAVIA real** (`192.168.1.224`, `BRAVIA_VU31`): MENU abre, D-pad recorre/togglea
+  chips (log se filtró), BACK cierra sin salir del escenario.
+
+**Notas de infra**
+- IP de la BRAVIA ahora `192.168.1.224:5555` (era `.0.24`; DHCP). Requiere aceptar la autorización
+  ADB en pantalla al conectar (`adb connect` → "unauthorized" hasta aceptar en la TV).
+- Screenshots en TV: las tools MCP apuntan al A53 (ANDROID_SERIAL); para la BRAVIA se usó
+  `adb -s <ip> exec-out screencap -p`.
+
+**Siguiente paso**
+Roadmap del overlay: queda **#5** (rebuffer ratio con ventana móvil, separar cold/warm). El resto
+(#1–#4, #6, #7) hechos. Repetir baseline QoE en TV/Fire TV sigue pendiente.
+
+---
+
 ## 2026-06-23 (cont.) — Decisión de navegación: MCP custom validado (ni Maestro ni Appium)
 
 **Objetivo de la sesión**
