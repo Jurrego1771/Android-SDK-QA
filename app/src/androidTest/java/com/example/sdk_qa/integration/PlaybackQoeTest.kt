@@ -9,6 +9,7 @@ import com.example.sdk_qa.utils.awaitCallback
 import com.example.sdk_qa.utils.awaitFirstFrame
 import com.example.sdk_qa.utils.metricsSnapshot
 import com.google.common.truth.Truth.assertWithMessage
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -18,12 +19,19 @@ import org.junit.runner.RunWith
  *
  * Fuente: DirectHlsActivity — VOD corto de Mediastream por CDN, estable, apto para cada commit.
  *
- * IMPORTANTE — calibración de umbrales:
- *   Los TARGETS de industria (TTFF < 2s VOD, rebuffer ratio < 0.5%) son ideales de red/CDN
- *   en condiciones óptimas. Los GATES de aquí son techos GENEROSOS pensados para detectar
- *   REGRESIONES entre versiones del SDK sin volverse flaky por la varianza de dispositivos/red
- *   de CI. Cuando exista un baseline limpio medido en device físico, ajustar estos números
- *   hacia abajo. Cada gate documenta su target de industria y su techo de CI.
+ * MIDE STEADY-STATE, NO COLD-START:
+ *   El baseline limpio (QoeBaselineTest, A53/SDK 10.0.7, 2026-06-23) mostró dos regímenes muy
+ *   distintos. Arranque FRÍO (red sin calentar: DNS/TCP/TLS/CDN cache miss): TTFF ~8s, rebuffer
+ *   ratio ~52%, 480p. Arranque CALIENTE (steady-state): TTFF 1.5–2.6s, rebuffer 0%, 720p.
+ *   Bajo el Orchestrator de CI cada test corre en proceso nuevo = frío, así que sin warm-up
+ *   estos gates serían flaky. Por eso [warmUp] reproduce una sesión descartada antes de cada
+ *   test: calienta la red a nivel de proceso (DNS/CDN/conexiones), dejando la medición en
+ *   régimen caliente — que además es el más sensible para detectar regresiones (0% → cualquier
+ *   stall se nota). El cold-start se observa por separado en QoeBaselineTest, no se gatea aquí
+ *   (depende demasiado de la red de CI).
+ *
+ *   Umbrales calibrados al baseline caliente (med 2.6s / 0%) + margen anti-flaky. Targets de
+ *   industria documentados en cada gate.
  *
  * Estas son pruebas "soak": dejan reproducir contenido real unos segundos para acumular
  * métricas significativas (rebuffer ratio sobre poco watch-time no es representativo).
@@ -38,31 +46,54 @@ class PlaybackQoeTest {
     // Ventana de soak: tiempo de reproducción real antes de evaluar métricas acumulativas.
     private val SOAK_MS = 20_000L
 
-    // --- Gates de CI (techos generosos; ver nota de calibración arriba) ---
-    private val TTFF_CEILING_MS = 5_000L      // target industria: < 2s VOD
-    private val REBUFFER_RATIO_CEILING = 0.05 // target industria: < 0.005 (0.5%)
+    // Warm-up: reproducción descartada que calienta la red del proceso antes de medir.
+    private val WARMUP_MS = 6_000L
+
+    // --- Gates de CI (calibrados al baseline CALIENTE; ver nota de régimen arriba) ---
+    private val TTFF_CEILING_MS = 4_000L      // baseline caliente med 2.6s · target industria < 2s VOD
+    private val REBUFFER_RATIO_CEILING = 0.02 // baseline caliente 0% · target industria < 0.005 (0.5%)
+
+    /**
+     * Calienta la red a nivel de proceso con una reproducción descartada, para que la medición
+     * caiga en régimen caliente (steady-state) y no en el arranque frío de red. Crítico bajo el
+     * Orchestrator, donde cada test arranca en proceso nuevo.
+     */
+    @Before
+    fun warmUp() {
+        ActivityScenario.launch(DirectHlsActivity::class.java).use { scenario ->
+            scenario.awaitCallback("onPlay", READY_TIMEOUT)
+            Thread.sleep(WARMUP_MS)
+        }
+    }
 
     // -------------------------------------------------------------------------
-    // [QOE-01] TTFF (Time To First Frame) bajo el techo
-    // GIVEN: VOD por CDN, autoplay
-    // WHEN: el player arranca y renderiza el primer frame
-    // THEN: TTFF (creación → primer frame) < TTFF_CEILING_MS
-    // Assert reason: el primer frame es el momento percibido de "arranque" por el usuario;
-    //   regresiones aquí degradan la métrica #1 de QoE de la industria.
+    // [QOE-01] TTFF (Time To First Frame) — mediana bajo el techo
+    // GIVEN: VOD por CDN, autoplay, red caliente (warm-up previo)
+    // WHEN: se miden 3 arranques y se toma la MEDIANA del TTFF (creación → primer frame)
+    // THEN: mediana < TTFF_CEILING_MS
+    // Assert reason: el primer frame es el "arranque" percibido por el usuario, métrica #1 de
+    //   QoE. El TTFF de muestra única es ruidoso (DNS/TCP/TLS/primer segmento); la industria lo
+    //   reporta por mediana/percentil. Medir la mediana de 3 hace el gate robusto a outliers.
     // -------------------------------------------------------------------------
     @Test
-    fun ttff_isBelowCeiling() {
+    fun ttffMedian_isBelowCeiling() {
+        val samples = (1..3).map { measureTtffOnce() }
+        samples.forEach {
+            assertWithMessage("El SDK nunca renderizó el primer frame en una de las muestras")
+                .that(it).isAtLeast(0L)
+        }
+        val median = samples.sorted()[samples.size / 2]
+        assertWithMessage(
+            "TTFF mediana=${median}ms (muestras=${samples.sorted()}) supera el techo de CI " +
+            "${TTFF_CEILING_MS}ms (target industria < 2000ms VOD)"
+        ).that(median).isLessThan(TTFF_CEILING_MS)
+    }
+
+    /** Mide el TTFF de un arranque aislado (scenario fresco) y cierra. */
+    private fun measureTtffOnce(): Long {
         ActivityScenario.launch(DirectHlsActivity::class.java).use { scenario ->
             scenario.awaitCallback("onReady", READY_TIMEOUT)
-
-            val ttff = scenario.awaitFirstFrame(READY_TIMEOUT)
-            assertWithMessage("El SDK nunca renderizó el primer frame (onRenderedFirstFrame)")
-                .that(ttff).isAtLeast(0L)
-
-            assertWithMessage(
-                "TTFF=${ttff}ms supera el techo de CI ${TTFF_CEILING_MS}ms " +
-                "(target industria < 2000ms VOD)"
-            ).that(ttff).isLessThan(TTFF_CEILING_MS)
+            return scenario.awaitFirstFrame(READY_TIMEOUT)
         }
     }
 

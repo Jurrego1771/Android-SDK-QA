@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-06-23 (cont.) — Baseline limpio + calibración de gates
+
+**Objetivo de la sesión**
+Medir el comportamiento QoE real del SDK 10.0.7 en device físico, sin instrumentación de
+captura encima, para calibrar los umbrales de `PlaybackQoeTest` con números reales (los
+anteriores eran techos adivinados).
+
+**Qué se hizo**
+1. `QoeBaselineTest.kt` (`@LargeTest`, on-demand) — mide N reproducciones y loguea TTFF,
+   rebuffer, bitrate, etc. en formato parseable (`adb logcat -s QOE_BASELINE`). No es gate, es
+   medición. Reporta cada iteración + resumen min/mediana/max.
+2. Corrida limpia en A53 (3 iters, soak 30s, vía `am instrument` directo sin Orchestrator).
+
+**Hallazgo principal — dos regímenes (cold vs warm)**
+| Iter | Régimen | TTFF | Rebuffer ratio | Calidad | BW medido | Buffer |
+|---|---|---|---|---|---|---|
+| 1 | **frío** | 7976ms | 52.2% | 854x480 | 350 kbps | 890ms |
+| 2 | caliente | 2642ms | 0% | 1280x720 | 41 Mbps | 54s |
+| 3 | caliente | 1523ms | 0% | 1280x720 | 27 Mbps | 48.6s |
+
+- El cuello de botella del cold-start es la **red** (DNS/TCP/TLS/CDN cache miss + estimador ABR
+  frío), no el SDK. Registrado como `CORE-LEARN-015` en `qa-knowledge/core-player/learnings.yaml`.
+- La sospecha previa "360p con banda disponible" **NO se reprodujo** limpio → era artefacto de
+  contaminación. Descartada.
+
+**Calibración resultante (`PlaybackQoeTest`)**
+- Añadido `@Before warmUp()`: reproducción descartada que calienta la red → la medición cae en
+  steady-state (no flaky bajo el Orchestrator, donde cada test = proceso frío).
+- TTFF gateado por **mediana de 3** muestras (la muestra única varía 1.5–5.1s; un techo ajustado
+  con muestra única falla — se verificó empíricamente: falló a 5127ms).
+- Umbrales: `TTFF < 4000ms` (caliente med 2.6s), `rebufferRatio < 0.02` (caliente 0%).
+- Verificado: 4/4 pasan tras calibración.
+
+**Siguiente paso**
+1. (Opcional) Repetir baseline en TV (BRAVIA) y Fire TV para ver si el régimen cold/warm difiere
+   por dispositivo.
+2. (Capa C) Session export a JSON al cerrar la Activity, para diff de QoE entre versiones del SDK.
+3. Integrar `--size large` en una corrida nightly de CI para que los gates QoE corran sin frenar
+   cada commit.
+
+---
+
 ## 2026-06-23 — Debug Panel QoE + gates de CI
 
 **Objetivo de la sesión**

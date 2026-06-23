@@ -1,0 +1,182 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-23"
+
+learnings:
+
+  - id: CORE-LEARN-001
+    title: "Hay 4 constructores; solo el estándar exige Activity"
+    discovery: "MediastreamPlayer.kt:1200-1309"
+    detail: >
+      Constructores: () vacío (:1200); (context, activity, playerContainer, config,
+      container) (:1202) que valida require(context is Activity); (context, config,
+      container, playerContainer, msMiniPlayerConfig, isFromSyncService=false) (:1248);
+      (context, config, container, playerContainer, fragmentManager) (:1303). En los dos
+      últimos la línea require(Activity) está comentada — aceptan Context no-Activity.
+    impact_on_tests: >
+      Para tests de servicio/audio usar el constructor con MiniPlayerConfig. El de
+      Activity es el único que crasheará con un Context plano (CORE-AC-002).
+
+  - id: CORE-LEARN-002
+    title: "El idioma por defecto del player es ENGLISH, no español"
+    discovery: "MediastreamPlayerConfig.kt:184 (var language: Language = Language.ENGLISH)"
+    detail: >
+      Enum Language { ENGLISH('en'), SPANISH('es'), PORTUGUESE('pt') }. El default es
+      ENGLISH. Esto DIFIERE del player web (Lightning) cuyo default i18n era 'es'. El
+      locale se aplica con LocaleHelper.setLocale(context, config.language) en cada
+      constructor con args.
+    impact_on_tests: >
+      No asumir español por defecto en assertions de texto visible del player Android.
+      Setear language explícitamente en cada test de idioma.
+
+  - id: CORE-LEARN-003
+    title: "DrmData es una API normal presente en 10.0.x (no hay v11)"
+    discovery: "MediastreamPlayerConfig.kt:78 (drmData) y :602 (class DrmData); .aar 10.0.8-alpha01 (getDrmData/setDrmData)"
+    detail: >
+      class DrmData(var drmUrl: String, var drmHeaders: Map<String, String>) y la
+      propiedad var drmData: DrmData? = null existen en el código 10.0.7 y en el
+      binario QA 10.0.8-alpha01 (getDrmData/setDrmData). No es una contradicción ni
+      divergencia: una nota de memoria previa que la daba por ausente ("v11") estaba
+      simplemente obsoleta; no existe ninguna rama v11.
+    impact_on_tests: >
+      Para DRM usar config.drmData = DrmData(url, headers). Verificar siempre contra el
+      binario que QA usa (10.0.8-alpha01) antes de asumir ausencia de una API.
+
+  - id: CORE-LEARN-004
+    title: "getVersion() es un literal hardcodeado, no BuildConfig"
+    discovery: "MediastreamPlayer.kt:7799-7801 (literal hardcodeado; '10.0.7' en fuente, '10.0.8-alpha01' en el .aar QA)"
+    detail: >
+      getVersion() retorna un string literal embebido, no derivado del artefacto. En el
+      binario QA es '10.0.8-alpha01'; en el código fuente local 10.0.7 es '10.0.7'. Un
+      bump de versión que no toque este literal hará que getVersion() mienta.
+    impact_on_tests: >
+      Útil como tripwire (GAP-CORE-002): el test debe esperar '10.0.8-alpha01' (versión
+      QA); si el SDK sube sin actualizar el literal, el test alerta de la deuda.
+
+  - id: CORE-LEARN-005
+    title: "forward/backward/seekTo trabajan en milisegundos (Long)"
+    discovery: "MediastreamPlayer.kt:5603 forward(amount: Long), :5630 backward(amount: Long), :5657 seekTo(position: Long)"
+    detail: >
+      Los tres aceptan Long en ms. forward/backward son relativos; seekTo es absoluto.
+      El summary del módulo decía 'forward(amount)' sin tipo — el tipo real es Long(ms).
+    impact_on_tests: >
+      Pasar valores en ms (ej. forward(10_000) = +10s). No confundir con segundos.
+
+  - id: CORE-LEARN-006
+    title: "mergePersistentFrom — qué persiste y qué viene del nuevo config"
+    discovery: "MediastreamPlayerConfig.kt:451-481"
+    detail: >
+      Del config PREVIO: showDismissButton, isDebug, showControls, showFullScreenButton,
+      appHandlesWindowInsets, applyEdgeSafeMargins, showBrightnessBar,
+      forceBackPressedWhenFullScreen, trackEnable, adaptResizeModeToOrientation,
+      cachedRdid, cachedIsLat. Del config NUEVO: language, dvr, dvrStart, dvrEnd, startAt.
+      Mixto (nuevo si presente, sino previo): volume, autoplay, customBackgroundForAudioPlayer,
+      customPlayerView, baseColor.
+    impact_on_tests: >
+      Tests de reloadPlayer deben verificar esta tabla. Cambiar un flag persistente en el
+      nuevo config NO aplica (CORE-RISK-005). language SÍ cambia (CORE-LEARN-007).
+
+  - id: CORE-LEARN-007
+    title: "reloadPlayer SÍ cambia el idioma de la UI"
+    discovery: "MediastreamPlayerConfig.kt:464-465 (language = newConfig.language)"
+    detail: >
+      A diferencia de los demás flags de UI que persisten, language toma el valor del
+      nuevo config en mergePersistentFrom. Esto permite cambiar el idioma sin reconstruir
+      el player (ej. pantalla de localización del usuario).
+    impact_on_tests: >
+      Test: init ENGLISH → reloadPlayer(SPANISH) → verificar UI en español (GAP-CORE-004).
+
+  - id: CORE-LEARN-008
+    title: "addPlayerCallback deduplica y reentrega errores pendientes"
+    discovery: "MediastreamPlayer.kt:1069-1087"
+    detail: >
+      No añade un callback ya presente (contains). Si pendingError/pendigEmbedError no
+      son nulos al registrar, los entrega de inmediato y los limpia. Esto evita perder
+      errores emitidos antes de que el integrador se suscriba.
+    impact_on_tests: >
+      Probar el orden: provocar error ANTES de addPlayerCallback y verificar que el
+      callback recién registrado lo recibe (CORE-AC-007). Recordar CORE-DEF-002: 404 no
+      genera error.
+
+  - id: CORE-LEARN-009
+    title: "playerViewReady NO llega en el main thread"
+    discovery: "memoria sdk_known_bugs (Bug #6); confirmado en Sony BRAVIA VU31 4K"
+    detail: >
+      onReady y onPlay llegan en main, pero playerViewReady(PlayerView) llega desde un
+      thread de ExoPlayer/Media3. UI updates directas ahí lanzan
+      CalledFromWrongThreadException.
+    impact_on_tests: >
+      Tests que verifican 'callbacks en main thread' deben tratar playerViewReady como
+      excepción conocida (@Ignore con razón). Integradores deben usar runOnUiThread.
+
+  - id: CORE-LEARN-010
+    title: "getCurrentMsPlayer puede devolver el preroll SSAI, no msPlayer"
+    discovery: "MediastreamPlayer.kt:8276-8282"
+    detail: >
+      getCurrentMsPlayer() retorna prerollPlayerForSsai si existe, sino msPlayer. Es el
+      acceso recomendado al Player de media3. msPlayer es una var pública (:210) — el
+      acceso crudo salta la lógica de SSAI/DVR del SDK.
+    impact_on_tests: >
+      Para inspeccionar el Player activo durante un ad SSAI usar getCurrentMsPlayer(), no
+      msPlayer directo. No usar msPlayer.seekTo() para DVR (bypasea el SDK).
+
+  - id: CORE-LEARN-011
+    title: "isVodCase es true cuando hay ventana DVR fija (dvrStart+dvrEnd)"
+    discovery: "MediastreamPlayer.kt:6594-6596"
+    detail: >
+      isVodCase() = msConfig?.dvrStart.isNullOrEmpty().not() && dvrEnd.isNullOrEmpty().not().
+      Una ventana DVR con inicio y fin definidos se trata internamente como un VOD
+      (timeline acotado, seekable), aunque el contenido sea live.
+    impact_on_tests: >
+      Para tests de DVR fijo, isVodCase() es el discriminador. No confundir con type=VOD.
+
+  - id: CORE-LEARN-012
+    title: "El layout del player cambia en Fire OS (SurfaceView)"
+    discovery: "MediastreamPlayer.kt:1224 (context.isFireOS() -> player_view_layout_surface)"
+    detail: >
+      En Fire OS se infla player_view_layout_surface (SurfaceView); en el resto
+      player_view_layout. Si config.customPlayerView != null, se usa esa view y se omite
+      el inflado.
+    impact_on_tests: >
+      Tests de rendering/zoom/PiP pueden comportarse distinto en Fire TV. Verificar el
+      tipo de surface al depurar artefactos visuales en Fire OS.
+
+  - id: CORE-LEARN-013
+    title: "No hay hooks de ciclo de vida públicos — solo releasePlayer()"
+    discovery: "MediastreamPlayer.kt:180 (LifecycleOwner); grep sin onResume/onPause/onDestroy públicos"
+    detail: >
+      La clase implementa LifecycleOwner y maneja su lifecycleRegistry internamente. El
+      integrador no llama onResume/onPause/onDestroy; la única API de limpieza explícita
+      es releasePlayer(). releaseAdsLoader() libera solo el ImaAdsLoader.
+    impact_on_tests: >
+      En tests, llamar releasePlayer() en el teardown/onDestroy de la Activity. No buscar
+      hooks de lifecycle que no existen.
+
+  - id: CORE-LEARN-014
+    title: "Device IDs de ads se cachean async; waitForDeviceIdsCache solo en background"
+    discovery: "MediastreamPlayerConfig.kt:204 (fetchDeviceIdsAsync) y :294 (waitForDeviceIdsCache)"
+    detail: >
+      fetchDeviceIdsAsync lanza un Thread que obtiene GAID (o AAID Amazon en Fire OS) y
+      cachea cachedRdid/cachedIsLat. waitForDeviceIdsCache(timeoutMs=3000) bloquea hasta
+      cachear; debe llamarse solo desde un thread de background.
+    impact_on_tests: >
+      Tests de getAdQueryString que dependan de rdid/idtype deben primero poblar
+      cachedRdid/cachedIsLat (o llamar fetch + wait en background). Sin cache, esos
+      params no se inyectan.
+
+  - id: CORE-LEARN-015
+    title: "Arranque frío vs caliente: TTFF y rebuffer divergen ~5x por la red, no por el SDK"
+    discovery: "QoeBaselineTest (empírico, Samsung A53 / SDK 10.0.7, 2026-06-23, n=3, VOD_SHORT por CDN)"
+    detail: >
+      Primer arranque del proceso (red sin calentar — DNS/TCP/TLS/CDN cache miss): TTFF ~8s,
+      rebuffer ratio ~52% (12.4s de stall), ABR sirve 480p, buffer al borde del vacío (~890ms),
+      ancho de banda estimado ~350kbps. Arranques siguientes en el MISMO proceso (steady-state):
+      TTFF 1.5-2.6s, rebuffer 0%, 720p, BW estimado 27-41Mbps. El cuello de botella del
+      cold-start es la red, no el SDK: el estimador de ancho de banda de ExoPlayer arranca
+      pesimista (por-instancia) y el ABR sirve baja calidad hasta que la red real se calienta.
+    impact_on_tests: >
+      Los gates de QoE (PlaybackQoeTest) miden steady-state con un warm-up previo (reproducción
+      descartada que calienta la red del proceso) para no ser flaky bajo el Orchestrator, donde
+      cada test = proceso frío. El TTFF se gatea por MEDIANA de 3 muestras: la muestra única
+      varía 1.5-5.1s y rompe un techo ajustado. El cold-start se observa en QoeBaselineTest
+      (no se gatea: depende demasiado de la red de CI).
