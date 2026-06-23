@@ -80,6 +80,16 @@ class PlaybackMetrics : AnalyticsListener {
     private var attached: ExoPlayer? = null
 
     /**
+     * Fija el origen de tiempo para el cálculo de TTFF: el instante de creación del player
+     * (≈ inicio real de la carga). Debe llamarse en cuanto se construye el MediastreamPlayer,
+     * ANTES del primer attach, para que TTFF = primerFrame − creaciónDelPlayer y no dependa de
+     * la granularidad del poll de 500ms. Solo tiene efecto la primera vez.
+     */
+    fun setOrigin(elapsedRealtimeMs: Long) {
+        if (attachTimeMs < 0) attachTimeMs = elapsedRealtimeMs
+    }
+
+    /**
      * Engancha el colector al ExoPlayer interno del SDK. Idempotente y seguro frente a swaps:
      * si la instancia es la misma, no hace nada; si cambió (Cast), desengancha la anterior.
      * Si [player] no es un ExoPlayer (CastPlayer durante Chromecast), simplemente lo ignora.

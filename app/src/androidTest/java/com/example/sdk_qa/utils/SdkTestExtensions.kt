@@ -8,6 +8,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.example.sdk_qa.core.BaseScenarioActivity
 import com.example.sdk_qa.core.CallbackCaptor
+import com.example.sdk_qa.core.PlaybackMetrics
 import com.google.common.truth.Truth.assertWithMessage
 
 /**
@@ -159,6 +160,37 @@ fun <T : BaseScenarioActivity> ActivityScenario<T>.awaitAnyError(timeoutMs: Long
         Thread.sleep(200)
     }
     return false
+}
+
+// =============================================================================
+// Métricas QoE (PlaybackMetrics)
+// =============================================================================
+
+/**
+ * Lee un snapshot de métricas QoE. Se ejecuta en el main thread porque [PlaybackMetrics.snapshot]
+ * consulta el ExoPlayer (bufferedPosition/currentPosition), que solo es seguro leer desde su
+ * thread de aplicación.
+ */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+fun <T : BaseScenarioActivity> ActivityScenario<T>.metricsSnapshot(): PlaybackMetrics.Snapshot {
+    var snap: PlaybackMetrics.Snapshot? = null
+    onActivity { snap = it.playbackMetrics.snapshot(it.player?.msPlayer) }
+    return snap!!
+}
+
+/**
+ * Espera a que el SDK renderice el primer frame (TTFF deja de ser -1) y devuelve el TTFF en ms,
+ * o -1 si expiró [timeoutMs]. Mide creación-del-player → primer frame renderizado.
+ */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+fun <T : BaseScenarioActivity> ActivityScenario<T>.awaitFirstFrame(timeoutMs: Long = 15_000): Long {
+    val start = System.currentTimeMillis()
+    while (System.currentTimeMillis() - start < timeoutMs) {
+        val ttff = metricsSnapshot().ttffMs
+        if (ttff >= 0) return ttff
+        Thread.sleep(200)
+    }
+    return -1L
 }
 
 // =============================================================================

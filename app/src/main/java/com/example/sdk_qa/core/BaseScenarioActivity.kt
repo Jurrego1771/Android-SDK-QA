@@ -150,6 +150,8 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     }
 
     private fun initPlayer() {
+        // Origen de TTFF = instante de creación del player (≈ inicio de carga).
+        playbackMetrics.setOrigin(android.os.SystemClock.elapsedRealtime())
         player = MediastreamPlayer(
             this,
             buildConfig(),
@@ -262,6 +264,9 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
 
         override fun playerViewReady(msplayerView: PlayerView?) {
             callbackCaptor.recordEvent("playerViewReady")
+            // Attach temprano y dirigido por evento: cierra la carrera con el primer frame
+            // (el poll de 500ms podría llegar tarde y perder onRenderedFirstFrame).
+            playbackMetrics.attachTo(player?.msPlayer)
             log("playerViewReady", category = LogCategory.LIFECYCLE)
         }
 
