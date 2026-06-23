@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
+import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -50,6 +51,12 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     /** elapsedRealtime del último evento logueado, para deltas inter-callback. -1 = aún ninguno. */
     @Volatile private var lastEventElapsedMs = -1L
     private lateinit var sheetBehavior: BottomSheetBehavior<*>
+
+    /** true en Android TV / Google TV — cambia el modo de entrada al debug panel (D-pad, no touch). */
+    private val isTv: Boolean by lazy {
+        (getSystemService(UI_MODE_SERVICE) as android.app.UiModeManager).currentModeType ==
+            Configuration.UI_MODE_TYPE_TELEVISION
+    }
     private val statusHandler = Handler(Looper.getMainLooper())
     private val timestampFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
 
@@ -96,7 +103,28 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        if (event != null && player?.handleTVKeyEvent(event.keyCode, event) == true) return true
+        if (event != null) {
+            when (event.keyCode) {
+                // MENU (botón Opciones del remoto) abre/cierra el panel en TV. Se intercepta antes
+                // que el player para que no se la coma el transport. Consume down+up.
+                KeyEvent.KEYCODE_MENU -> {
+                    if (event.action == KeyEvent.ACTION_DOWN) toggleDebugSheet()
+                    return true
+                }
+                // BACK cierra el panel si está abierto (no sale de la Activity). Cierra en el UP
+                // y consume ambos para que el UP no dispare la navegación atrás del sistema.
+                KeyEvent.KEYCODE_BACK -> if (isSheetOpen()) {
+                    if (event.action == KeyEvent.ACTION_UP) closeDebugSheet()
+                    return true
+                }
+            }
+            // Panel abierto → el D-pad navega el panel (foco normal entre chips/botones/log),
+            // NO se reenvía al player. Si no, el SDK consumiría las teclas para el transport y
+            // el foco nunca recorrería el overlay.
+            if (isSheetOpen()) return super.dispatchKeyEvent(event)
+            // Panel cerrado → el player maneja el D-pad (transport en TV).
+            if (player?.handleTVKeyEvent(event.keyCode, event) == true) return true
+        }
         return super.dispatchKeyEvent(event)
     }
 
@@ -130,6 +158,9 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
             isHideable = true
             skipCollapsed = true
         }
+        // Oculto = fuera de pantalla; bloquear el foco para que el D-pad no aterrice en controles
+        // invisibles antes de abrir el panel.
+        binding.debugSheet.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
 
         binding.recyclerLog.apply {
             layoutManager = LinearLayoutManager(this@BaseScenarioActivity).also {
@@ -182,12 +213,32 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
     }
 
     private fun setupFab() {
-        binding.fabDebug.setOnClickListener {
-            sheetBehavior.state = when (sheetBehavior.state) {
-                BottomSheetBehavior.STATE_HIDDEN -> BottomSheetBehavior.STATE_EXPANDED
-                else -> BottomSheetBehavior.STATE_HIDDEN
-            }
-        }
+        binding.fabDebug.setOnClickListener { toggleDebugSheet() }
+    }
+
+    // -------------------------------------------------------------------------
+    // Debug panel — abrir/cerrar (touch en móvil, MENU/D-pad en TV)
+    // -------------------------------------------------------------------------
+
+    private fun isSheetOpen() =
+        ::sheetBehavior.isInitialized && sheetBehavior.state != BottomSheetBehavior.STATE_HIDDEN
+
+    private fun toggleDebugSheet() {
+        if (isSheetOpen()) closeDebugSheet() else openDebugSheet()
+    }
+
+    private fun openDebugSheet() {
+        sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+        binding.debugSheet.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        // En TV el foco salta al primer control para que el D-pad pueda recorrer el panel.
+        if (isTv) binding.debugSheet.post { binding.btnCopySnapshot.requestFocus() }
+    }
+
+    private fun closeDebugSheet() {
+        sheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+        binding.debugSheet.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        // Devolver el foco al player para que el D-pad vuelva a controlar el transport.
+        if (isTv) binding.playerView.requestFocus()
     }
 
     private fun initPlayer() {
