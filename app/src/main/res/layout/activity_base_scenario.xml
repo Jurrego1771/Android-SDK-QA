@@ -87,6 +87,19 @@
                 android:fontFamily="monospace" />
 
             <Button
+                android:id="@+id/btn_copy_snapshot"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:text="Copiar"
+                android:textColor="@color/accent_cyan"
+                android:textSize="11sp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp" />
+
+            <Button
                 android:id="@+id/btn_clear_log"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"

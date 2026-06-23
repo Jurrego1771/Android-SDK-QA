@@ -138,6 +138,7 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
         }
 
         binding.btnClearLog.setOnClickListener { logAdapter.clear() }
+        binding.btnCopySnapshot.setOnClickListener { copySnapshotToClipboard() }
     }
 
     private fun setupFab() {
@@ -240,6 +241,76 @@ abstract class BaseScenarioActivity : AppCompatActivity() {
             )
         }
         return sb
+    }
+
+    // -------------------------------------------------------------------------
+    // Export de snapshot — para reportar bugs (pegar en ticket/Slack)
+    // -------------------------------------------------------------------------
+
+    /** Copia un reporte completo de la sesión al portapapeles y avisa con un Toast. */
+    private fun copySnapshotToClipboard() {
+        val report = buildSnapshotReport()
+        val clip = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clip.setPrimaryClip(android.content.ClipData.newPlainText("QA Snapshot", report))
+        android.widget.Toast.makeText(this, "Snapshot copiado al portapapeles", android.widget.Toast.LENGTH_SHORT).show()
+        Log.d("SDK_QA", "Snapshot:\n$report")
+    }
+
+    /**
+     * Arma un reporte markdown con todo lo necesario para reproducir/reportar un problema:
+     * device, versión del SDK, contenido (incl. CDN URL), session IDs para correlacionar con el
+     * backend de analytics, métricas QoE y la línea de tiempo de callbacks. Cada acceso al SDK va
+     * en runCatching: si un getter no existe en el binario, el reporte no se cae.
+     */
+    private fun buildSnapshotReport(): String {
+        val p = player
+        val exo = p?.msPlayer
+        val m = playbackMetrics.snapshot(exo)
+        fun sdk(block: () -> String?): String = runCatching { block() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: "—"
+
+        val cfg = runCatching { p?.getCurrentMediaConfig() }.getOrNull()
+        val playState = when {
+            exo == null -> "sin player"
+            exo.isPlaying -> "▶ playing"
+            exo.playbackState == androidx.media3.common.Player.STATE_BUFFERING -> "⟳ buffering"
+            exo.playbackState == androidx.media3.common.Player.STATE_ENDED -> "⏹ ended"
+            else -> "⏸ paused"
+        }
+        val posDur = if (exo != null) {
+            "${fmt(exo.currentPosition / 1000)} / ${if (exo.duration > 0) fmt(exo.duration / 1000) else "--:--"}"
+        } else "—"
+        val timeline = callbackCaptor.eventOrderSnapshot().joinToString(" → ").ifEmpty { "(ninguno)" }
+
+        return buildString {
+            appendLine("## QA Snapshot — ${getScenarioTitle()} — ${timestampFmt.format(Date())}")
+            appendLine()
+            appendLine("**Device:** ${Build.MANUFACTURER} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+            appendLine("**SDK:** ${sdk { p?.getVersion() }}")
+            appendLine()
+            appendLine("### Contenido")
+            appendLine("- id: ${cfg?.id ?: "—"} · account: ${cfg?.accountID ?: "—"}")
+            appendLine("- type: ${cfg?.type ?: "—"} · env: ${cfg?.environment ?: "—"}")
+            appendLine("- CDN URL: ${sdk { p?.getCurrentUrl() }}")
+            appendLine("- formato: ${sdk { p?.getCurrentVideoPlayingFormat() }} · res: ${sdk { p?.getResolution() }}")
+            appendLine()
+            appendLine("### Session IDs (correlación con analytics backend)")
+            appendLine("- pbId: ${sdk { p?.getPBId() }} · sId: ${sdk { p?.getSId() }} · uId: ${sdk { p?.getUId() }}")
+            appendLine()
+            appendLine("### Estado del player")
+            appendLine("- $playState · $posDur")
+            appendLine()
+            appendLine("### Métricas QoE")
+            appendLine("- TTFF: ${if (m.ttffMs >= 0) "${m.ttffMs} ms" else "sin primer frame"}")
+            appendLine("- Buffer health: ${m.bufferHealthMs} ms")
+            appendLine("- Bitrate: ${PlaybackMetrics.formatBitrate(m.currentBitrateBps)} · switches: ${m.bitrateSwitches}")
+            appendLine("- BW medido: ${PlaybackMetrics.formatBitrate(m.measuredBandwidthBps)}")
+            appendLine("- Rebuffer: ${m.rebufferCount} (${m.rebufferMs} ms · ${PlaybackMetrics.formatRatio(m.rebufferRatio)})")
+            appendLine("- Dropped frames: ${m.droppedFrames}")
+            appendLine("- Load errors: ${m.loadErrorCount}${m.lastLoadError?.let { " — $it" } ?: ""}")
+            appendLine()
+            appendLine("### Timeline de callbacks")
+            append(timeline)
+        }
     }
 
     /** Anexa [text] aplicándole un color de primer plano. */
