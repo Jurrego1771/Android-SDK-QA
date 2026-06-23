@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-06-23 (cont.) — Capa C: Session Export a JSON normalizado para diff entre versiones
+
+**Objetivo**
+Roadmap de 3 capas: A (Debug Panel) ✅ hecha y ampliada; B (Maestro) ⏸️ pospuesta por decisión.
+Falta C: al cerrar un escenario, volcar un JSON con el timeline para **diff 10.0.7 vs 10.0.8**.
+
+**Decisiones de diseño (preguntadas al usuario)**
+- Normalizar para diff (no crudo): el diff debe resaltar comportamiento, no ruido de sesión.
+- Persistencia: `getExternalFilesDir("sessions")`, 1 archivo/sesión, debug-only.
+
+**Qué se hizo** (`1fbc827`)
+- `SessionExporter` (src/debug) — construye JSON normalizado y lo escribe en onDestroy. Vive 100%
+  en debug: reusa los hooks de `ObservabilityProvider` (captureLive en onPause antes del
+  releasePlayer → version+format; export en onDestroy). Cero cambios de comportamiento en main.
+- `CallbackCaptor` gana `timelineSnapshot()` (TimedEvent: nombre + elapsedRealtime + onMainThread)
+  sin romper su API — antes solo guardaba nombres.
+- Normalización: offsets relativos al primer evento, thread→main/background, claves ordenadas
+  alfabéticamente (serializador propio), redactado session IDs + CDN URL + BW/bitrate instantáneos.
+
+**Verificado** (A53, VOD): `Video-VOD-sdk10.0.7-<ts>.json` — 8 callbacks con offsets, métricas de
+comportamiento, format hls, sdk 10.0.7. Capturó un rebuffer mid-playback (onBuffering→onPause→
+onReady a ~11s). Schema `sdkqa.session.v1`.
+
+**Nota sobre el diff**
+Lo que diffea limpio session-a-session es lo **estructural** (orden callbacks, offMainThread,
+format, resolución, loadErrorCount). Los numéricos (ttffMs/rebufferMs/offsetMs) varían por red aun
+en la misma versión → para comparar timing, capturar N sesiones/versión y comparar medianas.
+
+**Siguiente paso**
+- Cuando haya binario 10.0.8 instalable: capturar sesiones de los mismos escenarios y diffear los
+  JSON (jq/diff). Considerar un script `scripts/session-diff.*` que ignore campos numéricos volátiles.
+- Roadmap overlay: queda **#5** (rebuffer ratio con ventana móvil).
+
+---
+
 ## 2026-06-23 (cont.) — Mejoras al Debug Overlay #3/#4/#6/#7 (harness MCP + BRAVIA)
 
 **Objetivo**

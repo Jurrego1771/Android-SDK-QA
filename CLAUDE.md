@@ -98,6 +98,16 @@ adb shell am instrument -w -e class com.example.sdk_qa.integration.<Clase> \
   abre/cierra el panel; con el panel abierto el D-pad navega el overlay (no se reenvía al
   player) y **BACK** lo cierra sin salir del escenario. Verificado en BRAVIA.
 - `playbackMetrics` y `callbackCaptor` están expuestos para tests instrumentados.
+- **Session export (Capa C, debug-only)**: al cerrar un escenario, `SessionExporter`
+  (`app/src/debug/.../debug/`) escribe un JSON normalizado del timeline a
+  `getExternalFilesDir("sessions")/<scenario>-sdk<version>-<ts>.json`, para **diff entre
+  versiones del SDK**. Normalizado (offsets relativos, thread main/background, claves ordenadas,
+  sin session IDs ni CDN URL) → el diff resalta comportamiento. Recuperar:
+  `adb pull /sdcard/Android/data/com.example.sdk_qa/files/sessions`.
+  > Nota: los campos numéricos (ttffMs, rebufferMs, offsetMs) varían por red incluso en la misma
+  > versión. Para comparar **timing** captura N sesiones/versión y compara medianas; lo que
+  > diffea limpio session-a-session es lo **estructural**: orden de callbacks, offMainThread,
+  > format, resolución, loadErrorCount.
 
 ---
 
