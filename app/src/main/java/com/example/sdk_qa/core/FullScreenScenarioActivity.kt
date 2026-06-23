@@ -28,9 +28,13 @@ import org.json.JSONObject
  */
 abstract class FullScreenScenarioActivity : AppCompatActivity() {
 
-    protected var player: MediastreamPlayer? = null
+    var player: MediastreamPlayer? = null
+        internal set
     private lateinit var playerContainer: FrameLayout
     private lateinit var playerView: PlayerView
+
+    /** Captura eventos de callbacks del SDK. Disponible para tests instrumentados (ej. ReelsTest). */
+    val callbackCaptor = CallbackCaptor()
 
     abstract fun buildConfig(): MediastreamPlayerConfig
     open fun getScenarioTitle(): String = javaClass.simpleName
@@ -92,26 +96,29 @@ abstract class FullScreenScenarioActivity : AppCompatActivity() {
         private fun tag() = "SDK_QA/${getScenarioTitle()}"
 
         override fun playerViewReady(msplayerView: PlayerView?) {
+            callbackCaptor.recordEvent("playerViewReady")
             Log.d(tag(), "playerViewReady")
         }
-        override fun onReady() { Log.d(tag(), "onReady") }
-        override fun onPlay() { Log.d(tag(), "onPlay") }
-        override fun onPause() { Log.d(tag(), "onPause") }
-        override fun onBuffering() { Log.d(tag(), "onBuffering") }
-        override fun onEnd() { Log.d(tag(), "onEnd") }
+        override fun onReady() { callbackCaptor.recordEvent("onReady"); Log.d(tag(), "onReady") }
+        override fun onPlay() { callbackCaptor.recordEvent("onPlay"); Log.d(tag(), "onPlay") }
+        override fun onPause() { callbackCaptor.recordEvent("onPause"); Log.d(tag(), "onPause") }
+        override fun onBuffering() { callbackCaptor.recordEvent("onBuffering"); Log.d(tag(), "onBuffering") }
+        override fun onEnd() { callbackCaptor.recordEvent("onEnd"); Log.d(tag(), "onEnd") }
         override fun onPlayerClosed() { Log.d(tag(), "onPlayerClosed") }
         override fun onPlayerReload() { Log.d(tag(), "onPlayerReload") }
 
-        override fun onError(error: String?) { Log.e(tag(), "onError: $error") }
+        override fun onError(error: String?) {
+            callbackCaptor.recordEvent("onError"); Log.e(tag(), "onError: $error")
+        }
         override fun onPlaybackErrors(error: JSONObject?) {
-            Log.e(tag(), "onPlaybackErrors: $error")
+            callbackCaptor.recordEvent("onPlaybackErrors"); Log.e(tag(), "onPlaybackErrors: $error")
         }
         override fun onEmbedErrors(error: JSONObject?) {
-            Log.e(tag(), "onEmbedErrors: $error")
+            callbackCaptor.recordEvent("onEmbedErrors"); Log.e(tag(), "onEmbedErrors: $error")
         }
 
-        override fun onNext() { Log.d(tag(), "onNext") }
-        override fun onPrevious() { Log.d(tag(), "onPrevious") }
+        override fun onNext() { callbackCaptor.recordEvent("onNext"); Log.d(tag(), "onNext") }
+        override fun onPrevious() { callbackCaptor.recordEvent("onPrevious"); Log.d(tag(), "onPrevious") }
 
         override fun nextEpisodeIncoming(nextEpisodeId: String) {
             Log.d(tag(), "nextEpisodeIncoming: $nextEpisodeId")
@@ -119,6 +126,7 @@ abstract class FullScreenScenarioActivity : AppCompatActivity() {
         }
 
         override fun onNewSourceAdded(config: MediastreamPlayerConfig) {
+            callbackCaptor.recordEvent("onNewSourceAdded")
             Log.d(tag(), "onNewSourceAdded: id=${config.id}")
         }
         override fun onLocalSourceAdded() { Log.d(tag(), "onLocalSourceAdded") }
@@ -127,7 +135,9 @@ abstract class FullScreenScenarioActivity : AppCompatActivity() {
             Log.d(tag(), "onFullscreen pip=$enteredForPip")
         }
         override fun offFullscreen() { Log.d(tag(), "offFullscreen") }
-        override fun onDismissButton() { Log.d(tag(), "onDismissButton") }
+        override fun onDismissButton() {
+            callbackCaptor.recordEvent("onDismissButton"); Log.d(tag(), "onDismissButton")
+        }
 
         override fun onConfigChange(config: MediastreamMiniPlayerConfig?) {
             Log.d(tag(), "onConfigChange")
