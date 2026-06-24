@@ -1,0 +1,33 @@
+version: "1.0"
+module: chromecast
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: CC-RISK-001
+    severity: medium
+    title: "Tests E2E de Cast requieren dispositivo fisico o emulado"
+    description: >
+      Para probar Chromecast se necesita un Chromecast real o un
+      emulador de Cast en la red. Los tests de instrumentacion
+      normal no pueden cubrir Cast completamente.
+    affected_files:
+      - "Cast testing infrastructure"
+    trigger: "Correr tests de Cast sin dispositivo"
+    mitigation: >
+      Mockear CastContext en tests unitarios/integration.
+      E2E tests requieren hardware o emulator setup.
+    test_priority: SHOULD
+
+  - id: CC-RISK-002
+    severity: low
+    title: "castEnable puede no reflejar el estado real"
+    description: >
+      castEnable es una propiedad del player. Si se lee antes de
+      que Cast este disponible, puede dar false negatives.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Leer castEnable antes de que Cast se detecte"
+    mitigation: >
+      Esperar a onCastAvailable(true) antes de verificar castEnable.
+    test_priority: COULD

@@ -1,0 +1,43 @@
+version: "1.0"
+module: android-tv
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-ATV-001
+    priority: MUST
+    title: "isAndroidTV() devuelve true en emulador de TV"
+    suggested_spec: "integration/DeviceTypeTest.kt"
+    notes: >
+      @TVOnly
+
+  - id: GAP-ATV-002
+    priority: MUST
+    title: "isAndroidTV() devuelve false en emulador de movil"
+    suggested_spec: "integration/DeviceTypeTest.kt"
+    notes: >
+      @MobileOnly
+
+  - id: GAP-ATV-003
+    priority: MUST
+    title: "isFireTV() devuelve true en Fire TV"
+    suggested_spec: "integration/DeviceTypeTest.kt"
+    notes: >
+      Requiere dispositivo fisico o emulator.
+
+  - id: GAP-ATV-004
+    priority: MUST
+    title: "UI de TV usa TVSubtitleAudioDialog"
+    suggested_spec: "integration/TvDialogTest.kt"
+
+  - id: GAP-ATV-005
+    priority: SHOULD
+    title: "Navegacion con D-pad funciona correctamente"
+    suggested_spec: "integration/TvNavigationTest.kt"
+
+  - id: GAP-ATV-006
+    priority: SHOULD
+    title: "Layouts de layout-television/ se inflan correctamente"
+    suggested_spec: "integration/TvLayoutTest.kt"

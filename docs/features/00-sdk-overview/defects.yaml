@@ -1,0 +1,9 @@
+version: "1.0"
+module: sdk-overview
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  Los defectos живут en los modules de cada feature especificos.
+  Este modulo no tiene defectos propios.

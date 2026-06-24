@@ -1,0 +1,67 @@
+version: "1.0"
+module: dvr
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: DVR-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador de live que se perdio algo"
+      want: "hacer seek hacia atras en un stream en vivo"
+      so_that: "puedo ver contenido que ya paso"
+    business_value: HIGH
+    risk_area:
+      - dvr
+    related_features:
+      - video-live
+    acceptance:
+      - DVR-AC-001
+    notes: >
+      DVR habilitado con config.dvr=true y config.windowDvr.
+      windowDvr define la ventana maxima en segundos.
+
+  - id: DVR-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ver el timeline ficticio del DVR"
+      so_that: "se cuanta historia tengo disponible para hacer seek"
+    business_value: MEDIUM
+    risk_area:
+      - dvr
+    acceptance:
+      - DVR-AC-002
+    notes: >
+      DvrTimeBar muestra la ventana DVR. FakeTimelineView representa
+      visualmente el timeline ficticio.
+
+  - id: DVR-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "volver al live edge rapidamente"
+      so_that: "puedo rejoinear el stream en vivo sin hacer seek manual"
+    business_value: MEDIUM
+    risk_area:
+      - dvr
+    acceptance:
+      - DVR-AC-003
+    notes: >
+      Seek a la posicion maxima del timeline lleva al live edge.
+
+  - id: DVR-US-004
+    persona: Integrator
+    narrative:
+      as: "integrador"
+      want: "que el DVR funcione correctamente con ads (DAI)"
+      so_that: "la experiencia de DVR es coherente incluso con anuncios"
+    business_value: MEDIUM
+    risk_area:
+      - dvr
+    related_features:
+      - ads-ima
+    acceptance:
+      - DVR-AC-004
+    notes: >
+      MediastreamDAIController integra ads con el timeline DVR.

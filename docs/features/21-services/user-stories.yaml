@@ -1,0 +1,52 @@
+version: "1.0"
+module: services
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: SVC-US-001
+    persona: Viewer
+    narrative:
+      as: "oyente de audio"
+      want: "que el audio siga sonando cuando la app va a background"
+      so_that: "puedo usar otras apps mientras escucho"
+    business_value: HIGH
+    risk_area:
+      - services
+    related_features:
+      - audio
+      - notifications
+    acceptance:
+      - SVC-AC-001
+    notes: >
+      MediastreamPlayerService con ForegroundService.
+
+  - id: SVC-US-002
+    persona: Viewer
+    narrative:
+      as: "conductor"
+      want: "controlar el audio desde Android Auto"
+      so_that: "puedo seleccionar contenido sin tocar el telefono"
+    business_value: HIGH
+    risk_area:
+      - services
+    related_features:
+      - android-auto
+    acceptance:
+      - SVC-AC-002
+    notes: >
+      MediastreamPlayerServiceWithSync con MediaLibraryService.
+
+  - id: SVC-US-003
+    persona: Viewer
+    narrative:
+      as: "oyente"
+      want: "botones siguiente/anterior en la notificacion"
+      so_that: "puedo navegar episodios sin abrir la app"
+    business_value: MEDIUM
+    risk_area:
+      - services
+    acceptance:
+      - SVC-AC-003
+    notes: >
+      ACTION_NEXT y ACTION_PREVIOUS via NotificationReceiver.

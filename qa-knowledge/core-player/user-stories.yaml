@@ -1,0 +1,199 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-12"
+
+user_stories:
+
+  - id: US-CORE-001
+    persona: Integrator
+    narrative:
+      as: "integrador que embebe el player en una Activity"
+      want: "instanciar MediastreamPlayer con un id de contenido y recibir eventos de ciclo de vida"
+      so_that: "puedo reproducir contenido de la plataforma Mediastream en mi app"
+    business_value: HIGH
+    risk_area:
+      - core-init
+    related_features: []
+    acceptance:
+      - CORE-AC-001
+      - CORE-AC-002
+      - CORE-AC-006
+    notes: >
+      El constructor estándar exige Activity (BR-CORE-001). El integrador debe
+      registrar el callback con addPlayerCallback() para recibir onReady/onPlay.
+
+  - id: US-CORE-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "controlar la reproducción (play, pause, seek, velocidad)"
+      so_that: "puedo manejar el contenido a mi ritmo"
+    business_value: HIGH
+    risk_area:
+      - core-playback
+    related_features: []
+    acceptance:
+      - CORE-AC-003
+      - CORE-AC-004
+      - CORE-AC-012
+    notes: >
+      forward/backward reciben ms (Long), no segundos (BR-CORE-005).
+      changeSpeed no valida el rango del valor (BR-CORE-006).
+
+  - id: US-CORE-003
+    persona: Integrator
+    narrative:
+      as: "integrador que respeta el ciclo de vida de Android"
+      want: "liberar el player de forma limpia al destruir la Activity"
+      so_that: "no fugo memoria ni dejo recursos de ExoPlayer/IMA colgados"
+    business_value: HIGH
+    risk_area:
+      - core-lifecycle
+      - memory-leak
+    related_features:
+      - ads
+    acceptance:
+      - CORE-AC-005
+    notes: >
+      releasePlayer() es la API de limpieza (BR-CORE-027). Conocido: con ads/live,
+      IMA retiene la Activity (CORE-DEF-001) y WebView en DVR (CORE-DEF-003).
+
+  - id: US-CORE-004
+    persona: Integrator
+    narrative:
+      as: "integrador que recibe errores del player"
+      want: "que ningún error emitido antes de suscribirme se pierda"
+      so_that: "puedo mostrar mensajes de error fiables al usuario"
+    business_value: MEDIUM
+    risk_area:
+      - core-callbacks
+      - error-handling
+    related_features: []
+    acceptance:
+      - CORE-AC-007
+    notes: >
+      addPlayerCallback entrega pendingError/pendigEmbedError al registrar (BR-CORE-013).
+      ATENCIÓN: el SDK silencia errores 404 de la API (CORE-DEF-002) — no todos los
+      errores llegan a onError.
+
+  - id: US-CORE-005
+    persona: Integrator
+    narrative:
+      as: "integrador de una plataforma multilingüe"
+      want: "configurar el idioma de la UI del player al inicializarlo y al recargarlo"
+      so_that: "la interfaz del player coincide con el idioma de mi app"
+    business_value: MEDIUM
+    risk_area:
+      - core-i18n
+    related_features:
+      - i18n
+    acceptance:
+      - CORE-AC-008
+      - CORE-AC-011
+    notes: >
+      Default del player es ENGLISH (BR-CORE-014), distinto del i18n web (es).
+      reloadPlayer SÍ cambia el idioma (BR-CORE-010).
+
+  - id: US-CORE-006
+    persona: Integrator
+    narrative:
+      as: "integrador que reusa una misma instancia de player para varios contenidos"
+      want: "recargar el player con un nuevo config preservando mis flags de UI"
+      so_that: "mantengo coherencia visual sin reconstruir el player desde cero"
+    business_value: MEDIUM
+    risk_area:
+      - core-reload
+    related_features: []
+    acceptance:
+      - CORE-AC-009
+    notes: >
+      mergePersistentFrom mantiene flags de UI/debug y toma del nuevo config la fuente,
+      DVR, startAt y language (BR-CORE-009/010).
+
+  - id: US-CORE-007
+    persona: Integrator
+    narrative:
+      as: "integrador avanzado que necesita acceso al Player de media3"
+      want: "obtener la instancia subyacente de ExoPlayer/Player"
+      so_that: "puedo implementar lógica custom (tracks, listeners) que el SDK no expone"
+    business_value: MEDIUM
+    risk_area:
+      - core-media3-access
+    related_features: []
+    acceptance:
+      - CORE-AC-013
+      - CORE-AC-014
+      - CORE-AC-015
+    notes: >
+      getCurrentMsPlayer() retorna el preroll SSAI si está activo, sino msPlayer.
+      msPlayer es propiedad pública (var, :210) — acceso directo posible pero frágil.
+
+  - id: US-CORE-008
+    persona: Viewer
+    narrative:
+      as: "espectador en una smart TV o Fire TV"
+      want: "navegar y controlar el player con el control remoto"
+      so_that: "puedo usar el player sin pantalla táctil"
+    business_value: MEDIUM
+    risk_area:
+      - core-tv
+      - accessibility
+    related_features: []
+    acceptance:
+      - CORE-AC-016
+    notes: >
+      handleTVKeyEvent(keyCode, event) procesa el control remoto. getDeviceType
+      determina firetv/androidtv/android (BR-CORE-026). Dispositivo de prueba: BRAVIA.
+
+  - id: US-CORE-009
+    persona: Viewer
+    narrative:
+      as: "espectador de video"
+      want: "ver el contenido en pantalla completa y en Picture-in-Picture"
+      so_that: "puedo seguir viendo mientras uso otras apps"
+    business_value: MEDIUM
+    risk_area:
+      - core-fullscreen
+      - core-pip
+    related_features:
+      - fullscreen-override
+    acceptance:
+      - CORE-AC-017
+      - CORE-AC-019
+    notes: >
+      onFullscreen recibe enteredForPip (cambió de firma vs v10). startPiP requiere
+      Android O+. Ver FullscreenOverrideTest en el proyecto QA.
+
+  - id: US-CORE-010
+    persona: Integrator
+    narrative:
+      as: "integrador que monetiza con ads (IMA/DAI)"
+      want: "que la URL de ads incluya automáticamente ppid/rdid/idtype/is_lat"
+      so_that: "los reportes de monetización y la limitación de tracking son correctos"
+    business_value: MEDIUM
+    risk_area:
+      - core-ads
+    related_features:
+      - ads
+    acceptance:
+      - CORE-AC-018
+    notes: >
+      getAdQueryString auto-inyecta los parámetros (BR-CORE-023). fetchDeviceIdsAsync
+      obtiene GAID/AAID en background (BR-CORE-024).
+
+  - id: US-CORE-011
+    persona: Integrator
+    narrative:
+      as: "integrador de reproducción de audio en background"
+      want: "construir el player con un MiniPlayerConfig sobre un servicio de sincronización"
+      so_that: "puedo reproducir audio con notificación multimedia sin una Activity visible"
+    business_value: LOW
+    risk_area:
+      - core-service
+    related_features:
+      - service-audio
+    acceptance:
+      - CORE-AC-020
+    notes: >
+      El constructor con MediastreamMiniPlayerConfig no exige Activity (require comentado).
+      Usado por MediastreamPlayerService / MediastreamPlayerServiceWithSync.

@@ -1,0 +1,67 @@
+version: "1.0"
+module: services
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-SVC-001
+    priority: MUST
+    title: "El service arranca cuando el player inicia reproduccion de audio"
+    suggested_spec: "integration/ServiceLifecycleTest.kt"
+
+  - id: GAP-SVC-002
+    priority: MUST
+    title: "La notificacion aparece con titulo y artwork correctos"
+    suggested_spec: "integration/ServiceNotificationTest.kt"
+
+  - id: GAP-SVC-003
+    priority: MUST
+    title: "Boton 'siguiente' en notificacion dispara onNext()"
+    suggested_spec: "integration/ServiceNotificationTest.kt"
+
+  - id: GAP-SVC-004
+    priority: MUST
+    title: "Boton 'anterior' en notificacion dispara onPrevious()"
+    suggested_spec: "integration/ServiceNotificationTest.kt"
+
+  - id: GAP-SVC-005
+    priority: MUST
+    title: "nextEpisodeIncoming llega al cliente desde el service"
+    suggested_spec: "integration/ServiceCallbackTest.kt"
+
+  - id: GAP-SVC-006
+    priority: MUST
+    title: "El service se destruye cuando el player se cierra"
+    suggested_spec: "integration/ServiceLifecycleTest.kt"
+
+  - id: GAP-SVC-007
+    priority: SHOULD
+    title: "Tab de LIVE aparece con la lista de canales desde la API"
+    suggested_spec: "integration/MediaLibraryServiceTest.kt"
+
+  - id: GAP-SVC-008
+    priority: SHOULD
+    title: "Tab de PODCAST aparece con la lista de shows desde la API"
+    suggested_spec: "integration/MediaLibraryServiceTest.kt"
+
+  - id: GAP-SVC-009
+    priority: SHOULD
+    title: "Navegacion PODCAST -> Show -> Episodios funciona"
+    suggested_spec: "integration/MediaLibraryServiceTest.kt"
+
+  - id: GAP-SVC-010
+    priority: SHOULD
+    title: "El player inicializado con isFromSyncService=true funciona sin Activity"
+    suggested_spec: "integration/ServiceInitializationTest.kt"
+
+  - id: GAP-SVC-011
+    priority: SHOULD
+    title: "Eventos del player llegan al service via EventBus"
+    suggested_spec: "integration/EventBusTest.kt"
+
+  - id: GAP-SVC-012
+    priority: COULD
+    title: "Eventos del SDK no interfieren con EventBus del cliente"
+    suggested_spec: "integration/EventBusIsolationTest.kt"

@@ -1,0 +1,74 @@
+version: "1.0"
+module: reels
+last_updated: "2026-06-23"
+
+internal:
+  - id: reels-handler
+    reason: >
+      ReelsV2Handler gestiona el feed de reels. shouldActivateReels()
+      determina si el modo reels se activa segun playerSkin o type.
+    coupling: high
+    files:
+      - reelsv2/ReelsV2Handler.kt
+
+  - id: reels-content-manager
+    reason: >
+      ReelsContentManager maneja la configuracion de reels,
+      incluyendo ads y related reels.
+    coupling: high
+    files:
+      - reelsv2/ReelsContentManager.kt
+
+  - id: player-pool
+    reason: >
+      PlayerPool es un singleton con 6 ExoPlayers reutilizables.
+      Reasigna players al hacer swipe (stop + clearMediaItems).
+    coupling: high
+    files:
+      - reelsv2/PlayerPool.kt
+
+  - id: viewpager-adapter
+    reason: >
+      ViewPagerMediaAdapter y ViewPagerMediaHolder para el ViewPager2 vertical.
+    coupling: high
+    files:
+      - reelsv2/viewpager/ViewPagerMediaAdapter.kt
+      - reelsv2/viewpager/ViewPagerMediaHolder.kt
+
+  - id: reels-preferences
+    reason: >
+      ReelsPreferencesManager (singleton en memoria) gestiona
+      isMuted e isMetadataVisible globalmente.
+    coupling: medium
+    files:
+      - reelsv2/ReelsPreferencesManager.kt
+
+  - id: related-reels-api
+    reason: >
+      GET /api/media/{mediaId}/related/reels para paginar el feed.
+    coupling: high
+    files:
+      - api/ApiService.kt
+
+  - id: ads-reels
+    reason: >
+      ReelsAdsConfigModel para ads intersticiales.
+      Player de ad dedicado + ImaAdsLoader separado.
+    coupling: medium
+    files:
+      - reelsv2/ReelsContentManager.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      Pool de ExoPlayers para reproduccion.
+    coupling: high
+    risk: high
+
+  - id: google-ima
+    package: "com.google.ads.interactivemedia.v3"
+    reason: >
+      Ads intersticiales en el feed de reels.
+    coupling: medium
+    risk: medium

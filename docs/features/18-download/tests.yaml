@@ -1,0 +1,34 @@
+version: "1.0"
+module: download
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-DL-001
+    priority: MUST
+    title: "Descarga de VOD se completa correctamente"
+    suggested_spec: "integration/DownloadTest.kt"
+    notes: >
+      Feature experimental. Verificar con equipo si es estable.
+
+  - id: GAP-DL-002
+    priority: MUST
+    title: "Reproduccion offline de contenido descargado"
+    suggested_spec: "integration/DownloadPlaybackTest.kt"
+
+  - id: GAP-DL-003
+    priority: MUST
+    title: "onLocalSourceAdded se dispara al usar fuente local"
+    suggested_spec: "integration/DownloadPlaybackTest.kt"
+
+  - id: GAP-DL-004
+    priority: SHOULD
+    title: "Descarga cancelada no deja archivos corruptos"
+    suggested_spec: "integration/DownloadCancelTest.kt"
+
+  - id: GAP-DL-005
+    priority: SHOULD
+    title: "Descarga con red interrumpida se reanuda al reconectar"
+    suggested_spec: "integration/DownloadResumeTest.kt"

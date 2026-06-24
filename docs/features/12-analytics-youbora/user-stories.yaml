@@ -1,0 +1,37 @@
+version: "1.0"
+module: analytics-youbora
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: YB-US-001
+    persona: QoE Analytics Team
+    narrative:
+      as: "equipo de analytics de calidad"
+      want: "medir tiempo de inicio, rebuffering, bitrate y errores"
+      so_that: "puedo conocer la calidad de experiencia del stream"
+    business_value: HIGH
+    risk_area:
+      - analytics-youbora
+    related_features:
+      - video-vod
+      - video-live
+    acceptance:
+      - YB-AC-001
+    notes: >
+      Configurado automaticamente via ConfigMain.youbora.
+      Usa adapter media3-npaw.
+
+  - id: YB-US-002
+    persona: QoE Analytics Team
+    narrative:
+      as: "equipo de analytics"
+      want: "que appName y appVersion se reporten a Youbora"
+      so_that: "puedo filtrar metricas por version de app"
+    business_value: MEDIUM
+    risk_area:
+      - analytics-youbora
+    acceptance:
+      - YB-AC-002
+    notes: >
+      Provenientes de MediastreamPlayerConfig.appName y appVersion.

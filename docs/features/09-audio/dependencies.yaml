@@ -1,0 +1,37 @@
+version: "1.0"
+module: audio
+last_updated: "2026-06-23"
+
+internal:
+  - id: player-type
+    reason: >
+      PlayerType.AUDIO desactiva la superficie de video.
+      El player sigue funcionando pero sin renderizado visual.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt (PlayerType enum)
+      - MediastreamPlayer.kt
+
+  - id: sse-listener
+    reason: >
+      El SDK escucha SSE para obtener metadata de audio live.
+      onLiveAudioCurrentSongChanged es el callback.
+    coupling: medium
+    files:
+      - MediastreamPlayer.kt (SSE handling)
+
+  - id: notification-service
+    reason: >
+      MediastreamPlayerService mantiene la notificacion de media.
+      Necesario para audio en background.
+    coupling: high
+    files:
+      - MediastreamPlayerService.kt
+
+external:
+  - id: media3-session
+    package: "androidx.media3:media3-session:1.5.0"
+    reason: >
+      MediaSession para notificaciones y control remoto.
+    coupling: high
+    risk: medium

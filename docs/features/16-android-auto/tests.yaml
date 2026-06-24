@@ -1,0 +1,40 @@
+version: "1.0"
+module: android-auto
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-AUTO-001
+    priority: MUST
+    title: "MediastreamPlayerServiceWithSync se conecta correctamente"
+    suggested_spec: "integration/MediaLibraryServiceTest.kt"
+    notes: >
+      Mock del MediaLibraryService.
+
+  - id: GAP-AUTO-002
+    priority: MUST
+    title: "Tabs de live aparecen en Android Auto"
+    suggested_spec: "integration/AutoContentTest.kt"
+    notes: >
+      Requier HU.
+
+  - id: GAP-AUTO-003
+    priority: MUST
+    title: "Tabs de podcast aparecen en Android Auto"
+    suggested_spec: "integration/AutoContentTest.kt"
+    notes: >
+      Requier HU.
+
+  - id: GAP-AUTO-004
+    priority: MUST
+    title: "Reproduccion desde Auto controla correctamente el player"
+    suggested_spec: "integration/AutoPlaybackTest.kt"
+    notes: >
+      Requier HU.
+
+  - id: GAP-AUTO-005
+    priority: SHOULD
+    title: "Notificacion de media se actualiza con metadata del contenido"
+    suggested_spec: "integration/AutoNotificationTest.kt"

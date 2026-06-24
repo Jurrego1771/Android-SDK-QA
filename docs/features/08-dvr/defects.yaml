@@ -1,0 +1,9 @@
+version: "1.0"
+module: dvr
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  Ver core-player/defects.yaml para WebView leak que afecta
+  escenarios DVR (CORE-DEF-003).

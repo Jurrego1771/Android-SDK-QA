@@ -1,0 +1,31 @@
+version: "1.0"
+module: pip
+last_updated: "2026-06-23"
+
+internal:
+  - id: pip-handler
+    reason: >
+      MediastreamPlayerPip encapsula PictureInPictureParams con
+      aspect ratio 16:9 fijo. Se crea en construccion del player
+      (msActivity?.let { MediastreamPlayerPip(...) }).
+    coupling: high
+    files:
+      - MediastreamPlayerPip.kt
+
+  - id: pip-flag
+    reason: >
+      config.pip (FlagStatus: ENABLE/DISABLE/NONE) determina si PiP
+      esta habilitado. NONE consulta a mediaInfo.player.pip de la API.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt (pip property)
+      - MediastreamPlayer.kt (startPiP)
+
+external:
+  - id: android-framework
+    package: "android.app.Activity (PictureInPicture)"
+    reason: >
+      API nativa de Android para Picture-in-Picture.
+      Requiere API 26+.
+    coupling: high
+    risk: low

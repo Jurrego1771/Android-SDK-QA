@@ -1,0 +1,70 @@
+version: "1.0"
+module: initialization
+last_updated: "2026-06-23"
+
+internal:
+  - id: config
+    reason: >
+      MediastreamPlayerConfig es el objeto de entrada. Sus propiedades
+      (id, accountID, src, type, environment) determinan el flujo de inicializacion.
+      Si src esta definido, se omite la llamada a API.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: api-service
+    reason: >
+      ApiService.getMediaInfo() es llamado durante inicializacion para obtener
+      ConfigMain (metadata, URLs, ads config, analytics, etc.).
+    coupling: high
+    files:
+      - api/ApiService.kt
+      - model/config/ConfigMain.kt
+
+  - id: callback
+    reason: >
+      MediastreamPlayerCallback es registrado por el cliente para recibir
+      playerViewReady, onReady, onPlay y errores.
+    coupling: high
+    files:
+      - MediastreamPlayerCallback.kt
+
+  - id: media-source-factory
+    reason: >
+      CustomMediaSourceFactory construye el MediaSource segun el formato
+      (HLS/DASH/MP4) y aplica cookies/headers.
+    coupling: medium
+    files:
+      - CustomMediaSourceFactory.kt
+
+  - id: load-control
+    reason: >
+      MediastreamPlayerLoadControl configura buffers de ExoPlayer.
+      Afecta latencia de arranque y resiliencia ante rebuffering.
+    coupling: medium
+    files:
+      - MediastreamPlayerLoadControl.kt
+
+  - id: mini-player-config
+    reason: >
+      MediastreamMiniPlayerConfig es usado en el constructor con servicio
+      para reproduccion en background con notificacion multimedia.
+    coupling: medium
+    files:
+      - MediastreamMiniPlayerConfig.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      Motor de reproduccion. Creado durante inicializacion del player.
+      many getters delegan en media3.
+    coupling: high
+    risk: high
+
+  - id: retrofit-okhttp
+    package: "com.squareup.retrofit2 / okhttp3"
+    reason: >
+      Cliente HTTP para getMediaInfo y otros endpoints de la API.
+    coupling: high
+    risk: low

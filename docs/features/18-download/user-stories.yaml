@@ -1,0 +1,34 @@
+version: "1.0"
+module: download
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: DL-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador que quiere ver offline"
+      want: "descargar un video para verlo sin conexion"
+      so_that: "puedo ver contenido en el avion o areas sin senal"
+    business_value: MEDIUM
+    risk_area:
+      - download
+    related_features:
+      - video-vod
+    acceptance:
+      - DL-AC-001
+    notes: >
+      Implementado via DownloadTracker y DemoDownloadService.
+      Feature marcada como experimental/demo.
+
+  - id: DL-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "que la descarga se reanude si se interrumpe"
+      so_that: "no pierdo el progreso de una descarga grande"
+    business_value: MEDIUM
+    risk_area:
+      - download
+    acceptance:
+      - DL-AC-002

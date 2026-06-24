@@ -1,0 +1,39 @@
+version: "1.0"
+module: drm
+last_updated: "2026-06-23"
+
+defects:
+
+  - id: DRM-DEF-001
+    status: known_limitation
+    severity: high
+    title: "Token Axinom expirado en el codigo QA"
+    description: >
+      El token JWT hardcodeado en VideoLiveScenarioActivity expiro
+      en 2026-04-23T18:39:15Z. El servidor Axinom retorna error 4032.
+      Regenerar token con fecha de expiracion futura.
+    affected_files:
+      - "VideoLiveScenarioActivity.kt:14 (DRM_ACCESS_TOKEN)"
+    trigger: "Construir player con token vencido"
+    workaround: "Regenerar el JWT con expiration_date futura."
+    regression_risk: high
+    related_ac: DRM-AC-003
+    source: >
+      Documentado en 07-drm-widevine.md (seccion 7, item 1).
+    validation_status: confirmed
+
+  - id: DRM-DEF-002
+    status: known_limitation
+    severity: medium
+    title: "Emuladores solo soportan Widevine L3"
+    description: >
+      Los emuladores solo tienen L3 (software). Streams con politica
+      L1 requieren hardware certificado. Tests DRM completos necesitan
+      dispositivo fisico.
+    affected_files:
+      - "MediastreamPlayer.kt (DrmSessionManager)"
+    trigger: "Probar DRM en emulador con stream L1"
+    workaround: "Usar dispositivo fisico o stream L3."
+    regression_risk: low
+    related_ac: DRM-AC-001
+    validation_status: confirmed

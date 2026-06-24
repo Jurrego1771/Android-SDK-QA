@@ -1,0 +1,47 @@
+version: "1.0"
+module: pip
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: PIP-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador que quiere multitasking"
+      want: "salir de la app y seguir viendo en ventana flotante"
+      so_that: "puedo usar otras apps mientras veo video"
+    business_value: HIGH
+    risk_area:
+      - pip
+    related_features:
+      - video-vod
+    acceptance:
+      - PIP-AC-001
+    notes: >
+      Requiere Android 8.0+ (API 26). Aspect ratio fijo 16:9.
+
+  - id: PIP-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "que la reproduccion continue cuando entro a PiP"
+      so_that: "no se interrumpe lo que estoy viendo"
+    business_value: HIGH
+    risk_area:
+      - pip
+    acceptance:
+      - PIP-AC-002
+
+  - id: PIP-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador en Android 12+"
+      want: "que PiP se active automaticamente al ir a home"
+      so_that: "no tengo que hacer nada manual"
+    business_value: MEDIUM
+    risk_area:
+      - pip
+    acceptance:
+      - PIP-AC-003
+    notes: >
+      API 31+ con setAutoEnterEnabled(true).

@@ -1,0 +1,31 @@
+version: "1.0"
+module: analytics-youbora
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: YB-RISK-001
+    severity: medium
+    title: "Youbora no se inicializa si no hay datos"
+    description: >
+      Si ConfigMain.youbora es null, el SDK no deberia inicializar
+      el plugin de Youbora.
+    affected_files:
+      - "YouboraAnalyticsAdapter.kt"
+    trigger: "API no devuelve datos de Youbora"
+    mitigation: >
+      Verificar que el adapter solo se crea con datos validos.
+    test_priority: SHOULD
+
+  - id: YB-RISK-002
+    severity: low
+    title: "ClassCastException en Youbora al cambiar estado"
+    description: >
+      YB-DEF-001: ClassCastException ContextImpl -> Activity con
+      Youbora al hacer play/pause. No hay workaround conocido.
+    affected_files:
+      - "Youbora adapter"
+    trigger: "Cambios rapidos de estado de playback"
+    mitigation: >
+      Evitar cambios rapidos de estado durante tests.
+    test_priority: COULD

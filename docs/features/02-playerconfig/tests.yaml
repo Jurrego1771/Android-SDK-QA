@@ -1,0 +1,61 @@
+version: "1.0"
+module: player-config
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-CONFIG-001
+    priority: MUST
+    title: "copy() produce objeto independiente"
+    suggested_spec: "unit/ConfigCopyTest.kt"
+    notes: >
+      Modificar la copia no debe afectar el original. Verificar arrays
+      y collections (adCustomAttributes).
+
+  - id: GAP-CONFIG-002
+    priority: MUST
+    title: "mergePersistentFrom(null) no lanza excepcion"
+    suggested_spec: "unit/ConfigMergeTest.kt"
+    notes: >
+      Primera llamada a reloadPlayer puede tener previous=null.
+
+  - id: GAP-CONFIG-003
+    priority: MUST
+    title: "mergePersistentFrom(previous) copia volumen y flags correctamente"
+    suggested_spec: "unit/ConfigMergeTest.kt"
+    notes: >
+      Verificar campo por campo que viene del previo (volumen, brillo,
+      isDebug, showControls, etc.) y que source/dvr/startAt/language
+      vienen del nuevo config.
+
+  - id: GAP-CONFIG-004
+    priority: MUST
+    title: "getAdQueryString() incluye todos los parametros"
+    suggested_spec: "unit/AdQueryStringTest.kt"
+    notes: >
+      ppid (fallback customerID), rdid (GAID/AAID), idtype=aaid/android,
+      is_lat. Verificar que un valor ya presente NO se duplica.
+
+  - id: GAP-CONFIG-005
+    priority: MUST
+    title: "Enum defaults correctos"
+    suggested_spec: "integration/PlayerConfigDefaultsTest.kt"
+    notes: >
+      Verificar: type=VOD, environment=PRODUCTION, language=ENGLISH,
+      autoplay=true, videoFormat=DEFAULT (HLS).
+
+  - id: GAP-CONFIG-006
+    priority: SHOULD
+    title: "addAdCustomAttribute() agrega el par correctamente"
+    suggested_spec: "unit/AdCustomAttributesTest.kt"
+    notes: >
+      Verificar que los atributos se injectan en el ad tag URL.
+
+  - id: GAP-CONFIG-007
+    priority: SHOULD
+    title: "Config con src ignora id en la llamada a la API"
+    suggested_spec: "integration/PlayerInitializationTest.kt"
+    notes: >
+      Si src esta definido, getMediaInfo no deberia llamarse.

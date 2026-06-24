@@ -1,0 +1,62 @@
+version: "1.0"
+module: video-episode
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: EP-RISK-001
+    severity: high
+    title: "updateNextEpisode() debe llamarse en ventana de 3 segundos"
+    description: >
+      El cliente recibe nextEpisodeIncoming y tiene ~3 segundos para
+      llamar a updateNextEpisode() antes de que aparezca el overlay.
+      Llamar demasiado tarde puede ser ignorado.
+    affected_files:
+      - "MediastreamPlayer.kt (updateNextEpisode)"
+    trigger: "Cliente no llama updateNextEpisode() a tiempo en modo manual"
+    mitigation: >
+      En modo manual, asegurar que updateNextEpisode se llame dentro
+      del callback nextEpisodeIncoming.
+    test_priority: MUST
+
+  - id: EP-RISK-002
+    severity: medium
+    title: "nextEpisodeTime mayor que la duracion: comportamiento indefinido"
+    description: >
+      Si nextEpisodeTime es mayor que la duracion del video,
+      el overlay podria aparecer inmediatamente o nunca.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "nextEpisodeTime > video duration"
+    mitigation: >
+      El integrador debe validar que nextEpisodeTime sea menor
+      que la duracion del contenido.
+    test_priority: SHOULD
+
+  - id: EP-RISK-003
+    severity: medium
+    title: "Timer de 5s no se pausa con el video"
+    description: >
+      Si el usuario pausa durante el countdown de 5 segundos,
+      el timer podria seguir corriendo, llevando a una transicion
+      inesperada.
+    affected_files:
+      - "MediastreamPlayer.kt (autoTransitionRunnable)"
+    trigger: "Usuario pausa durante countdown de auto-transicion"
+    mitigation: >
+      Verificar que el timer se pausa/resume con el estado del player.
+    test_priority: SHOULD
+
+  - id: EP-RISK-004
+    severity: low
+    title: "Ultimo episodio: overlay no debe aparecer"
+    description: >
+      Si es el ultimo episodio (no hay siguiente), el overlay no
+      deberia aparecer y nextEpisodeIncoming no deberia dispararse.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Reproducir ultimo episodio de una serie"
+    mitigation: >
+      El SDK deberia manejar este caso, pero verificar que nextEpisodeId
+      null o ausente se trata correctamente.
+    test_priority: COULD

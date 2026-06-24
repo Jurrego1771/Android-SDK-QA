@@ -17,11 +17,13 @@ class VideoVodScenarioActivity : BaseScenarioActivity() {
 
     override fun buildConfig() = MediastreamPlayerConfig().apply {
         id = TestContent.Video.VOD_LONG
-        accountID = TestContent.ACCOUNT_ID
+        //accountID = TestContent.ACCOUNT_ID
         type = MediastreamPlayerConfig.VideoTypes.VOD
-        environment = MediastreamPlayerConfig.Environment.PRODUCTION
+        environment = TestContent.ENV
+        //accessToken = "KcGZ9jSCZXCliVMIaWXSJViErFnzFHjHOtwMqcZz9NiuMLn6nAZt9EaB4vlPNJPvigtBblVwbxF"
         autoplay = true
         isDebug = true
+        
     }
 
     override fun setupActionButtons(container: LinearLayout) {

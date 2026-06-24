@@ -1,0 +1,55 @@
+version: "1.0"
+module: services
+last_updated: "2026-06-23"
+
+internal:
+  - id: player-service
+    reason: >
+      MediastreamPlayerService: reproduccion en background,
+      notificacion, MediaSession. Mantiene el player vivo
+      cuando la app va a background.
+    coupling: high
+    files:
+      - MediastreamPlayerService.kt
+
+  - id: player-service-with-sync
+    reason: >
+      MediastreamPlayerServiceWithSync (~1891 lineas): extiende
+      MediaLibraryService para Android Auto. Expone browser de
+      contenido (LIVE tabs, PODCAST tabs, shows, episodes).
+    coupling: high
+    files:
+      - MediastreamPlayerServiceWithSync.kt
+
+  - id: eventbus
+    reason: >
+      EventBus para comunicacion entre player y service.
+      El player publica eventos, el service los consume.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (EventBus posts)
+      - MediastreamPlayerService.kt (EventBus subscribes)
+
+  - id: notification-receiver
+    reason: >
+      BroadcastReceiver para ACTION_NEXT, ACTION_PREVIOUS,
+      MEDIA_BUTTON desde la notificacion.
+    coupling: medium
+    files:
+      - NotificationReceiver.kt
+
+external:
+  - id: media3-session
+    package: "androidx.media3:media3-session:1.5.0"
+    reason: >
+      MediaSessionService, MediaLibraryService, MediaSession,
+      PlayerNotificationManager.
+    coupling: high
+    risk: medium
+
+  - id: eventbus
+    package: "org.greenrobot:eventbus:3.3.1"
+    reason: >
+      Comunicacion interna player <-> service.
+    coupling: high
+    risk: low

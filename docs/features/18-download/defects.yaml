@@ -1,0 +1,9 @@
+version: "1.0"
+module: download
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  No hay defectos documentados para download en los archivos de feature.
+  Feature marcada como experimental/demo.

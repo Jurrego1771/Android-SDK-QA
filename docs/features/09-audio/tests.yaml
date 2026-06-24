@@ -1,0 +1,49 @@
+version: "1.0"
+module: audio
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-AUD-001
+    priority: MUST
+    title: "Audio live reproduce sin superficie de video"
+    suggested_spec: "integration/AudioLiveTest.kt"
+
+  - id: GAP-AUD-002
+    priority: MUST
+    title: "Audio podcast VOD reproduce y termina correctamente"
+    suggested_spec: "integration/AudioVodTest.kt"
+
+  - id: GAP-AUD-003
+    priority: MUST
+    title: "onLiveAudioCurrentSongChanged se dispara con metadata correcta"
+    suggested_spec: "integration/AudioMetadataTest.kt"
+
+  - id: GAP-AUD-004
+    priority: MUST
+    title: "Reproduccion continua al ir a background (home button)"
+    suggested_spec: "integration/AudioBackgroundTest.kt"
+    notes: >
+      Requiere ForegroundService. Verificar que no se corta.
+
+  - id: GAP-AUD-005
+    priority: MUST
+    title: "Notificacion de media aparece con controles funcionales"
+    suggested_spec: "integration/AudioNotificationTest.kt"
+
+  - id: GAP-AUD-006
+    priority: MUST
+    title: "Pausa/play desde la notificacion funciona"
+    suggested_spec: "integration/AudioNotificationTest.kt"
+
+  - id: GAP-AUD-007
+    priority: SHOULD
+    title: "Formato ICECAST reproduce correctamente"
+    suggested_spec: "integration/AudioLiveTest.kt"
+
+  - id: GAP-AUD-008
+    priority: SHOULD
+    title: "Audio episodio carga siguiente episodio automaticamente"
+    suggested_spec: "integration/AudioEpisodeTest.kt"

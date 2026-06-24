@@ -1,0 +1,38 @@
+version: "1.0"
+module: chromecast
+last_updated: "2026-06-23"
+
+internal:
+  - id: cast-options
+    reason: >
+      CastOptionsProvider declarado en el Manifest del SDK.
+      DefaultCastOptionsProvider usa el Cast SDK.
+    coupling: high
+    files:
+      - CastOptionsProvider.kt (SDK internal)
+
+  - id: cast-callbacks
+    reason: >
+      10 callbacks de Cast: onCastAvailable, onCastSessionStarting,
+      onCastSessionStarted, onCastSessionEnding, onCastSessionEnded,
+      onCastSessionResumed.
+    coupling: high
+    files:
+      - MediastreamPlayerCallback.kt
+
+  - id: cast-session
+    reason: >
+      currentRemoteMediaClient y showChromeCastDialog para
+      controlar la sesion Cast.
+    coupling: medium
+    files:
+      - MediastreamPlayer.kt
+
+external:
+  - id: google-cast
+    package: "com.google.android.gms:play-services-cast-framework"
+    reason: >
+      Google Cast SDK integrado via Media3 CastOptionsProvider.
+      RemoteMediaClient para controlar reproduccion remota.
+    coupling: high
+    risk: medium

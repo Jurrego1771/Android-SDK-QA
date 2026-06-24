@@ -1,0 +1,156 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-12"
+
+defects:
+
+  - id: CORE-DEF-001
+    status: open
+    severity: high
+    title: "IMA AdTagLoader retiene la Activity ~5s vía lambda de MediastreamPlayer"
+    description: >
+      Tras releasePlayer() en contenido live/DVR con ads, IMA mantiene una referencia
+      a la Activity. Cadena: AdTagLoader.configuration.applicationAdErrorListener →
+      MediastreamPlayer lambda → MediastreamPlayer.msActivity → Activity. LeakCanary
+      detecta el leak ~72ms después; un mensaje Handler pendiente de IMA se dispara
+      tras el heap dump.
+    affected_files:
+      - "MediastreamPlayer.kt (lambda applicationAdErrorListener)"
+    trigger: "Contenido live/liveDvr con ads + releasePlayer() + destrucción de Activity"
+    workaround: "Tests @Ignored (CORE-TC-014, CORE-TC-015). Reportar a Mediastream."
+    regression_risk: medium
+    related_ac: CORE-AC-005
+    source: >
+      Confirmado contra la suite QA en Sony BRAVIA (memoria sdk_known_bugs Bug #1;
+      LifecycleTest.kt:280,296). NO re-validado específicamente contra el binario
+      10.0.8-alpha01.
+    validation_status: needs-revalidation
+
+  - id: CORE-DEF-002
+    status: open
+    severity: high
+    title: "El SDK silencia errores de API (404) — onError nunca se dispara"
+    description: >
+      Un id de contenido inexistente o una URL inválida hace que mdstrm.com devuelva
+      404, pero el SDK NO dispara onError ni onEmbedErrors. El error queda totalmente
+      silenciado y el integrador no puede informar al usuario.
+    affected_files:
+      - "MediastreamPlayer.kt (manejo de respuesta de getMediaInfo)"
+    trigger: "config.id inexistente o config.src con URL inválida"
+    workaround: >
+      Ninguno desde el SDK. El integrador debe validar el id/URL por su cuenta antes
+      de construir el player. Reportar a Mediastream.
+    regression_risk: medium
+    related_ac: CORE-AC-007
+    source: >
+      Confirmado contra la suite QA en Sony BRAVIA (memoria sdk_known_bugs Bug #2;
+      PlayerLifecycleTest.kt:107 @Ignore). NO re-validado específicamente contra el
+      binario 10.0.8-alpha01.
+    validation_status: needs-revalidation
+
+  - id: CORE-DEF-003
+    status: open
+    severity: high
+    title: "WebView WebMessageListenerHolder retiene la Activity (escenario DVR)"
+    description: >
+      El SDK usa addWebMessageListener() para el bridge JS. La referencia global nativa
+      (WebMessageListenerHolder → WV.io2 → WebView detached ~445KB →
+      VideoLiveDvrScenarioActivity) impide que el WebView sea recolectado, fugando la
+      Activity. Afecta a todos los tests con VideoLiveDvrScenarioActivity + SdkTestRule.
+    affected_files:
+      - "MediastreamPlayer.kt (addWebMessageListener del bridge JS)"
+    trigger: "Escenarios que usan el WebView del SDK (DVR live) + LeakCanary"
+    workaround: "Tests @Ignored. Reportar a Mediastream."
+    regression_risk: medium
+    related_ac: CORE-AC-005
+    source: >
+      Confirmado contra la suite QA en Sony BRAVIA (memoria sdk_known_bugs Bug #3;
+      DvrSeekRegressionTest.kt). NO re-validado específicamente contra el binario
+      10.0.8-alpha01.
+    validation_status: needs-revalidation
+
+  - id: CORE-DEF-004
+    status: open
+    severity: medium
+    title: "IMA ActivityLifecycleCallback global causa contaminación entre tests"
+    description: >
+      IMA registra un ActivityLifecycleCallback a nivel Application (zzea). Tras correr
+      LifecycleTest (live+ads), el siguiente player recibe CONTENT_PAUSE_REQUESTED de
+      IMA antes de onReady/onPlay y se queda esperando la resolución del ad → onPlay
+      hace timeout. En aislamiento el test pasa.
+    affected_files:
+      - "Dependencia IMA (Application.mActivityLifecycleCallbacks)"
+    trigger: "Ejecución secuencial LifecycleTest → PlayerLifecycleTest"
+    workaround: "@Ignore en sdkCallbacks_onPlay_arrivesOnMainThread. Correr en aislamiento."
+    regression_risk: low
+    related_ac: CORE-AC-001
+    source: >
+      Confirmado contra la suite QA en Sony BRAVIA (memoria sdk_known_bugs Bug #5;
+      PlayerLifecycleTest.kt:88 @Ignore). NO re-validado específicamente contra el
+      binario 10.0.8-alpha01.
+    validation_status: needs-revalidation
+
+  - id: CORE-DEF-005
+    status: open
+    severity: medium
+    title: "playerViewReady se dispara desde un thread interno de ExoPlayer (no main)"
+    description: >
+      El callback playerViewReady(PlayerView) llega desde un thread de ExoPlayer/Media3,
+      no del main thread (onReady y onPlay sí llegan del main). Integradores que hagan
+      updates de UI directas en playerViewReady sin runOnUiThread obtienen
+      CalledFromWrongThreadException. Confirmado en Sony BRAVIA VU31 4K (Android 14).
+    affected_files:
+      - "MediastreamPlayer.kt (emisión de playerViewReady)"
+    trigger: "Inicialización del player; el integrador toca UI en playerViewReady"
+    workaround: "Envolver la lógica de UI en activity.runOnUiThread { ... }."
+    regression_risk: low
+    related_ac: CORE-AC-001
+    source: >
+      Confirmado contra la suite QA en Sony BRAVIA VU31 4K, Android 14 (memoria
+      sdk_known_bugs Bug #6; test playerViewReady_firesOnMainThread_knownSdkBug @Ignore).
+      NO re-validado específicamente contra el binario 10.0.8-alpha01.
+    validation_status: needs-revalidation
+
+  - id: CORE-DEF-006
+    status: known_limitation
+    severity: low
+    title: "getVersion() retorna un literal hardcodeado, no BuildConfig"
+    description: >
+      getVersion() devuelve un string literal embebido en el código, no derivado de
+      BuildConfig ni del artefacto. En el binario QA (10.0.8-alpha01) retorna
+      '10.0.8-alpha01'; en el código fuente local 10.0.7 el literal es '10.0.7'
+      (MediastreamPlayer.kt:7799-7801). Si Mediastream publica una nueva versión sin
+      actualizar este literal, getVersion() reportará una versión incorrecta.
+    affected_files:
+      - "MediastreamPlayer.kt:7799"
+    trigger: "Lectura de getVersion() tras un bump de versión sin actualizar el literal"
+    expected_value: "10.0.8-alpha01"
+    workaround: "No confiar en getVersion() para lógica crítica; verificar el artefacto."
+    regression_risk: low
+    related_ac: CORE-AC-010
+    source: >
+      Literal hardcodeado verificado por lectura del código fuente 10.0.7; valor
+      esperado para QA confirmado por decompilado del .aar 10.0.8-alpha01.
+
+  - id: CORE-DEF-007
+    status: not_a_defect
+    severity: info
+    title: "Aclaración de API: DrmData es una clase pública presente en 10.0.x"
+    description: >
+      MediastreamPlayerConfig.DrmData es una API normal y presente en 10.0.x:
+      class DrmData(var drmUrl: String, var drmHeaders: Map<String, String>)
+      (MediastreamPlayerConfig.kt:602) con la propiedad drmData: DrmData? (:78),
+      y getDrmData/setDrmData en el binario 10.0.8-alpha01. No es un bug ni una
+      contradicción: una nota de memoria previa que sugería su ausencia ("v11")
+      estaba simplemente obsoleta; no existe ninguna rama v11. Se conserva esta
+      entrada solo como aclaración para evitar que se escriban tests de DRM
+      asumiendo la ausencia de DrmData.
+    affected_files:
+      - "MediastreamPlayerConfig.kt:78,602"
+    trigger: "Escribir tests de DRM asumiendo la ausencia de DrmData"
+    workaround: "Usar config.drmData = DrmData(url, headers)."
+    regression_risk: low
+    related_ac: CORE-AC-009
+    source: >
+      Lectura del código fuente 10.0.7 + decompilado del .aar 10.0.8-alpha01
+      (getDrmData/setDrmData, constructor DrmData(drmUrl, drmHeaders)).

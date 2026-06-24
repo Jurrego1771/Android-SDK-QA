@@ -1,0 +1,11 @@
+version: "1.0"
+module: sdk-overview
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps: []
+
+notes: >
+  Los tests живут en los modules de cada feature. Este archivo
+  es un placeholder para mantener la convencion de 4 archivos.

@@ -1,0 +1,10 @@
+version: "1.0"
+module: sdk-overview
+last_updated: "2026-06-23"
+
+user_stories: []
+
+notes: >
+  Este modulo es informational. No contiene user stories propias;
+  las historias de usuario живут en los modules de cada feature.
+  Este archivo serve como indice y referencia cruzada.

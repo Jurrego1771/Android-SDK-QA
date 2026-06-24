@@ -1,0 +1,36 @@
+version: "1.0"
+module: video-vod
+last_updated: "2026-06-23"
+
+internal:
+  - id: config
+    reason: >
+      MediastreamPlayerConfig con type=VideoTypes.VOD, startAt, loop,
+      videoFormat (HLS/DASH/MP4).
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: media-source-factory
+    reason: >
+      CustomMediaSourceFactory construye el MediaSource segun el formato.
+      HLS (.m3u8) es el default, DASH (.mpd), MP4 directo.
+    coupling: high
+    files:
+      - CustomMediaSourceFactory.kt
+
+  - id: player-getters
+    reason: >
+      msPlayer (ExoPlayer) expone getDuration, getCurrentPosition, seekTo.
+      Estos getters degradan a 0 si se llaman antes de READY.
+    coupling: medium
+    files:
+      - MediastreamPlayer.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      Motor de reproduccion. Gestiona buffers, seleccion de calidad, etc.
+    coupling: high
+    risk: high

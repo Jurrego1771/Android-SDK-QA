@@ -1,0 +1,66 @@
+version: "1.0"
+module: video-episode
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: EP-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador de una serie"
+      want: "ver el siguiente episodio automaticamente al terminar el actual"
+      so_that: "no tengo que navegar manualmente entre episodios"
+    business_value: HIGH
+    risk_area:
+      - video-episode
+    related_features:
+      - video-vod
+      - callbacks
+    acceptance:
+      - EP-AC-001
+    notes: >
+      Dos modos: API (automatico) y Manual (cliente controla con updateNextEpisode).
+
+  - id: EP-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "decidir si quiero ver los creditos o saltar al siguiente episodio"
+      so_that: "tengo control sobre la transicion"
+    business_value: MEDIUM
+    risk_area:
+      - video-episode
+    acceptance:
+      - EP-AC-002
+    notes: >
+      Overlay con dos botones: "Ver creditos" y "Siguiente episodio".
+      Auto-transicion a los 5 segundos si no hay interaccion.
+
+  - id: EP-US-003
+    persona: Integrator
+    narrative:
+      as: "integrador de una app de series"
+      want: "personalizar el ID del siguiente episodio"
+      so_that: "puedo controlar la logica de navegacion de mi catalogo"
+    business_value: MEDIUM
+    risk_area:
+      - video-episode
+    acceptance:
+      - EP-AC-003
+    notes: >
+      Modo manual: config.nextEpisodeId + updateNextEpisode().
+
+  - id: EP-US-004
+    persona: Viewer
+    narrative:
+      as: "espectador en TV"
+      want: "navegar el overlay con el control remoto"
+      so_that: "puedo elegir siguiente episodio sin pantalla tactil"
+    business_value: MEDIUM
+    risk_area:
+      - video-episode
+      - android-tv
+    acceptance:
+      - EP-AC-004
+    notes: >
+      D-pad focus en los botones del overlay.

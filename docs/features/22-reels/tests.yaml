@@ -1,0 +1,109 @@
+version: "2.0"
+module: reels
+last_updated: "2026-06-23"
+
+# Cada gap referencia el criterio de aceptación que satisface (covers: <AC id>),
+# definido en user-stories.yaml. Así la trazabilidad es US → AC → test.
+# Gaps sin AC (covers: ~) son secundarios/edge o esperan una user story.
+
+existing_tests: []   # GAP total — Reels no tiene tests instrumentados hoy
+
+coverage_gaps:
+
+  - id: GAP-REELS-001
+    priority: MUST
+    covers: REELS-AC-001
+    title: "Modo reels se activa y el primer reel hace autoplay"
+    suggested_spec: "integration/ReelsActivationTest.kt"
+
+  - id: GAP-REELS-002
+    priority: MUST
+    covers: REELS-AC-005
+    title: "playerId ausente: el feed no pagina (degradación/error observable)"
+    suggested_spec: "integration/ReelsPaginationTest.kt"
+
+  - id: GAP-REELS-003
+    priority: MUST
+    covers: REELS-AC-002
+    title: "Swipe arriba → onNext y reproduce el siguiente reel"
+    suggested_spec: "integration/ReelsSwipeTest.kt"
+    notes: "Verificado en device: onPause → onNext → onPlay. ViewPager2 vertical."
+
+  - id: GAP-REELS-004
+    priority: MUST
+    covers: REELS-AC-003
+    title: "Swipe abajo → onPrevious y reproduce el reel anterior"
+    suggested_spec: "integration/ReelsSwipeTest.kt"
+
+  - id: GAP-REELS-005
+    priority: MUST
+    covers: REELS-AC-006
+    title: "Reel al final → loopea, NO auto-avanza, NO dispara onNext"
+    suggested_spec: "integration/ReelsLoopTest.kt"
+
+  - id: GAP-REELS-006
+    priority: MUST
+    covers: REELS-AC-004
+    title: "Callbacks NO se disparan para reels fuera de foco (solo el activo)"
+    suggested_spec: "integration/ReelsCallbackTest.kt"
+
+  - id: GAP-REELS-007
+    priority: MUST
+    covers: REELS-AC-005
+    title: "Feed pagina: tras varios swipes sigue cargando reels (related reels API)"
+    suggested_spec: "integration/ReelsPaginationTest.kt"
+
+  - id: GAP-REELS-008
+    priority: SHOULD
+    covers: REELS-AC-007
+    title: "Botón mute silencia/activa audio globalmente y persiste al hacer swipe"
+    suggested_spec: "integration/ReelsControlsTest.kt"
+    notes: "@MobileOnly (tap por coordenada de reels_mute_button)."
+
+  - id: GAP-REELS-009
+    priority: SHOULD
+    covers: REELS-AC-008
+    title: "Tap en el video hace toggle play/pause del reel activo"
+    suggested_spec: "integration/ReelsControlsTest.kt"
+    notes: "@MobileOnly."
+
+  - id: GAP-REELS-010
+    priority: SHOULD
+    covers: REELS-AC-010
+    title: "Botón dismiss dispara onDismissButton y cierra el feed"
+    suggested_spec: "integration/ReelsControlsTest.kt"
+    notes: "reels_back_button (content-desc 'Back'). @MobileOnly."
+
+  - id: GAP-REELS-011
+    priority: COULD
+    covers: REELS-AC-009
+    title: "Barra de progreso visible pero NO seekeable"
+    suggested_spec: "integration/ReelsControlsTest.kt"
+
+  - id: GAP-REELS-012
+    priority: COULD
+    covers: ~          # sin AC: requiere una user story de Publisher (ads en feed)
+    title: "Ads: cada interval reels aparece un intersticial y onAdEvents se dispara"
+    suggested_spec: "integration/ReelsAdsTest.kt"
+    notes: >
+      ReelsAdsConfigModel.interval. Player IMA dedicado. Depende de contenido de prueba con
+      ads configurados en el player de reels.
+
+  - id: GAP-REELS-013
+    priority: COULD
+    covers: ~
+    title: "Ads: ALL_ADS_COMPLETED auto-avanza al siguiente reel"
+    suggested_spec: "integration/ReelsAdsTest.kt"
+
+  - id: GAP-REELS-014
+    priority: COULD
+    covers: ~          # observación de defecto, no AC
+    title: "Título del reel proviene de metadata (no del nombre de archivo)"
+    suggested_spec: "integration/ReelsMetadataTest.kt"
+    notes: "Ver REELS-DEF-001 (observado: render del filename .mp4)."
+
+notes: >
+  Reels es full-screen sin debug panel (FullScreenScenarioActivity) — observabilidad por logcat
+  (tag SDK_QA/VideoReels) + UiAutomator. El ObservabilityProvider/SessionExporter NO lo cubre
+  (solo rastrea BaseScenarioActivity). Para tests instrumentados habría que exponer estado vía el
+  callback o un captor dedicado.

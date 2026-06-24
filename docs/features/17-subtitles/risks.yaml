@@ -1,0 +1,19 @@
+version: "1.0"
+module: subtitles
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: SUB-RISK-001
+    severity: medium
+    title: "Parser custom ASS/SSA puede no soportar todos los features"
+    description: >
+      CustomAssSubtitleParser parsea timing y estilos basicos.
+      Features avanzados de ASS (estilos complejos, animaciones)
+      podrian no renderizarse correctamente.
+    affected_files:
+      - "CustomAssSubtitleParser.kt"
+    trigger: "Subtitulo ASS con estilos complejos"
+    mitigation: >
+      Test exhaustivo con archivos ASS de distintos proveedores.
+    test_priority: SHOULD

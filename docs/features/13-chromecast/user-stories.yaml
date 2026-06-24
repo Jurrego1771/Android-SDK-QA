@@ -1,0 +1,47 @@
+version: "1.0"
+module: chromecast
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: CC-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador con Chromecast en la red"
+      want: "transmitir el video al TV"
+      so_that: "puedo ver el contenido en una pantalla grande"
+    business_value: HIGH
+    risk_area:
+      - chromecast
+    related_features:
+      - video-vod
+    acceptance:
+      - CC-AC-001
+    notes: >
+      Habilitado automaticamente si hay un CastOptionsProvider en el Manifest.
+
+  - id: CC-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "que la reproduccion continue en el TV mientras uso el telefono"
+      so_that: "puedo controlar desde el telefono sin interrumpir lo que veo"
+    business_value: MEDIUM
+    risk_area:
+      - chromecast
+    acceptance:
+      - CC-AC-002
+
+  - id: CC-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "volver a ver el contenido en el telefono cuando termino de castear"
+      so_that: "puedo continuar viendo donde quede"
+    business_value: MEDIUM
+    risk_area:
+      - chromecast
+    acceptance:
+      - CC-AC-003
+    notes: >
+      onCastSessionEnded -> reproduccion vuelve al dispositivo.

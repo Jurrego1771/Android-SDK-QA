@@ -1,0 +1,9 @@
+version: "1.0"
+module: upcoming-v10-pip-changes
+last_updated: "2026-06-23"
+
+user_stories: []
+
+notes: >
+  Este modulo documenta cambios planificados para v10.0.0.
+  NO existen en produccion aun. Solo informational.

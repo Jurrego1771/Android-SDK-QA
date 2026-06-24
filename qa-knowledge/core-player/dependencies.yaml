@@ -1,0 +1,168 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-12"
+
+internal:
+  - id: config
+    reason: >
+      MediastreamPlayerConfig es el objeto de entrada de todos los constructores.
+      Define la fuente (id/accountID/src), tipo, formato, idioma, DVR, ads, DRM,
+      analytics, UI y notificación. copy()/mergePersistentFrom()/getAdQueryString()
+      gobiernan la recarga y la construcción de URLs de ads.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: callback
+    reason: >
+      MediastreamPlayerCallback es la interfaz de eventos. El player mantiene una lista
+      (msCallbacks) y emite onReady/onPlay/onPause/onError/onFullscreen/onAdEvents/
+      onCastSession*/playerViewReady, etc. addPlayerCallback dedup + entrega errores
+      pendientes.
+    coupling: high
+    files:
+      - MediastreamPlayerCallback.kt
+
+  - id: pip-helper
+    reason: >
+      MediastreamPlayerPip encapsula PictureInPictureParams (aspect 16:9, sourceRectHint).
+      El player crea un pipHandler por construcción (msActivity?.let { MediastreamPlayerPip(...) })
+      y delega startPiP/onPictureInPictureModeChanged.
+    coupling: medium
+    files:
+      - MediastreamPlayerPip.kt
+
+  - id: load-control
+    reason: >
+      MediastreamPlayerLoadControl es el LoadControl custom de ExoPlayer con buffers
+      ajustados (min 15s, max 30s, playback 2.5s). Afecta latencia de arranque y
+      resiliencia ante rebuffering.
+    coupling: medium
+    files:
+      - MediastreamPlayerLoadControl.kt
+
+  - id: media-source-factory
+    reason: >
+      CustomMediaSourceFactory construye el MediaSource según el formato (HLS/DASH/MP4/
+      etc.) y aplica cookies/headers. Usado por el player al crear el MediaItem.
+    coupling: medium
+    files:
+      - CustomMediaSourceFactory.kt
+
+  - id: mini-player-config
+    reason: >
+      MediastreamMiniPlayerConfig (albumName, songName, description, imageUrl,
+      imageIconUrl, setStateNext/Prev, color) alimenta el constructor de servicio/sync
+      para la notificación multimedia de audio en background.
+    coupling: medium
+    files:
+      - MediastreamMiniPlayerConfig.kt
+
+  - id: customizer
+    reason: >
+      MediastreamPlayerCustomizer aplica estilos por tipo de player (colores, controles).
+      El player lo consume para personalizar la UI.
+    coupling: low
+    files:
+      - MediastreamPlayerCustomizer.kt
+
+  - id: zoom-gesture
+    reason: >
+      PlayerZoomGestureListener implementa pinch-to-zoom del video. Se inicializa en
+      construcción cuando config.enablePlayerZoom=true (initZoomGesture()).
+    coupling: low
+    files:
+      - PlayerZoomGestureListener.kt
+
+  - id: custom-timer
+    reason: >
+      MediastreamCustomTimer + MediastreamICustomTaskFactory ejecutan tareas periódicas
+      (progreso, polling de metadatos live, heartbeats de analytics).
+    coupling: low
+    files:
+      - MediastreamCustomTimer.kt
+      - MediastreamICustomTaskFactory.kt
+
+  - id: api-networking
+    reason: >
+      ApiService (Retrofit) provee getMediaInfo/getDaiConfig/setEvent/retrieveCurrentSong/
+      getMetaData, que el player invoca en callSetupConfig/updateMetadataFromAPI.
+      ConfigMain (Gson) modela la respuesta del embed (IDs de sesión, ads, srcList,
+      subtitles, dvrWindowOffset, metadatos).
+    coupling: high
+    files:
+      - api/ApiService.kt
+      - model/config/ConfigMain.kt
+      - MediastreamPersistentCookieStore.java
+
+  - id: locale-helper
+    reason: >
+      LocaleHelper.setLocale(context, config.language) fija el locale del Context del
+      player en cada constructor. Es el puente entre config.language y la i18n de la UI.
+    coupling: medium
+    files:
+      - utils/ (LocaleHelper)
+
+  - id: service-audio
+    reason: >
+      MediastreamPlayerService y MediastreamPlayerServiceWithSync usan el constructor con
+      MediastreamMiniPlayerConfig + isFromSyncService para reproducción en background con
+      MediaLibrarySession.
+    coupling: medium
+    files:
+      - MediastreamPlayerService.kt
+      - MediastreamPlayerServiceWithSync.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3 (ExoPlayer / common / ui / session)"
+    reason: >
+      Motor de reproducción. El player envuelve un Player/ExoPlayer (msPlayer),
+      PlayerView, MediaItem, MediaMetadata, Timeline, MediaController. Muchos getters
+      delegan en media3 (getDuration, getCurrentPosition, getBitrate, getBandwidth).
+    risk: high
+    note: >
+      Varias APIs usadas son @UnstableApi (getBitrate, getBandwidth, getDuration).
+      compileSdk 35, Java 17. Acceso crudo vía msPlayer público (CORE-RISK-006).
+
+  - id: google-ima
+    package: "com.google.ads.interactivemedia.v3"
+    reason: >
+      Ads CSAI/SSAI. AdEvent/AdError llegan a onAdEvents/onAdErrorEvent. ImaAdsLoader
+      gestionado por el player (releaseAdsLoader).
+    risk: high
+    note: >
+      Fuente de 3 leaks/contaminaciones conocidas (CORE-DEF-001, CORE-DEF-004 y la leak
+      global). Registra un ActivityLifecycleCallback a nivel Application.
+
+  - id: play-services-ads-identifier
+    package: "com.google.android.gms.ads.identifier (AdvertisingIdClient)"
+    reason: >
+      Obtiene el GAID para rdid/idtype/is_lat en getAdQueryString. fetchDeviceIdsAsync
+      lo llama en background. Fallback a Amazon AAID vía ContentProvider en Fire OS.
+    risk: medium
+    note: >
+      En Fire OS Play Services suele faltar; el SDK lee
+      content://com.amazon.device.ads.amazonid/ad_id.
+
+  - id: play-services-cast
+    package: "com.google.android.gms.cast (RemoteMediaClient, MediaRouteButton)"
+    reason: >
+      Chromecast. showChromeCastDialog/SendCurrentItemToCast/currentRemoteMediaClient y
+      los 10 callbacks onCastSession*.
+    risk: medium
+
+  - id: gson
+    package: "com.google.gson"
+    reason: "Deserialización de ConfigMain (respuesta del embed/API)."
+    risk: low
+
+  - id: retrofit-okhttp
+    package: "com.squareup.retrofit2 / okhttp3"
+    reason: "Cliente HTTP hacia la plataforma (ApiService suspend)."
+    risk: low
+
+  - id: eventbus
+    package: "org.greenrobot.eventbus"
+    reason: "MessageEvent / UpdateNotificationEvent comunican el player con el servicio."
+    risk: low

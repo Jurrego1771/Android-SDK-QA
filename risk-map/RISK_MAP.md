@@ -4,7 +4,7 @@
 **Fecha baseline:** 2026-04-16
 **SDK Version bajo test:** 11.0.0-alpha.01
 **SDK consumido como:** dependencia Maven (`io.github.mediastream:mediastreamplatformsdkandroid:11.0.0-alpha.01`)
-**Cobertura global actual:** 0% (0 tests reales implementados)
+**Cobertura global actual:** ~4% (5 tests — Analytics/profileId PR #143)
 
 > **Scope:** Este repo testea el SDK como **caja negra** (dependencia externa).
 > Los unit tests de internals del SDK (Config, models, ApiService, etc.) van en el repo `MediastreamPlatformSDKAndroid`.
@@ -97,6 +97,10 @@ Este mapa de riesgos es un documento vivo. Cada vez que se implementa un test o 
 
 | Feature | Riesgo | Razon del riesgo | Cobertura | Tests implementados |
 |---------|--------|-----------------|-----------|-------------------|
+| profileId — envío en eventos play/playing | 🔴 CRITICO | Campo nuevo del PR #143; sin tests era bug silencioso si rompía reproducción | 100% | INT-ANL-01..05 (`AnalyticsTest.kt`) |
+| profileId — fallback debug-profile-id | 🟠 ALTO | Auto-asignación en init() podría contaminar analytics DEV o causar NPE | 100% | INT-ANL-03 (`AnalyticsTest.kt`) |
+| profileId — ausencia cuando no configurado | 🟠 ALTO | profileId=null debe ser safe para todos los integradores actuales | 100% | INT-ANL-02 (`AnalyticsTest.kt`) |
+| trackEnable=false + profileId configurado | 🟠 ALTO | Interacción entre collector deshabilitado y campo nuevo | 100% | INT-ANL-04 (`AnalyticsTest.kt`) |
 | Comscore — inicializacion condicional | 🟠 ALTO | Si se inicializa sin datos, puede crashear Comscore | 0% | Ninguno |
 | Comscore — eventos play/pause/end | 🟡 MEDIO | Datos de audiencia pueden ser incorrectos | 0% | Ninguno |
 | Youbora — inicializacion | 🟡 MEDIO | Similar a Comscore | 0% | Ninguno |
@@ -214,6 +218,7 @@ Este mapa de riesgos es un documento vivo. Cada vez que se implementa un test o 
 | Fecha | Cobertura global | Tests unitarios | Tests integracion | Tests E2E | Notas |
 |-------|-----------------|----------------|-------------------|-----------|-------|
 | 2026-04-16 | 0% | 0 | 0 | 0 | Baseline inicial |
+| 2026-05-12 | ~4% | 0 | 5 | 0 | PR #143 — Analytics profileId (INT-ANL-01..05) |
 
 ---
 

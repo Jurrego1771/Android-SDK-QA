@@ -1,0 +1,9 @@
+version: "1.0"
+module: upcoming-v10-pip-changes
+last_updated: "2026-06-23"
+
+internal: []
+
+notes: >
+  Este modulo es puramente informational. Los cambios de v10.0.0
+  afectaran a los modulos pip y callbacks.

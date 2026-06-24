@@ -272,6 +272,7 @@ MediastreamPlayer.getEMBED_HOST(): String
 | `distributorId` | `String?` | null | ID del distribuidor |
 | `customerID` | `String?` | null | ID del cliente |
 | `analyticsCustom` | `String?` | null | Datos custom de analytics |
+| `profileID` | `String?` | null | ID de perfil del usuario; se envía como campo `profile_id` en eventos analytics `play` y `playing`. Cuando `isDebug=true` y este campo es null, el SDK auto-asigna `"debug-profile-id"`. Agregado en PR #143. |
 | `youboraExtraParams` | `Array<String?>` | 20 nulls | Parámetros extra para Youbora |
 
 ### DRM

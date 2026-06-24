@@ -1,0 +1,62 @@
+version: "1.0"
+module: player-config
+last_updated: "2026-06-23"
+
+internal:
+  - id: config-model
+    reason: >
+      MediastreamPlayerConfig es el objeto central. 50+ propiedades organizadas
+      en grupos: identificacion, reproduccion, UI, ads, DRM, notificaciones,
+      analytics. Es instanciado directamente por el integrador.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: copy-method
+    reason: >
+      Metodo copy() crea una copia profunda de la configuracion.
+      Util para reutilizar base config con cambios por episodio.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: merge-persistent
+    reason: >
+      mergePersistentFrom(previous) fusiona flags persistentes de sesion
+      (volumen, brillo, UI) desde una config previa. Usado en reloadPlayer.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: ad-query-string
+    reason: >
+      getAdQueryString() genera el query string para la URL de ads,
+      inyectando ppid, rdid, idtype, is_lat. Importante para monetizacion.
+    coupling: medium
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: drm-data
+    reason: >
+      DrmData(drmUrl, drmHeaders) configura Widevine. Solo aplica con
+      videoFormat=DASH. Consumido por MediastreamPlayer al construir
+      DrmConfiguration.
+    coupling: medium
+    files:
+      - MediastreamPlayerConfig.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      ExoPlayer consume la configuracion para construir MediaItem y
+      configurar ads, DRM, etc.
+    coupling: high
+    risk: high
+
+  - id: google-ima
+    package: "com.google.ads.interactivemedia.v3"
+    reason: >
+      Configuracion de ads (adURL, googleImaPpid) se pasa a IMA.
+    coupling: medium
+    risk: medium

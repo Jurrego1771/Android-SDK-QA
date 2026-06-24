@@ -1,0 +1,36 @@
+version: "1.0"
+module: analytics-youbora
+last_updated: "2026-06-23"
+
+internal:
+  - id: youbora-plugin
+    reason: >
+      El SDK usa el adapter media3-npaw (v6.8.7) para conectar
+      ExoPlayer con el plugin de Youbora.
+    coupling: high
+    files:
+      - YouboraAnalyticsAdapter.kt (SDK internal)
+
+  - id: configmain-youbora
+    reason: >
+      ConfigMain.youbora contiene custom parameters configurados
+      en la plataforma Mediastream.
+    coupling: high
+    files:
+      - model/config/ConfigMain.kt
+
+  - id: config-app-info
+    reason: >
+      appName y appVersion de MediastreamPlayerConfig se pasan
+      a Youbora como parametros de la app.
+    coupling: medium
+    files:
+      - MediastreamPlayerConfig.kt
+
+external:
+  - id: youbora-sdk
+    package: "com.npawexacttarget:youbora:6.8.7"
+    reason: >
+      SDK de Youbora/NPAW para QoE analytics.
+    coupling: high
+    risk: medium

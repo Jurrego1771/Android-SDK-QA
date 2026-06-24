@@ -1,0 +1,8 @@
+version: "1.0"
+module: upcoming-v10-pip-changes
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  No es un defecto, es un cambio planificado de API.

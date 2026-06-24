@@ -1,0 +1,60 @@
+version: "1.0"
+module: callbacks
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: CB-RISK-001
+    severity: high
+    title: "playerViewReady llega en thread incorrecto"
+    description: >
+      Solo playerViewReady llega desde thread de ExoPlayer, no del main.
+      onReady/onPlay/onPause si llegan en main. Si el integrador asume
+      que todos los callbacks son main-thread-safe, la app crashea.
+    affected_files:
+      - "MediastreamPlayer.kt (emision de playerViewReady)"
+    trigger: "UI updates directas en playerViewReady"
+    mitigation: >
+      Documentar que playerViewReady NO esta garantizado en main thread.
+      El integrador debe usar runOnUiThread.
+    test_priority: MUST
+
+  - id: CB-RISK-002
+    severity: high
+    title: "Errores de API silenciados"
+    description: >
+      El SDK no propaga errores 404. El integrador no puede mostrar
+      error al usuario cuando el content ID no existe.
+    affected_files:
+      - "MediastreamPlayer.kt (manejo de getMediaInfo)"
+    trigger: "config.id inexistente"
+    mitigation: >
+      Ninguna desde el SDK. El integrador debe validar el ID por su cuenta.
+    test_priority: MUST
+
+  - id: CB-RISK-003
+    severity: medium
+    title: "Multiples callbacks: orden de ejecucion no garantizado"
+    description: >
+      Si se registran multiples callbacks, el orden de notificacion
+      puede no ser deterministico. Un integrador que dependa de un
+      callback especifico disparandose antes que otro puede tener bugs.
+    affected_files:
+      - "MediastreamPlayer.kt (dispatch a msCallbacks)"
+    trigger: "Multiple callbacks registrados"
+    mitigation: >
+      No depender del orden relativo entre callbacks de distintos listeners.
+    test_priority: COULD
+
+  - id: CB-RISK-004
+    severity: low
+    title: "Callback null no produce NPE en todos los casos"
+    description: >
+      La documentacion indica que un callback null no produce excepcion,
+      pero el comportamiento puede variar por callback.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Registro de callback null"
+    mitigation: >
+      Evitar pasar callbacks null.
+    test_priority: COULD

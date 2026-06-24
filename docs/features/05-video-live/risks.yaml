@@ -1,0 +1,32 @@
+version: "1.0"
+module: video-live
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: LIVE-RISK-001
+    severity: high
+    title: "onEnd NO se dispara en live (comportamiento correcto)"
+    description: >
+      El documento de feature indica claramente que onEnd no se dispara
+      en streams live (son continuos). Un integrador que espere onEnd
+      en live tendra un bug.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Esperar onEnd en un stream live"
+    mitigation: >
+      Documentar que onEnd solo aplica a VOD y episodes.
+    test_priority: SHOULD
+
+  - id: LIVE-RISK-002
+    severity: medium
+    title: "Sin DVR: no hay forma de ver contenido pasado"
+    description: >
+      Si dvr=false, el usuario no puede hacer seek hacia atras.
+      Si se pierde un momento, se pierde para siempre.
+    affected_files:
+      - "MediastreamPlayerConfig.kt (dvr flag)"
+    trigger: "Usuario quiere ver algo que ya paso"
+    mitigation: >
+      Para contenido donde se necesita replay, usar dvr=true.
+    test_priority: COULD

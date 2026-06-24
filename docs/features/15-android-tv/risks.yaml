@@ -1,0 +1,18 @@
+version: "1.0"
+module: android-tv
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: ATV-RISK-001
+    severity: low
+    title: "Deteccion de Fire TV por manufacturer/model puede fallar"
+    description: >
+      isFireTV() depende de Build.MANUFACTURER y Build.MODEL.
+      En devices no standard, la deteccion puede no funcionar.
+    affected_files:
+      - "MediastreamPlayer.kt (isFireTV)"
+    trigger: "Fire TV no standard o emulator"
+    mitigation: >
+      Verificar la deteccion en el dispositivo especifico.
+    test_priority: COULD

@@ -1,0 +1,45 @@
+version: "1.0"
+module: video-episode
+last_updated: "2026-06-23"
+
+internal:
+  - id: next-episode-state
+    reason: >
+      NextEpisodeState es interno del SDK. Administra appearTime,
+      callbackTime, monitoringActive, callbackEmitted, overlayVisible,
+      userDismissed.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (NextEpisodeState data class)
+
+  - id: next-episode-ui
+    reason: >
+      NextEpisodeUI es interno del SDK. Administra el overlay,
+      autoTransitionRunnable, fillAnimator, confirmedConfig.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (NextEpisodeUI data class)
+
+  - id: update-next-episode
+    reason: >
+      Metodo publico que el cliente llama en modo manual para
+      confirmar la config del siguiente episodio.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (updateNextEpisode)
+
+  - id: load-next-episode
+    reason: >
+      Metodo interno que carga la nueva config y dispara
+      onNewSourceAdded y onPlayerReload.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (loadNextEpisode)
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      El player subyacente se recarga con el nuevo episodio.
+    coupling: medium
+    risk: low

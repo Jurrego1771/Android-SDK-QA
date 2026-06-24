@@ -1,0 +1,41 @@
+version: "1.0"
+module: notifications
+last_updated: "2026-06-23"
+
+internal:
+  - id: notification-config
+    reason: >
+      notificationTitle, notificationDescription, notificationIconUrl,
+      notificationHasNext en MediastreamPlayerConfig.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: notification-manager
+    reason: >
+      PlayerNotificationManager de Media3 para la notificacion.
+    coupling: high
+    files:
+      - MediastreamPlayerService.kt
+
+  - id: notification-receiver
+    reason: >
+      NotificationReceiver recibe intents de los botones.
+    coupling: medium
+    files:
+      - NotificationReceiver.kt (SDK internal)
+
+  - id: media-session
+    reason: >
+      MediaSession para control en pantalla de bloqueo y wearables.
+    coupling: medium
+    files:
+      - MediastreamPlayerService.kt
+
+external:
+  - id: media3-session
+    package: "androidx.media3:media3-session:1.5.0"
+    reason: >
+      PlayerNotificationManager y MediaSession.
+    coupling: high
+    risk: low

@@ -1,0 +1,87 @@
+version: "1.0"
+module: sdk-overview
+last_updated: "2026-06-23"
+
+internal: []
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      Motor de reproduccion. Encapsulado detras de MediastreamPlayer.
+      El SDK expone acceso directo via msPlayer (propiedad publica).
+    coupling: high
+
+  - id: media3-ui
+    package: "androidx.media3:media3-ui:1.5.0"
+    reason: >
+      PlayerView y componentes de UI. Usado por el SDK para renderizar
+      video y mostrar controles.
+    coupling: high
+
+  - id: media3-session
+    package: "androidx.media3:media3-session:1.5.0"
+    reason: >
+      MediaSession y MediaController para Android Auto, notificaciones
+      y control remoto.
+    coupling: high
+
+  - id: retrofit
+    package: "com.squareup.retrofit2:retrofit:2.9.0"
+    reason: >
+      Cliente HTTP para ApiService. llama a getMediaInfo y otros endpoints.
+    coupling: high
+
+  - id: okhttp
+    package: "com.squareup.okhttp3:okhttp:4.10.0"
+    reason: >
+      HTTP client + logging + SSE para metadata de audio live.
+    coupling: high
+
+  - id: gson
+    package: "com.google.gson:gson:2.10.1"
+    reason: >
+      Deserializacion de ConfigMain y respuestas de la API.
+    coupling: high
+
+  - id: google-ima
+    package: "com.google.ads.interactivemedia.v3"
+    reason: >
+      Publicidad (VAST/VMAP/DAI). Integracion via Media3.
+    coupling: high
+
+  - id: google-cast
+    package: "com.google.android.gms:play-services-cast-framework"
+    reason: >
+      Chromecast. Integracion via Media3 CastOptionsProvider.
+    coupling: medium
+
+  - id: comscore
+    package: "com.comscore:android-c2:6.12.0"
+    reason: >
+      Analytics de streaming. Configurado automaticamente desde API.
+    coupling: medium
+
+  - id: youbora
+    package: "com.npawexacttarget:youbora:6.8.7"
+    reason: >
+      Analytics QoE. Adapter media3-npaw integrado con ExoPlayer.
+    coupling: medium
+
+  - id: glide
+    package: "com.github.bumptech.glide:glide:4.13.2"
+    reason: >
+      Carga de imagenes (artwork, thumbnails).
+    coupling: low
+
+  - id: eventbus
+    package: "org.greenrobot:eventbus:3.3.1"
+    reason: >
+      Comunicacion interna entre player y services.
+    coupling: medium
+
+  - id: cronet
+    package: "com.google.android.gms:play-services-cronet"
+    reason: >
+      HTTP/QUIC para requests de red del SDK.
+    coupling: low

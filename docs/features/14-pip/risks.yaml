@@ -1,0 +1,74 @@
+version: "1.0"
+module: pip
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: PIP-RISK-001
+    severity: high
+    title: "Aspect ratio 16:9 fijo no sirve para contenido vertical"
+    description: >
+      MediastreamPlayerPip usa aspect ratio 16:9 hardcodeado.
+      Contenido vertical o 4:3 se vera con barras negras.
+    affected_files:
+      - "MediastreamPlayerPip.kt"
+    trigger: "PiP con contenido vertical"
+    mitigation: >
+      Ninguna desde el SDK. El integrador no puede configurar
+      el aspect ratio.
+    test_priority: MUST
+
+  - id: PIP-RISK-002
+    severity: high
+    title: "onUserLeaveHint() inconsistente en OEM (PIP-DEF-001)"
+    description: >
+      Samsung One UI y Xiaomi HyperOS no garantizan onUserLeaveHint()
+      al presionar Recientes. No usar como unico trigger de PiP.
+    affected_files:
+      - "Activity del cliente"
+    trigger: "Presionar Recientes en Samsung/Xiaomi"
+    mitigation: >
+      onPause() + guardias para API 26-30.
+      setAutoEnterEnabled para API 31+.
+    test_priority: MUST
+
+  - id: PIP-RISK-003
+    severity: high
+    title: "onPictureInPictureModeChanged es responsabilidad del cliente"
+    description: >
+      Si el cliente no llama a player.onPictureInPictureModeChanged(),
+      el SDK no ajusta su UI (controles no se ocultan).
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Cliente omite la llamada a onPictureInPictureModeChanged"
+    mitigation: >
+      Documentar que la llamada es obligatoria.
+    test_priority: MUST
+
+  - id: PIP-RISK-004
+    severity: medium
+    title: "onPause() sin guardias genera falsos positivos"
+    description: >
+      onPause() se dispara por muchas razones: Home, Recientes,
+      dialogs, notificaciones, llamadas. Sin guardias, PiP podria
+      activarse incorrectamente.
+    affected_files:
+      - "Activity del cliente"
+    trigger: "Dialog del sistema o llamada entrante con video pausado"
+    mitigation: >
+      Usar guardias: !isFinishing && isPlaying.
+    test_priority: MUST
+
+  - id: PIP-RISK-005
+    severity: medium
+    title: "pipHandler es null sin Activity"
+    description: >
+      MediastreamPlayerPip necesita Activity en su constructor.
+      Si el player se inicializa sin Activity (desde Service),
+      startPiP() no hara nada.
+    affected_files:
+      - "MediastreamPlayerPip.kt"
+    trigger: "startPiP() desde un Service"
+    mitigation: >
+      PiP no esta soportado sin Activity.
+    test_priority: COULD

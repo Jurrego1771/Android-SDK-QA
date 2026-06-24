@@ -1,0 +1,34 @@
+version: "1.0"
+module: video-live
+last_updated: "2026-06-23"
+
+internal:
+  - id: config
+    reason: >
+      MediastreamPlayerConfig con type=VideoTypes.LIVE, dvr=false.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: media-source-factory
+    reason: >
+      CustomMediaSourceFactory construye HLS live stream.
+    coupling: high
+    files:
+      - CustomMediaSourceFactory.kt
+
+  - id: live-edge-logic
+    reason: >
+      El player siempre inicia en live edge (ultimo segmento disponible).
+      startAt es ignorado para live.
+    coupling: medium
+    files:
+      - MediastreamPlayer.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      ExoPlayer maneja la reconexion automatica a streams HLS live.
+    coupling: high
+    risk: high

@@ -1,0 +1,8 @@
+version: "1.0"
+module: android-auto
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  No hay defectos documentados para Android Auto en los archivos de feature.

@@ -1,0 +1,65 @@
+version: "1.0"
+module: video-vod
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: VOD-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador de video bajo demanda"
+      want: "ver un video con inicio y fin definidos"
+      so_that: "puedo consumir contenido a mi propio ritmo"
+    business_value: HIGH
+    risk_area:
+      - video-vod
+    related_features:
+      - initialization
+      - callbacks
+    acceptance:
+      - VOD-AC-001
+    notes: >
+      El tipo mas basico del SDK. Viene determinado por VideoTypes.VOD.
+
+  - id: VOD-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "controlar la reproduccion (play, pause, seek)"
+      so_that: "puedo manejar el contenido a mi ritmo"
+    business_value: HIGH
+    risk_area:
+      - video-vod
+      - playback-control
+    related_features:
+      - callbacks
+    acceptance:
+      - VOD-AC-002
+
+  - id: VOD-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador que quiere ver desde un punto especifico"
+      want: "iniciar la reproduccion en un segundo determinado"
+      so_that: "no tengo que ver la introduccion"
+    business_value: MEDIUM
+    risk_area:
+      - video-vod
+    acceptance:
+      - VOD-AC-003
+    notes: >
+      config.startAt = segundos. -1 = desde el inicio.
+
+  - id: VOD-US-004
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "que el video se reprodduzca en loop"
+      so_that: "puedo ver el contenido continuamente"
+    business_value: LOW
+    risk_area:
+      - video-vod
+    acceptance:
+      - VOD-AC-004
+    notes: >
+      loop=true: al llegar al final vuelve al inicio sin disparar onEnd.

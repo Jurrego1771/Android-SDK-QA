@@ -1,0 +1,41 @@
+version: "1.0"
+module: ads-ima
+last_updated: "2026-06-23"
+
+defects:
+
+  - id: ADS-DEF-001
+    status: open
+    severity: high
+    title: "IMA AdTagLoader retiene la Activity ~5s"
+    description: >
+      Tras releasePlayer() en contenido live/DVR con ads, IMA mantiene
+      una referencia a la Activity via AdTagLoader.configuration.
+      applicationAdErrorListener -> lambda -> msActivity -> Activity.
+    affected_files:
+      - "MediastreamPlayer.kt (IMA lambda)"
+    trigger: "releasePlayer() + ads + destruir Activity"
+    workaround: "Tests @Ignored. Reportado a Mediastream."
+    regression_risk: medium
+    related_ac: ADS-AC-003
+    source: >
+      Confirmado en Sony BRAVIA. Bug #1 en sdk_known_bugs.
+    validation_status: confirmed
+
+  - id: ADS-DEF-002
+    status: open
+    severity: medium
+    title: "IMA ActivityLifecycleCallback global causa contaminacion entre tests"
+    description: >
+      IMA registra un ActivityLifecycleCallback a nivel Application.
+      Tras LifecycleTest (live+ads), el siguiente player recibe
+      CONTENT_PAUSE_REQUESTED de IMA antes de onReady.
+    affected_files:
+      - "IMA SDK (Application.mActivityLifecycleCallbacks)"
+    trigger: "Ejecucion secuencial LifecycleTest -> PlayerLifecycleTest"
+    workaround: "@Ignore en sdkCallbacks_onPlay_arrivesOnMainThread."
+    regression_risk: low
+    related_ac: ADS-AC-003
+    source: >
+      Confirmado en Sony BRAVIA. Bug #5 en sdk_known_bugs.
+    validation_status: confirmed

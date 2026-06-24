@@ -8,6 +8,33 @@
 
     <application>
 
+        <!-- DeepLink router (solo debug) — lanza escenarios de forma determinista
+             para el harness de testing exploratorio asistido por IA.
+             Uso: adb shell am start -W -a android.intent.action.VIEW -d "sdkqa://scenario/vod" -->
+        <activity
+            android:name="com.example.sdk_qa.debug.DeepLinkRouterActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sdkqa" android:host="scenario" />
+            </intent-filter>
+        </activity>
+
+        <!-- Observability bridge (solo debug) — estado interno del SDK para el
+             harness exploratorio. exported=true es necesario para `adb content query`
+             (shell uid distinto al de la app). Sin secretos (no expone tokens/headers).
+             Ausente en release.
+             Consulta vía adb: content query sobre content://com.example.sdk_qa.debug.observability/session -->
+        <provider
+            android:name="com.example.sdk_qa.debug.ObservabilityProvider"
+            android:authorities="com.example.sdk_qa.debug.observability"
+            android:exported="true" />
+
         <activity
             android:name="com.example.sdk_qa.smoke.InvalidUrlScenarioActivity"
             android:exported="false"
@@ -28,6 +55,31 @@
 
         <activity
             android:name="com.example.sdk_qa.regression.TvPlayerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- Analytics test activities — PR #143 profileId -->
+        <activity
+            android:name="com.example.sdk_qa.integration.AnalyticsWithProfileActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name="com.example.sdk_qa.integration.AnalyticsDebugFallbackActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name="com.example.sdk_qa.integration.AnalyticsDisabledActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name="com.example.sdk_qa.integration.AnalyticsVodApiActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:supportsPictureInPicture="true" />

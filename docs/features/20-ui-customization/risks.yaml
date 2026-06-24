@@ -1,0 +1,31 @@
+version: "1.0"
+module: ui-customization
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: UI-RISK-001
+    severity: medium
+    title: "Default de idioma es ENGLISH"
+    description: >
+      MediastreamPlayerConfig.language default es Language.ENGLISH.
+      Integradores LATAM pueden asumir spanish.
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+    trigger: "No setear language en app para LATAM"
+    mitigation: >
+      Documentar el default. Explicitamente setear language.
+    test_priority: SHOULD
+
+  - id: UI-RISK-002
+    severity: low
+    title: "customPlayerView null no se valida"
+    description: >
+      Si customPlayerView es null, deberia usarse el default.
+      Pero no hay validacion explicita.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Settear customPlayerView=null explicitamente"
+    mitigation: >
+      Verificar que null usa el PlayerView default.
+    test_priority: COULD

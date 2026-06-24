@@ -1,0 +1,50 @@
+version: "1.0"
+module: analytics-comscore
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: COM-US-001
+    persona: Media Company
+    narrative:
+      as: "empresa de medios que quiere medir audiencia"
+      want: "que el SDK envie eventos de reproduccion a Comscore"
+      so_that: "puedo conocer metrics de audiencia"
+    business_value: HIGH
+    risk_area:
+      - analytics-comscore
+    related_features:
+      - video-vod
+      - video-live
+    acceptance:
+      - COM-AC-001
+    notes: >
+      Configurado automaticamente desde ConfigMain.comscore.
+
+  - id: COM-US-002
+    persona: Analytics
+    narrative:
+      as: "equipo de analytics"
+      want: "registrar play, pause, end, buffer y seek"
+      so_that: "tengo datos completos del comportamiento del usuario"
+    business_value: HIGH
+    risk_area:
+      - analytics-comscore
+    acceptance:
+      - COM-AC-002
+    notes: >
+      Eventos automaticos desde el SDK.
+
+  - id: COM-US-003
+    persona: Media Company
+    narrative:
+      as: "empresa de medios"
+      want: "que Comscore NO se inicialice si no hay datos de configuracion"
+      so_that: "no hay llamadas innecesarias a servidores de analytics"
+    business_value: MEDIUM
+    risk_area:
+      - analytics-comscore
+    acceptance:
+      - COM-AC-003
+    notes: >
+      Solo se inicializa si ConfigMain.comscore no es null.

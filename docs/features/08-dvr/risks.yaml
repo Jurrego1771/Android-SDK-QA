@@ -1,0 +1,60 @@
+version: "1.0"
+module: dvr
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: DVR-RISK-001
+    severity: high
+    title: "Logica de offset del fictitious timeline es compleja"
+    description: >
+      La conversion entre tiempo ficticio (posicion 0 a windowDvr)
+      y tiempo real del segmento HLS es compleja. Bugs en esta logica
+      causan seek a posiciones incorrectas.
+    affected_files:
+      - "MediastreamPlayer.kt (offset handling)"
+    trigger: "Seek hacia atras en contenido DVR"
+    mitigation: >
+      Tests exhaustivos de seek a distintas posiciones del timeline.
+      Comparar posicion esperada vs real.
+    test_priority: MUST
+
+  - id: DVR-RISK-002
+    severity: high
+    title: "DVR + DAI/ads multiplica la complejidad"
+    description: >
+      El timeline DVR con ads DAI incluye tiempo de anuncios.
+      La conversion de offsets debe account for ad breaks.
+    affected_files:
+      - "MediastreamDAIController.kt"
+      - "MediastreamPlayer.kt"
+    trigger: "DVR habilitado con contenido que tiene ads DAI"
+    mitigation: >
+      Tests especificos de DVR con ads. Verificar timeline completo.
+    test_priority: MUST
+
+  - id: DVR-RISK-003
+    severity: medium
+    title: "windowDvr mayor que la historia disponible"
+    description: >
+      Si windowDvr=7200 pero el servidor solo tiene 3600 segundos
+      de historia, el timeline muestra solo lo disponible.
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+    trigger: "config.windowDvr excede la historia real del stream"
+    mitigation: >
+      El SDK deberia ajustar automaticamente al maximo disponible.
+    test_priority: SHOULD
+
+  - id: DVR-RISK-004
+    severity: medium
+    title: "Al llegar al inicio de la ventana no se puede seekear mas"
+    description: >
+      El usuario no puede ir mas alla del principio de la ventana DVR.
+      Si el usuario llega al inicio y no hay mas contenido, feedback?
+    affected_files:
+      - "DvrTimeBar.kt"
+    trigger: "Seek al inicio absoluto del DVR"
+    mitigation: >
+      Verificar que la UI indica cuando se alcanza el limite.
+    test_priority: COULD

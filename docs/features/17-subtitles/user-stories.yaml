@@ -1,0 +1,49 @@
+version: "1.0"
+module: subtitles
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: SUB-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ver subtitulos en mi idioma"
+      so_that: "puedo entender el contenido"
+    business_value: HIGH
+    risk_area:
+      - subtitles
+    related_features:
+      - video-vod
+    acceptance:
+      - SUB-AC-001
+    notes: >
+      WebVTT, SRT, ASS/SSA, CEA-608/708.
+
+  - id: SUB-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador en TV"
+      want: "cambiar idioma de subtitulos con el control remoto"
+      so_that: "no necesito pantalla tactil"
+    business_value: MEDIUM
+    risk_area:
+      - subtitles
+    related_features:
+      - android-tv
+    acceptance:
+      - SUB-AC-002
+    notes: >
+      TVSubtitleAudioDialog en lugar de TrackSelectionDialog.
+
+  - id: SUB-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "desactivar subtitulos"
+      so_that: "puedo volver al audio original"
+    business_value: MEDIUM
+    risk_area:
+      - subtitles
+    acceptance:
+      - SUB-AC-003

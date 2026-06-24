@@ -1,0 +1,34 @@
+version: "1.0"
+module: android-tv
+last_updated: "2026-06-23"
+
+internal:
+  - id: device-detection
+    reason: >
+      isAndroidTV(), isFireTV(), isSmartphoneOrTablet(),
+      getDeviceType(), getMaxSupportedResolution().
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (device detection methods)
+
+  - id: tv-layouts
+    reason: >
+      Layouts en layout-television/ para UI especifica de TV.
+    coupling: medium
+    files:
+      - layout-television/ (SDK resources)
+
+  - id: tv-dialogs
+    reason: >
+      TVSubtitleAudioDialog para seleccion de tracks en TV.
+    coupling: medium
+    files:
+      - TVSubtitleAudioDialog.kt (SDK internal)
+
+external:
+  - id: android-leanback
+    package: "androidx.leanback"
+    reason: >
+      El SDK declara en su Manifest que no requiere hardware tactil.
+    coupling: low
+    risk: low

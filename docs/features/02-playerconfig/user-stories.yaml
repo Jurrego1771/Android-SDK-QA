@@ -1,0 +1,139 @@
+version: "1.0"
+module: player-config
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: CONFIG-US-001
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere reproducir VOD basico"
+      want: "configurar el player con id, accountID y tipo VOD"
+      so_that: "puedo reproducir video bajo demanda"
+    business_value: HIGH
+    risk_area:
+      - player-config
+    related_features:
+      - video-vod
+      - initialization
+    acceptance:
+      - CONFIG-AC-001
+    notes: >
+      Configuracion minima requerida: id + accountID.
+
+  - id: CONFIG-US-002
+    persona: Integrator
+    narrative:
+      as: "integrador de contenido en vivo"
+      want: "configurar el player para stream en vivo con o sin DVR"
+      so_that: "el usuario pueda ver live y opcionalmente hacer seek hacia atras"
+    business_value: HIGH
+    risk_area:
+      - player-config
+    related_features:
+      - video-live
+      - dvr
+    acceptance:
+      - CONFIG-AC-002
+    notes: >
+      type=LIVE, dvr=true/false, windowDvr para definir la ventana.
+
+  - id: CONFIG-US-003
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere monetizar con anuncios"
+      want: "configurar el ad tag URL y atributos custom"
+      so_that: "el SDK reproduzca anuncios preroll/midroll/postroll"
+    business_value: HIGH
+    risk_area:
+      - player-config
+    related_features:
+      - ads-ima
+    acceptance:
+      - CONFIG-AC-003
+    notes: >
+      adURL, googleImaPpid, muteAds, adCustomAttributes.
+
+  - id: CONFIG-US-004
+    persona: Integrator
+    narrative:
+      as: "integrador de contenido protegido"
+      want: "configurar DRM Widevine con license URL y headers"
+      so_that: "el contenido protegido se reproduzca tras obtener la licencia"
+    business_value: HIGH
+    risk_area:
+      - player-config
+    related_features:
+      - drm
+    acceptance:
+      - CONFIG-AC-004
+    notes: >
+      Requiere videoFormat=DASH. DrmData(licenseUrl, headers).
+
+  - id: CONFIG-US-005
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere controlar la UI del player"
+      want: "mostrar/ocultar controles, fullscreen, brillo"
+      so_that: "la experiencia visual sea la adecuada para mi app"
+    business_value: MEDIUM
+    risk_area:
+      - player-config
+    related_features:
+      - ui-customization
+    acceptance:
+      - CONFIG-AC-005
+    notes: >
+      showControls, showFullScreenButton, showDismissButton, showBrightnessBar.
+
+  - id: CONFIG-US-006
+    persona: Integrator
+    narrative:
+      as: "integrador de una app multilingue"
+      want: "configurar el idioma de la UI del player"
+      so_that: "el player muestre textos en el idioma de mi app"
+    business_value: MEDIUM
+    risk_area:
+      - player-config
+    related_features:
+      - ui-customization
+    acceptance:
+      - CONFIG-AC-006
+    notes: >
+      language enum: ENGLISH (default), SPANISH, PORTUGUESE.
+
+  - id: CONFIG-US-007
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere recargar el player entre episodios"
+      want: "usar mergePersistentFrom para preservar volumen/brillo/flags de UI"
+      so_that: "mantengo coherencia visual sin reconstruir el player desde cero"
+    business_value: MEDIUM
+    risk_area:
+      - player-config
+    related_features:
+      - video-episode
+    acceptance:
+      - CONFIG-AC-007
+    notes: >
+      mergePersistentFrom preserva: volumen, brillo, isDebug, showControls,
+      showFullScreenButton, showBrightnessBar, forceBackPressedWhenFullScreen.
+      Toma del nuevo config: source, dvr, startAt, language, autoplay.
+
+  - id: CONFIG-US-008
+    persona: Integrator
+    narrative:
+      as: "integrador de audio en background"
+      want: "configurar la notificacion de media (titulo, descripcion, artwork)"
+      so_that: "el usuario vea la notificacion correcta con controles"
+    business_value: MEDIUM
+    risk_area:
+      - player-config
+    related_features:
+      - notifications
+      - audio
+    acceptance:
+      - CONFIG-AC-008
+    notes: >
+      notificationTitle, notificationDescription, notificationIconUrl,
+      notificationHasNext.

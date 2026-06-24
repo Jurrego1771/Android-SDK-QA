@@ -1,0 +1,28 @@
+version: "1.0"
+module: analytics-comscore
+last_updated: "2026-06-23"
+
+internal:
+  - id: comscore-manager
+    reason: >
+      ComscoreAnalyticsManager se instancia durante inicializacion
+      del player si ConfigMain.comscore esta presente.
+    coupling: high
+    files:
+      - ComscoreAnalyticsManager.kt (SDK internal)
+
+  - id: configmain-comscore
+    reason: >
+      ConfigMain.comscore contiene c2 (publisher ID), ns_site,
+      clasificacion de contenido, y parametros custom.
+    coupling: high
+    files:
+      - model/config/ConfigMain.kt
+
+external:
+  - id: comscore-sdk
+    package: "com.comscore:android-c2:6.12.0"
+    reason: >
+      SDK de Comscore Streaming Analytics.
+    coupling: high
+    risk: medium

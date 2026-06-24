@@ -13,6 +13,7 @@ import com.example.sdk_qa.scenarios.audio.AudioLiveScenarioActivity
 import com.example.sdk_qa.scenarios.audio.AudioVodScenarioActivity
 import com.example.sdk_qa.scenarios.audio.AudioWithServiceScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoAdsScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoCastEpisodeScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoCastLiveScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoCastVodScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoContentSwitcherActivity
@@ -137,6 +138,12 @@ class MainActivity : AppCompatActivity() {
             description = "Live con Chromecast (castAvailable) — sesión de cast en vivo",
             status = PENDING,
             activityClass = VideoCastLiveScenarioActivity::class.java
+        ),
+        ScenarioListItem.Scenario(
+            title = "Cast — Episode",
+            description = "Episode con Chromecast — la sesión de cast se mantiene al cambiar episodio",
+            status = PENDING,
+            activityClass = VideoCastEpisodeScenarioActivity::class.java
         ),
 
         // ---- AUDIO ----

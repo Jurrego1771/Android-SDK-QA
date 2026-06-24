@@ -1,0 +1,53 @@
+version: "1.0"
+module: upcoming-v10-pip-changes
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: V10PIP-RISK-001
+    severity: high
+    title: "BREAKING CHANGE: onFullscreen() cambia de firma en v10.0.0"
+    description: >
+      En v10.0.0, onFullscreen tendra un parametro enteredForPip: Boolean.
+      Todas las implementaciones de MediastreamPlayerCallback DEBEN actualizarse.
+      Si no se actualizan, tendran un error de compilacion en Kotlin.
+    affected_files:
+      - "MediastreamPlayerCallback.kt (interfaz)"
+      - "Todas las implementaciones de callback en el cliente"
+    trigger: "Actualizacion a SDK v10.0.0"
+    mitigation: >
+      Actualizar TODAS las implementaciones de onFullscreen().
+      El SDK provee default value para retrocompatibilidad.
+    test_priority: MUST
+
+  - id: V10PIP-RISK-002
+    severity: medium
+    title: "12 Activities de sample app requieren actualizacion"
+    description: >
+      Las siguientes Activities usan onFullscreen() sin parametro
+      y deberan actualizarse en v10.0.0:
+      VideoLiveActivity, VideoOnDemandActivity, VideoLocalLiveVodActivity,
+      LiveMediastreamUIActivity, LiveWithReloadButtonsActivity,
+      NextEpisodeActivity, AudioOnDemandAsServiceActivity,
+      AudioWithSyncServiceActivity, EpisodeAudioAsServiceActivity,
+      LiveAudioAsServiceActivity, y los services internos.
+    affected_files:
+      - "12 Activities + 2 Services"
+    trigger: "Actualizacion a SDK v10.0.0"
+    mitigation: >
+      Planear el update de todas las Activities.
+    test_priority: MUST
+
+  - id: V10PIP-RISK-003
+    severity: low
+    title: "pipReplaceActivityContentWithPlayer es nuevo"
+    description: >
+      Este nuevo campo de config es opcional. Si se necesita
+      player en contenedor pequeno con PiP, debe agregarse
+      explicitamente.
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+    trigger: "Necesidad de PiP con player pequeno en Activity"
+    mitigation: >
+      Solo afecta si se usa la nueva configuracion.
+    test_priority: COULD

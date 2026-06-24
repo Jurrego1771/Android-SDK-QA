@@ -1,0 +1,75 @@
+version: "1.0"
+module: initialization
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: INIT-US-001
+    persona: Integrator
+    narrative:
+      as: "integrador que embebe el player en una Activity"
+      want: "instanciar MediastreamPlayer con un id de contenido y recibir eventos de ciclo de vida"
+      so_that: "puedo reproducir contenido de la plataforma Mediastream en mi app"
+    business_value: HIGH
+    risk_area:
+      - initialization
+    related_features:
+      - player-config
+      - callbacks
+    acceptance:
+      - INIT-AC-001
+    notes: >
+      El SDK ofrece 3 constructores. El estandar exige Activity como segundo parametro.
+      El constructor con MiniPlayerConfig no exige Activity.
+
+  - id: INIT-US-002
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere reproducir contenido sin llamar a la API de Mediastream"
+      want: "pasar una URL directa de stream via config.src"
+      so_that: "puedo testar el player sin un content ID real"
+    business_value: MEDIUM
+    risk_area:
+      - initialization
+    related_features:
+      - player-config
+    acceptance:
+      - INIT-AC-002
+    notes: >
+      Si config.src esta definido, la llamada a getMediaInfo se omite.
+      El ID puede ser null en este caso.
+
+  - id: INIT-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "que el contenido empiece a reproducirse automaticamente al inicializar el player"
+      so_that: "no tengo que presionar play manualmente"
+    business_value: MEDIUM
+    risk_area:
+      - initialization
+    related_features:
+      - video-vod
+    acceptance:
+      - INIT-AC-003
+    notes: >
+      El default de autoplay es true. Depende de que la inicializacion
+      sea exitosa y el player llegue a estado ready.
+
+  - id: INIT-US-004
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere usar el player desde un Service en background"
+      want: "inicializar el player con el constructor de MiniPlayerConfig"
+      so_that: "puedo reproducir audio en background sin una Activity visible"
+    business_value: MEDIUM
+    risk_area:
+      - initialization
+    related_features:
+      - audio
+      - services
+    acceptance:
+      - INIT-AC-004
+    notes: >
+      Este constructor NO exige Activity. Requiere isFromSyncService=true
+      cuando se usa con MediastreamPlayerServiceWithSync.

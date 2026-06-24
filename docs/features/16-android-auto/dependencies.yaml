@@ -1,0 +1,44 @@
+version: "1.0"
+module: android-auto
+last_updated: "2026-06-23"
+
+internal:
+  - id: player-service-with-sync
+    reason: >
+      MediastreamPlayerServiceWithSync implementa MediaLibraryService.
+      Expone contenido para Android Auto.
+    coupling: high
+    files:
+      - MediastreamPlayerServiceWithSync.kt
+
+  - id: auto-api
+    reason: >
+      Endpoints: getAutoDataLive(), getAutoDataPodcast(),
+      getShowInfo(), getEpisodesInfo().
+    coupling: high
+    files:
+      - api/ApiService.kt
+
+  - id: auto-data-models
+    reason: >
+      AndroidAutoData, AutoTabDetailsResponse,
+      PodCastTabDetailsResponse, GetShowResponse, GetEpisodesResponse.
+    coupling: medium
+    files:
+      - model/auto/ (SDK models)
+
+external:
+  - id: media3-session
+    package: "androidx.media3:media3-session:1.5.0"
+    reason: >
+      MediaLibraryService para Android Auto.
+    coupling: high
+    risk: medium
+
+  - id: android-auto-sdk
+    package: "Android Auto SDK"
+    reason: >
+      Proyeccion de la app en la pantalla del vehiculo.
+      Requiere Desktop Head Unit para testing.
+    coupling: external
+    risk: medium

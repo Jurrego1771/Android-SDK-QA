@@ -1,0 +1,65 @@
+version: "1.0"
+module: ads-ima
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: ADS-RISK-001
+    severity: high
+    title: "IMA leak de Activity en content con ads"
+    description: >
+      Tres cadenas de retencion: AdTagLoader (ADS-DEF-001),
+      ActivityLifecycleCallback global (ADS-DEF-002) y en DVR
+      WebView WebMessageListenerHolder. Afecta apps con muchas
+      construcciones/destrucciones de player.
+    affected_files:
+      - "MediastreamPlayer.kt (IMA lambdas)"
+      - "IMA SDK"
+    trigger: "releasePlayer() en contenido con ads + ciclo de Activity"
+    mitigation: >
+      Para suites de test en TV <=3GB RAM usar detectLeaks=false.
+      Reportado a Mediastream.
+    test_priority: MUST
+
+  - id: ADS-RISK-002
+    severity: high
+    title: "Ad tag falla: contenido principal debe continuar"
+    description: >
+      Si el ad tag es invalido o no carga, el contenido principal
+      debe seguir reproduciendose. El cliente recibe onAdErrorEvent
+      pero el playback no se detiene.
+    affected_files:
+      - "MediastreamPlayer.kt (IMA error handling)"
+    trigger: "adURL invalido o red lenta"
+    mitigation: >
+      El SDK debe manejar el error de ad y continuar con el contenido.
+      Si no, es un bug.
+    test_priority: MUST
+
+  - id: ADS-RISK-003
+    severity: medium
+    title: "During ad playback, seek is disabled"
+    description: >
+      Durante la reproduccion de un anuncio, el seek esta
+      deshabilitado. Esto es comportamiento esperado de IMA.
+    affected_files:
+      - "IMA SDK"
+    trigger: "Usuario intenta hacer seek durante un ad"
+    mitigation: >
+      El SDK deshabilita seek durante ads. No es un bug.
+    test_priority: COULD
+
+  - id: ADS-RISK-004
+    severity: medium
+    title: "Contaminacion entre tests por IMA global"
+    description: >
+      El ActivityLifecycleCallback de IMA persiste entre tests.
+      Tests que dependen de callbacks de play pueden fallar tras
+      tests con ads.
+    affected_files:
+      - "IMA SDK"
+    trigger: "Tests secuenciales con y sin ads"
+    mitigation: >
+      Correr tests de ads en aislamiento. Usar @Ignore para tests
+      contaminados.
+    test_priority: SHOULD

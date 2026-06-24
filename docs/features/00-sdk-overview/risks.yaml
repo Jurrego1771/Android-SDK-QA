@@ -1,0 +1,9 @@
+version: "1.0"
+module: sdk-overview
+last_updated: "2026-06-23"
+
+risks: []
+
+notes: >
+  Este modulo es puramente informational. Los riesgos живут en los
+  modules de cada feature. Ver los archivos risks.yaml de cada feature.

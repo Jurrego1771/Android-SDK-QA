@@ -30,3 +30,21 @@ scripts/.env
 
 # Java heap dumps
 *.hprof
+
+# Node deps (scripts + MCP tools) — regenerables con npm install
+node_modules/
+**/node_modules/
+
+# AAR local del SDK (build normal usa Maven; el .aar es para builds locales)
+app/libs/
+
+# Artefactos de herramientas exploratorias y capturas sueltas
+midscene_run/
+.claude/scheduled_tasks.lock
+/screenshot_*.png
+/ss_*.png
+
+# IDE local
+.vscode/
+.idea/deploymentTargetSelector.xml
+.idea/misc.xml

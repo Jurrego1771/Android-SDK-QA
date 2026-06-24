@@ -1,0 +1,130 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-12"
+
+risks:
+
+  - id: CORE-RISK-001
+    severity: high
+    title: "Fugas de memoria de la Activity al liberar el player con ads/live/DVR"
+    description: >
+      Tres cadenas de retención conocidas impiden liberar la Activity: IMA AdTagLoader
+      (CORE-DEF-001), IMA ActivityLifecycleCallback global (CORE-DEF-004) y WebView
+      WebMessageListenerHolder en DVR (CORE-DEF-003). En apps con muchas
+      construcciones/destrucciones de player (feeds, episodios), el leak acumulado puede
+      llevar a OOM, especialmente en TV con RAM limitada.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "releasePlayer() en contenido con ads/live/DVR + ciclo de Activity"
+    mitigation: >
+      releasePlayer() limpia ExoPlayer y ads loader, pero no rompe las referencias
+      globales de IMA/WebView. Para suites de test en TV ≤3GB RAM usar
+      SdkTestRule(detectLeaks=false). Reportado a Mediastream.
+    test_priority: MUST
+
+  - id: CORE-RISK-002
+    severity: high
+    title: "Errores de carga silenciados — el usuario ve un player colgado sin feedback"
+    description: >
+      El SDK no propaga errores 404 de la API (CORE-DEF-002). Un id inválido deja al
+      player sin disparar onError/onEmbedErrors, por lo que el integrador no puede
+      mostrar un mensaje de error y el usuario queda ante una pantalla negra/spinner.
+    affected_files:
+      - "MediastreamPlayer.kt (manejo de getMediaInfo)"
+    trigger: "config.id inexistente o config.src inválido"
+    mitigation: >
+      No hay mitigación en el SDK. El integrador debe validar el contenido antes de
+      construir el player o implementar un timeout propio para detectar el cuelgue.
+    test_priority: MUST
+
+  - id: CORE-RISK-003
+    severity: high
+    title: "Callbacks emitidos en threads no-main provocan CalledFromWrongThreadException"
+    description: >
+      playerViewReady llega desde un thread de ExoPlayer (CORE-DEF-005). Si el
+      integrador asume que todos los callbacks llegan en el main thread y actualiza la
+      UI directamente, la app crashea. onReady/onPlay sí llegan en main, lo que hace el
+      problema más sutil (solo un callback se comporta distinto).
+    affected_files:
+      - "MediastreamPlayer.kt (emisión de playerViewReady)"
+    trigger: "UI updates directas dentro de playerViewReady"
+    mitigation: >
+      Documentar que playerViewReady NO está garantizado en main thread. El integrador
+      debe envolver con runOnUiThread. El SDK expone runOnUiThread(runnable) (:7915).
+    test_priority: SHOULD
+
+  - id: CORE-RISK-004
+    severity: medium
+    title: "Default de idioma del player (ENGLISH) difiere de las expectativas LATAM"
+    description: >
+      MediastreamPlayerConfig.language tiene default Language.ENGLISH
+      (MediastreamPlayerConfig.kt:184), a diferencia del player web cuyo default era
+      español. Un integrador LATAM que no setee language explícitamente obtendrá una UI
+      en inglés, inconsistente con su audiencia.
+    affected_files:
+      - "MediastreamPlayerConfig.kt:184"
+    trigger: "Construcción sin setear config.language"
+    mitigation: >
+      Los tests de idioma no deben asumir español por defecto. Documentar el default
+      ENGLISH en la guía de integración.
+    test_priority: SHOULD
+
+  - id: CORE-RISK-005
+    severity: medium
+    title: "mergePersistentFrom puede arrastrar estado UI no deseado en recargas"
+    description: >
+      En reloadPlayer, mergePersistentFrom mantiene del config previo flags como
+      isDebug, showControls, showFullScreenButton, showBrightnessBar,
+      forceBackPressedWhenFullScreen, etc. (MediastreamPlayerConfig.kt:451-481). Un
+      integrador que cambie estos flags en el nuevo config esperando que apliquen se
+      encontrará con que NO aplican (excepto language/dvr/startAt/volume/autoplay).
+    affected_files:
+      - "MediastreamPlayerConfig.kt:451-481"
+    trigger: "reloadPlayer con un config que cambia un flag de UI persistente"
+    mitigation: >
+      Documentar exactamente qué campos son persistentes y cuáles toma del nuevo config
+      (BR-CORE-009). Para cambios totales, reconstruir el player en lugar de recargar.
+    test_priority: SHOULD
+
+  - id: CORE-RISK-006
+    severity: medium
+    title: "msPlayer es propiedad pública mutable — acceso directo frágil"
+    description: >
+      var msPlayer: Player? = null es público (MediastreamPlayer.kt:210). Un integrador
+      puede reasignarlo o manipular el Player de media3 directamente, saltándose la
+      lógica de estado del SDK (DVR, ads, analytics). getCurrentMsPlayer() es el acceso
+      recomendado (devuelve el preroll SSAI cuando aplica), pero nada impide el acceso
+      crudo a msPlayer.
+    affected_files:
+      - "MediastreamPlayer.kt:210"
+    trigger: "Integrador accede/reasigna msPlayer en lugar de usar la API del SDK"
+    mitigation: >
+      Preferir getCurrentMsPlayer() y los métodos del SDK. No usar msPlayer.seekTo()
+      directo para DVR (bypasea la lógica del SDK — ver memoria DVR).
+    test_priority: COULD
+
+  - id: CORE-RISK-007
+    severity: low
+    title: "getVersion() hardcodeado puede reportar versión incorrecta"
+    description: >
+      getVersion() retorna el literal '10.0.8-alpha01' en el binario QA (CORE-DEF-006). Lógica del integrador
+      que dependa de la versión reportada (feature gating, telemetría) puede actuar
+      sobre un valor obsoleto si Mediastream no actualiza el literal en cada release.
+    affected_files:
+      - "MediastreamPlayer.kt:7799"
+    trigger: "Bump de versión del SDK sin actualizar el literal"
+    mitigation: "No usar getVersion() para lógica crítica. Tripwire test (GAP-CORE-002)."
+    test_priority: COULD
+
+  - id: CORE-RISK-008
+    severity: low
+    title: "changeSpeed no valida el rango de la velocidad"
+    description: >
+      changeSpeed(playbackSpeed: Float) delega en msPlayer.setPlaybackSpeed sin validar
+      (MediastreamPlayer.kt:8238-8240). Valores extremos o no positivos pueden producir
+      comportamiento indefinido del decoder.
+    affected_files:
+      - "MediastreamPlayer.kt:8238"
+    trigger: "changeSpeed con un valor <=0 o muy alto"
+    mitigation: "El integrador debe acotar el valor antes de llamar."
+    test_priority: COULD

@@ -1,0 +1,68 @@
+version: "1.0"
+module: audio
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: AUD-US-001
+    persona: Viewer
+    narrative:
+      as: "oyente de radio por internet"
+      want: "escuchar un stream de audio en vivo"
+      so_that: "puedo escuchar radio sin video"
+    business_value: HIGH
+    risk_area:
+      - audio
+    related_features:
+      - initialization
+      - services
+    acceptance:
+      - AUD-AC-001
+    notes: >
+      playerType=PlayerType.AUDIO, type=LIVE, videoFormat=ICECAST o DEFAULT.
+
+  - id: AUD-US-002
+    persona: Viewer
+    narrative:
+      as: "oyente de podcast"
+      want: "escuchar un archivo de audio MP3"
+      so_that: "puedo consumir contenido de audio a mi ritmo"
+    business_value: HIGH
+    risk_area:
+      - audio
+    related_features:
+      - video-vod
+    acceptance:
+      - AUD-AC-002
+    notes: >
+      type=VOD, videoFormat=MP3 o M4A.
+
+  - id: AUD-US-003
+    persona: Viewer
+    narrative:
+      as: "oyente"
+      want: "ver el titulo de la cancion actual en un stream live"
+      so_that: "se que cancion esta sonando"
+    business_value: MEDIUM
+    risk_area:
+      - audio
+    acceptance:
+      - AUD-AC-003
+    notes: >
+      onLiveAudioCurrentSongChanged via SSE.
+
+  - id: AUD-US-004
+    persona: Viewer
+    narrative:
+      as: "oyente que quiere controlar desde la notificacion"
+      want: "pausar y resumir desde los controles de notificacion"
+      so_that: "no necesito abrir la app para controlar el audio"
+    business_value: MEDIUM
+    risk_area:
+      - audio
+    related_features:
+      - notifications
+    acceptance:
+      - AUD-AC-004
+    notes: >
+      Requiere ForegroundService con MediaSession.

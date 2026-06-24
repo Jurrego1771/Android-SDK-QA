@@ -1,0 +1,32 @@
+version: "1.0"
+module: video-vod
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: VOD-RISK-001
+    severity: medium
+    title: "Getters de ExoPlayer retornan 0 antes de READY"
+    description: >
+      getDuration, getCurrentPosition, getBitrate, getBandwidth retorna 0
+      si se llaman antes de que el player alcance estado READY.
+      No lanzan excepcion pero dan valores incorrectos.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Llamar getters inmediatamente tras construir (antes de onReady)"
+    mitigation: >
+      Solo usar getters tras recibir onReady.
+    test_priority: SHOULD
+
+  - id: VOD-RISK-002
+    severity: low
+    title: "msPlayer puede ser null"
+    description: >
+      La instancia ExoPlayer (msPlayer) puede ser null si el player
+      no se inicializo correctamente o si fue released.
+    affected_files:
+      - "MediastreamPlayer.kt:210"
+    trigger: "Acceso a msPlayer antes de inicializacion completa"
+    mitigation: >
+      Siempre verificar null: player.msPlayer?.let { exo -> ... }
+    test_priority: COULD

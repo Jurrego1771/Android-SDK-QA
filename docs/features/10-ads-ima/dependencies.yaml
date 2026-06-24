@@ -1,0 +1,44 @@
+version: "1.0"
+module: ads-ima
+last_updated: "2026-06-23"
+
+internal:
+  - id: ad-configuration
+    reason: >
+      config.adURL, googleImaPpid, muteAds, adCustomAttributes
+      se usan para configurar IMA.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: ima-loader
+    reason: >
+      ImaAdsLoader gestionado por el player. Se crea en
+      inicializacion y se release en releasePlayer().
+    coupling: high
+    files:
+      - MediastreamPlayer.kt (IMA handling)
+
+  - id: ad-event-handler
+    reason: >
+      onAdEvents y onAdErrorEvent se dispatchan al cliente.
+    coupling: high
+    files:
+      - MediastreamPlayerCallback.kt
+
+  - id: preroll-player
+    reason: >
+      prerollPlayerForSsai es el player secundario usado para
+      prerolls en SSAI/DAl.
+    coupling: medium
+    files:
+      - MediastreamPlayer.kt
+
+external:
+  - id: google-ima
+    package: "com.google.ads.interactivemedia.v3"
+    reason: >
+      IMA SDK para VAST/VMAP/DAI. El SDK usa Media3 IMA extension.
+      Fuente de 3 leaks/contaminaciones (ver core-player defects).
+    coupling: high
+    risk: high

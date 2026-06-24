@@ -1,0 +1,193 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-12"
+
+acceptance_criteria:
+
+  # ── MUST ────────────────────────────────────────────────────────────────────
+
+  - id: CORE-AC-001
+    priority: MUST
+    scenario: "Construcción estándar con Activity inicializa el player y dispara onReady"
+    given: "Una Activity, un FrameLayout container y un MediastreamPlayerConfig con id+accountID válidos"
+    when: "Se instancia MediastreamPlayer(context, activity, playerContainer, config, container)"
+    then:
+      - "no se lanza excepción"
+      - "el callback onReady() llega en el main thread"
+      - "con autoplay=true (default) onPlay() llega después de onReady()"
+
+  - id: CORE-AC-002
+    priority: MUST
+    scenario: "Constructor estándar rechaza un Context que no es Activity"
+    given: "Un Context que no es instancia de Activity"
+    when: "Se invoca el constructor (context, activity, playerContainer, config, container)"
+    then:
+      - "se lanza IllegalArgumentException con mensaje 'Context must be an instance of Activity'"
+
+  - id: CORE-AC-003
+    priority: MUST
+    scenario: "play() y pause() controlan la reproducción"
+    given: "Un player en estado ready reproduciendo VOD"
+    when: "Se llama pause() y luego play()"
+    then:
+      - "tras pause() isPlaying() retorna false y llega onPause()"
+      - "tras play() isPlaying() retorna true y llega onPlay()"
+
+  - id: CORE-AC-004
+    priority: MUST
+    scenario: "seekTo() posiciona en el ms absoluto indicado"
+    given: "Un VOD reproduciendo con duración conocida"
+    when: "Se llama seekTo(position) con position en ms dentro del rango"
+    then:
+      - "getCurrentPosition() retorna un valor cercano a position"
+      - "la reproducción continúa desde esa posición"
+
+  - id: CORE-AC-005
+    priority: MUST
+    scenario: "releasePlayer() libera recursos sin fugar la Activity"
+    given: "Un player activo dentro de una Activity"
+    when: "Se llama releasePlayer() y la Activity se destruye"
+    then:
+      - "LeakCanary no detecta retención de la Activity (caso VOD sin ads)"
+      - "no se lanza excepción"
+
+  - id: CORE-AC-006
+    priority: MUST
+    scenario: "addPlayerCallback no duplica callbacks ya registrados"
+    given: "Un player y una instancia de MediastreamPlayerCallback"
+    when: "Se llama addPlayerCallback(cb) dos veces con la misma instancia"
+    then:
+      - "getMediastreamCallbacks() contiene la instancia una sola vez"
+
+  - id: CORE-AC-007
+    priority: MUST
+    scenario: "Errores pendientes se entregan al registrar el callback"
+    given: "El player acumuló un error antes de que el integrador se suscriba"
+    when: "Se llama addPlayerCallback(cb) después de que ocurrió el error"
+    then:
+      - "cb.onError() (o onEmbedErrors) se invoca con el error pendiente"
+      - "el error pendiente se limpia tras la entrega"
+
+  - id: CORE-AC-008
+    priority: MUST
+    scenario: "El idioma de la UI se aplica desde config.language en construcción"
+    given: "Un config con language=Language.SPANISH"
+    when: "Se construye el player"
+    then:
+      - "los strings de UI del player se muestran en español"
+      - "LocaleHelper.setLocale se aplica con el idioma del config"
+
+  - id: CORE-AC-009
+    priority: MUST
+    scenario: "reloadPlayer aplica una nueva fuente preservando flags de UI"
+    given: "Un player con showControls/isDebug ya configurados, reproduciendo contenido A"
+    when: "Se llama reloadPlayer(configB) con un nuevo id"
+    then:
+      - "se reproduce el contenido B"
+      - "showDismissButton, isDebug, showControls, showFullScreenButton se mantienen del config previo"
+      - "onPlayerReload() llega"
+
+  - id: CORE-AC-010
+    priority: MUST
+    scenario: "getVersion() retorna la versión del SDK"
+    given: "Cualquier instancia de MediastreamPlayer"
+    when: "Se llama getVersion()"
+    then:
+      - "retorna el string '10.0.8-alpha01' (literal hardcodeado del binario QA)"
+
+  # ── SHOULD ──────────────────────────────────────────────────────────────────
+
+  - id: CORE-AC-011
+    priority: SHOULD
+    scenario: "reloadPlayer(newConfig) cambia el idioma de la UI"
+    given: "Un player inicializado con language=ENGLISH"
+    when: "Se llama reloadPlayer(config) con config.language=SPANISH"
+    then:
+      - "los strings de UI cambian a español tras la recarga"
+
+  - id: CORE-AC-012
+    priority: SHOULD
+    scenario: "changeSpeed cambia la velocidad de reproducción"
+    given: "Un VOD reproduciendo a velocidad 1.0x"
+    when: "Se llama changeSpeed(2.0f)"
+    then:
+      - "la reproducción avanza al doble de velocidad"
+      - "no se lanza excepción"
+
+  - id: CORE-AC-013
+    priority: SHOULD
+    scenario: "getCurrentMsPlayer expone el Player de media3 para acceso avanzado"
+    given: "Un player inicializado sin preroll SSAI activo"
+    when: "Se llama getCurrentMsPlayer()"
+    then:
+      - "retorna la instancia de Player (media3) no nula tras onReady"
+
+  - id: CORE-AC-014
+    priority: SHOULD
+    scenario: "getContentDuration retorna 0 cuando el player no está READY"
+    given: "Un player recién construido que aún no alcanzó STATE_READY"
+    when: "Se llama getContentDuration()"
+    then:
+      - "retorna 0L"
+
+  - id: CORE-AC-015
+    priority: SHOULD
+    scenario: "Getters numéricos no lanzan excepción ante estado no inicializado"
+    given: "Un player sin msPlayer inicializado"
+    when: "Se llaman getHeight(), getBitrate(), getBandwidth(), getCurrentPosition(), getDuration()"
+    then:
+      - "todos retornan 0 / 0L sin lanzar excepción"
+
+  - id: CORE-AC-016
+    priority: SHOULD
+    scenario: "getDeviceType clasifica correctamente el dispositivo"
+    given: "Ejecución en un dispositivo concreto"
+    when: "Se llama getDeviceType(context)"
+    then:
+      - "retorna 'firetv' en Fire TV, 'androidtv' en Android TV, 'android' en móvil/tablet"
+
+  - id: CORE-AC-017
+    priority: SHOULD
+    scenario: "enterFullscreen / exitFullscreen abren y cierran el diálogo fullscreen"
+    given: "Un player de video embebido en un contenedor pequeño"
+    when: "Se llama enterFullscreen() y luego exitFullscreen()"
+    then:
+      - "al entrar llega onFullscreen(enteredForPip=false)"
+      - "al salir llega offFullscreen()"
+
+  - id: CORE-AC-018
+    priority: SHOULD
+    scenario: "getAdQueryString auto-inyecta ppid cuando no está en la URL"
+    given: "Un config con customerID set y adURL sin ppid"
+    when: "Se llama getAdQueryString('android', baseUrl)"
+    then:
+      - "el resultado incluye custom.ppid=<customerID>"
+      - "incluye mobile=true y platformType=android"
+
+  # ── COULD ───────────────────────────────────────────────────────────────────
+
+  - id: CORE-AC-019
+    priority: COULD
+    scenario: "startPiP entra en Picture-in-Picture en Android O+"
+    given: "Un player de video con config.pip=ENABLE en Android 8.0+"
+    when: "Se llama startPiP()"
+    then:
+      - "la Activity entra en modo PiP mostrando el video"
+      - "onPictureInPictureModeChanged(true) se propaga"
+
+  - id: CORE-AC-020
+    priority: COULD
+    scenario: "Constructor con MediastreamMiniPlayerConfig soporta sync service"
+    given: "Un MediastreamMiniPlayerConfig y isFromSyncService=true"
+    when: "Se construye el player con ese constructor"
+    then:
+      - "no se exige que context sea Activity"
+      - "se inicializa el ExoPlayer para el MediaLibrarySession del servicio"
+
+  - id: CORE-AC-021
+    priority: COULD
+    scenario: "isVodCase refleja el modo de ventana DVR fija"
+    given: "Un config con dvrStart y dvrEnd definidos"
+    when: "Se llama isVodCase()"
+    then:
+      - "retorna true (la ventana DVR fija se trata como un VOD)"

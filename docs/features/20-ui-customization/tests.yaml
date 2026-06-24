@@ -1,0 +1,47 @@
+version: "1.0"
+module: ui-customization
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-UI-001
+    priority: MUST
+    title: "showControls=false oculta todos los controles"
+    suggested_spec: "integration/UIControlsTest.kt"
+
+  - id: GAP-UI-002
+    priority: MUST
+    title: "showFullScreenButton=false oculta solo el boton de fullscreen"
+    suggested_spec: "integration/UIControlsTest.kt"
+
+  - id: GAP-UI-003
+    priority: MUST
+    title: "showDismissButton=true muestra el boton y dispara onDismissButton()"
+    suggested_spec: "integration/UIControlsTest.kt"
+
+  - id: GAP-UI-004
+    priority: MUST
+    title: "language=SPANISH muestra textos en espanol"
+    suggested_spec: "integration/UILanguageTest.kt"
+
+  - id: GAP-UI-005
+    priority: MUST
+    title: "language=PORTUGUESE muestra textos en portugues"
+    suggested_spec: "integration/UILanguageTest.kt"
+
+  - id: GAP-UI-006
+    priority: SHOULD
+    title: "customPlayerView no null: el SDK usa el view provisto"
+    suggested_spec: "integration/UICustomViewTest.kt"
+
+  - id: GAP-UI-007
+    priority: SHOULD
+    title: "Gesto de pinch aplica zoom correctamente"
+    suggested_spec: "integration/UIGestureTest.kt"
+
+  - id: GAP-UI-008
+    priority: SHOULD
+    title: "Brillo y volumen se controlan con swipe vertical"
+    suggested_spec: "integration/UIGestureTest.kt"

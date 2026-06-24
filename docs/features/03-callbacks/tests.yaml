@@ -1,0 +1,87 @@
+version: "1.0"
+module: callbacks
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-CB-001
+    priority: MUST
+    title: "playerViewReady se dispara antes que onReady"
+    suggested_spec: "integration/CallbackOrderTest.kt"
+    notes: >
+      Verificar el orden: playerViewReady -> onReady -> onPlay (con autoplay).
+
+  - id: GAP-CB-002
+    priority: MUST
+    title: "onReady se dispara antes que onPlay cuando autoplay=true"
+    suggested_spec: "integration/CallbackOrderTest.kt"
+
+  - id: GAP-CB-003
+    priority: MUST
+    title: "playerViewReady NO llega en main thread"
+    suggested_spec: "integration/CallbackThreadTest.kt"
+    notes: >
+      Verificar que playerViewReady llega desde un thread interno.
+      Esto es un bug conocido (CB-DEF-001), el test documenta el comportamiento real.
+
+  - id: GAP-CB-004
+    priority: MUST
+    title: "onPlay se dispara al reanudar despues de pausa"
+    suggested_spec: "integration/PlaybackControlTest.kt"
+
+  - id: GAP-CB-005
+    priority: MUST
+    title: "onPause se dispara al pausar"
+    suggested_spec: "integration/PlaybackControlTest.kt"
+
+  - id: GAP-CB-006
+    priority: MUST
+    title: "onBuffering se dispara en rebuffering"
+    suggested_spec: "integration/PlaybackMetricsTest.kt"
+
+  - id: GAP-CB-007
+    priority: MUST
+    title: "onEnd se dispara al terminar el contenido (loop=false)"
+    suggested_spec: "integration/PlaybackControlTest.kt"
+
+  - id: GAP-CB-008
+    priority: MUST
+    title: "onError se dispara con error critico"
+    suggested_spec: "integration/ErrorHandlingTest.kt"
+
+  - id: GAP-CB-009
+    priority: MUST
+    title: "id inexistente NO dispara onError (bug CB-DEF-002)"
+    suggested_spec: "integration/ErrorHandlingTest.kt"
+    notes: >
+      Este test documenta el bug: el SDK silencia 404.
+      Estado: expected-to-fail hasta que Mediastream lo corrija.
+
+  - id: GAP-CB-010
+    priority: SHOULD
+    title: "onAdEvents(STARTED) se dispara al iniciar preroll"
+    suggested_spec: "integration/AdsTest.kt"
+
+  - id: GAP-CB-011
+    priority: SHOULD
+    title: "onAdEvents(COMPLETED) se dispara al terminar el ad"
+    suggested_spec: "integration/AdsTest.kt"
+
+  - id: GAP-CB-012
+    priority: SHOULD
+    title: "onAdErrorEvent se dispara cuando el ad tag falla"
+    suggested_spec: "integration/AdsTest.kt"
+    notes: >
+      Contenido principal debe continuar tras error de ad.
+
+  - id: GAP-CB-013
+    priority: SHOULD
+    title: "Ciclo de Cast: Starting -> Started -> Ending -> Ended"
+    suggested_spec: "integration/ChromecastTest.kt"
+
+  - id: GAP-CB-014
+    priority: SHOULD
+    title: "Dos callbacks registrados ambos reciben el mismo evento"
+    suggested_spec: "integration/MultipleCallbacksTest.kt"

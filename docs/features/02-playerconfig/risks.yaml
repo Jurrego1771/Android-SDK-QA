@@ -1,0 +1,65 @@
+version: "1.0"
+module: player-config
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: CONFIG-RISK-001
+    severity: high
+    title: "mergePersistentFrom arrastra flags de UI no deseados"
+    description: >
+      En reloadPlayer, mergePersistentFrom mantiene del config previo:
+      isDebug, showControls, showFullScreenButton, showBrightnessBar,
+      forceBackPressedWhenFullScreen. Un integrador que cambie estos flags
+      en el nuevo config esperando que apliquen se encontrara que NO aplican.
+      Solo language, dvr, startAt, volume y autoplay se toman del nuevo config.
+    affected_files:
+      - "MediastreamPlayerConfig.kt:451-481"
+    trigger: "reloadPlayer con un config que cambia un flag de UI persistente"
+    mitigation: >
+      Documentar exactamente que campos son persistentes y cuales toma
+      del nuevo config. Para cambios totales, reconstruir el player.
+    test_priority: MUST
+
+  - id: CONFIG-RISK-002
+    severity: medium
+    title: "Default de idioma es ENGLISH, no el del dispositivo"
+    description: >
+      MediastreamPlayerConfig.language tiene default Language.ENGLISH,
+      a diferencia del player web cuyo default era español.
+      Un integrador LATAM que no setee language obtendra UI en ingles.
+    affected_files:
+      - "MediastreamPlayerConfig.kt (Language enum)"
+    trigger: "Construccion sin setear config.language en apps LATAM"
+    mitigation: >
+      Documentar el default ENGLISH en la guia de integracion.
+    test_priority: SHOULD
+
+  - id: CONFIG-RISK-003
+    severity: medium
+    title: "videoFormat=DASH es obligatorio para DRM pero no se valida"
+    description: >
+      Si drmData esta seteado pero videoFormat no es DASH, el SDK
+      selecciona HLS por defecto y Widevine no se aplica.
+      No hay warning ni error en tiempo de construccion.
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+      - "MediastreamPlayer.kt"
+    trigger: "drmData set + videoFormat no=DASH"
+    mitigation: >
+      El integrador debe asegurar videoFormat=DASH cuando usa DRM.
+      No hay validacion automatica.
+    test_priority: SHOULD
+
+  - id: CONFIG-RISK-004
+    severity: low
+    title: "copy() hace copia profunda: campos mutables pueden compartir referencia"
+    description: >
+      copy() de data class en Kotlin es profunda para inmutables pero
+      no para objetos mutables como ArrayList (adCustomAttributes).
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+    trigger: "copy() con adCustomAttributes no nulos"
+    mitigation: >
+      Revisar que copy() efectivamente deep-copy ArrayList de atributos.
+    test_priority: COULD

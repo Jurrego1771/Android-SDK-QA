@@ -1,0 +1,47 @@
+version: "1.0"
+module: video-live
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-LIVE-001
+    priority: MUST
+    title: "Live carga y reproduce correctamente"
+    suggested_spec: "integration/VideoLiveTest.kt"
+
+  - id: GAP-LIVE-002
+    priority: MUST
+    title: "No hay seekbar visible (sin DVR)"
+    suggested_spec: "integration/VideoLiveTest.kt"
+
+  - id: GAP-LIVE-003
+    priority: MUST
+    title: "onEnd NO se dispara durante reproduccion normal"
+    suggested_spec: "integration/VideoLiveTest.kt"
+
+  - id: GAP-LIVE-004
+    priority: MUST
+    title: "onBuffering se dispara cuando el servidor no emite"
+    suggested_spec: "integration/VideoLiveTest.kt"
+
+  - id: GAP-LIVE-005
+    priority: MUST
+    title: "Reconexion automatica tras perdida temporal de red"
+    suggested_spec: "integration/VideoLiveResilienceTest.kt"
+
+  - id: GAP-LIVE-006
+    priority: MUST
+    title: "onError tras fallo de reconexion prolongado"
+    suggested_spec: "integration/VideoLiveResilienceTest.kt"
+
+  - id: GAP-LIVE-007
+    priority: SHOULD
+    title: "Live con stream caido desde el inicio -> error apropiado"
+    suggested_spec: "integration/VideoLiveTest.kt"
+
+  - id: GAP-LIVE-008
+    priority: SHOULD
+    title: "Cambio de calidad adaptativo (ABR) no interrumpe reproduccion"
+    suggested_spec: "integration/VideoLiveTest.kt"

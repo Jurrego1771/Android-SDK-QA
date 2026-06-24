@@ -1,0 +1,61 @@
+version: "1.0"
+module: initialization
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-INIT-001
+    priority: MUST
+    title: "Inicializacion exitosa con id valido"
+    suggested_spec: "integration/PlayerInitializationTest.kt"
+    notes: >
+      Construir player con id y accountID validos. Verificar que playerViewReady
+      y onReady se disparan en secuencia correcta.
+
+  - id: GAP-INIT-002
+    priority: MUST
+    title: "Inicializacion exitosa con src directo (sin API)"
+    suggested_spec: "integration/PlayerInitializationTest.kt"
+    notes: >
+      config.src definido, id=null. Verificar reproduccion sin llamada a getMediaInfo.
+
+  - id: GAP-INIT-003
+    priority: MUST
+    title: "Error cuando API devuelve 404"
+    suggested_spec: "integration/PlayerInitializationTest.kt"
+    notes: >
+      ID inexistente. Verificar que onEmbedErrors se dispara. Posible bug:
+      SDK silencia errores 404 (ver CORE-DEF-002 en qa-knowledge/core-player).
+
+  - id: GAP-INIT-004
+    priority: MUST
+    title: "Error sin conectividad"
+    suggested_spec: "integration/PlayerInitializationTest.kt"
+    notes: >
+      Simular sin conexion. Verificar que el SDK reporta error apropiadamente.
+      El SDK puede quedarse colgado sin callback de error.
+
+  - id: GAP-INIT-005
+    priority: MUST
+    title: "playerViewReady se dispara antes que onReady"
+    suggested_spec: "integration/CallbackOrderTest.kt"
+    notes: >
+      Verificar el orden de callbacks. playerViewReady siempre va primero.
+
+  - id: GAP-INIT-006
+    priority: SHOULD
+    title: "Cada constructor (3 variantes) inicializa correctamente"
+    suggested_spec: "integration/PlayerConstructorTest.kt"
+    notes: >
+      Constructor estandar (Activity), con MiniPlayerConfig (Service),
+      con FragmentManager. Verificar que los 3 funcionan.
+
+  - id: GAP-INIT-007
+    priority: SHOULD
+    title: "Rotacion durante inicializacion: player se reinicializa"
+    suggested_spec: "integration/LifecycleTest.kt"
+    notes: >
+      Activity recreate durante init. Verificar que el player sobrevive
+      y los callbacks llegan en la nueva Activity.

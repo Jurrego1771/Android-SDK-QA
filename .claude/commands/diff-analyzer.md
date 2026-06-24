@@ -116,7 +116,9 @@ Escribe el resultado en `ai-output/analysis.md` con esta estructura EXACTA:
 
 ## Reglas
 
-1. Si `ai-output/diff.txt` no existe, instrúyele al usuario que ejecute `./scripts/generate-diff.sh` primero
+1. Si `ai-output/diff.txt` no existe, instrúyele al usuario que genere el diff primero:
+   - **Para un PR específico (recomendado):** `node scripts/fetch-pr-diff.js <PR_NUMBER>` — usa la GitHub API, más rápido, no requiere sync de ramas
+   - **Para diff local entre ramas:** `./scripts/generate-diff.sh [base] [compare]`
 2. NO inventar métodos o propiedades del SDK — solo los que están en sdk-api-contract.md
 3. Si el cambio toca un método que NO está en sdk-api-contract.md, márcalo como `⚠️ MÉTODO NO DOCUMENTADO`
 4. Sé específico: no digas "puede afectar callbacks" — di cuál callback y por qué

@@ -1,0 +1,65 @@
+version: "1.0"
+module: ui-customization
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: UI-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ocultar los controles de reproduccion"
+      so_that: "puedo ver video sin interfaz"
+    business_value: MEDIUM
+    risk_area:
+      - ui-customization
+    related_features:
+      - video-vod
+    acceptance:
+      - UI-AC-001
+    notes: >
+      config.showControls = false.
+
+  - id: UI-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "controlar el brillo con swipe"
+      so_that: "puedo ajustar el brillo sin salir del video"
+    business_value: LOW
+    risk_area:
+      - ui-customization
+    acceptance:
+      - UI-AC-002
+    notes: >
+      config.showBrightnessBar = true (swipe izquierda).
+
+  - id: UI-US-003
+    persona: Integrator
+    narrative:
+      as: "integrador"
+      want: "inyectar un PlayerView completamente custom"
+      so_that: "el player se ve exactamente como mi diseno"
+    business_value: MEDIUM
+    risk_area:
+      - ui-customization
+    acceptance:
+      - UI-AC-003
+    notes: >
+      config.customPlayerView = myPlayerView.
+
+  - id: UI-US-004
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ver subtitulos en su idioma"
+      so_that: "puedo entender el contenido"
+    business_value: HIGH
+    risk_area:
+      - ui-customization
+    related_features:
+      - subtitles
+    acceptance:
+      - UI-AC-004
+    notes: >
+      config.language: ENGLISH, SPANISH, PORTUGUESE.

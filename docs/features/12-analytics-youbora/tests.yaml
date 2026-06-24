@@ -1,0 +1,31 @@
+version: "1.0"
+module: analytics-youbora
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-YB-001
+    priority: MUST
+    title: "Youbora adapter se inicializa cuando la API devuelve datos de Youbora"
+    suggested_spec: "integration/YouboraTest.kt"
+    notes: >
+      Mockear el plugin de Youbora. Verificar que se instancia.
+
+  - id: GAP-YB-002
+    priority: MUST
+    title: "NO se inicializa cuando la API no devuelve datos"
+    suggested_spec: "integration/YouboraTest.kt"
+
+  - id: GAP-YB-003
+    priority: SHOULD
+    title: "Metadatos del contenido se pasan correctamente al plugin"
+    suggested_spec: "integration/YouboraEventsTest.kt"
+    notes: >
+      Titulo, duracion, tipo, etc.
+
+  - id: GAP-YB-004
+    priority: SHOULD
+    title: "appName y appVersion de config se reportan a Youbora"
+    suggested_spec: "integration/YouboraConfigTest.kt"

@@ -1,0 +1,32 @@
+version: "1.0"
+module: download
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: DL-RISK-001
+    severity: high
+    title: "Feature marcada como experimental/demo"
+    description: >
+      El documento de feature indica que es experimental/demo.
+      No hay garantia de soporte en produccion.
+    affected_files:
+      - "DownloadTracker.kt, DemoDownloadService.kt"
+    trigger: "Usar download en produccion"
+    mitigation: >
+      Verificar con el equipo Mediastream si esta feature es
+      soportada en produccion antes de depender de ella.
+    test_priority: MUST
+
+  - id: DL-RISK-002
+    severity: medium
+    title: "Descarga cancelada puede dejar archivos corruptos"
+    description: >
+      Si una descarga se cancela a mitad, archivos temporales
+      podrian quedarse en el disco.
+    affected_files:
+      - "DemoDownloadService.kt"
+    trigger: "Cancelar descarga durante el proceso"
+    mitigation: >
+      El DownloadManager deberia limpiar archivos incompletos.
+    test_priority: SHOULD

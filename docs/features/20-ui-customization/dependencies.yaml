@@ -1,0 +1,41 @@
+version: "1.0"
+module: ui-customization
+last_updated: "2026-06-23"
+
+internal:
+  - id: ui-config
+    reason: >
+      showControls, showFullScreenButton, showDismissButton,
+      showBrightnessBar, language, customPlayerView.
+    coupling: high
+    files:
+      - MediastreamPlayerConfig.kt
+
+  - id: player-customizer
+    reason: >
+      MediastreamPlayerCustomizer aplica estilos por tipo de player.
+    coupling: medium
+    files:
+      - MediastreamPlayerCustomizer.kt (SDK internal)
+
+  - id: zoom-gesture
+    reason: >
+      PlayerZoomGestureListener para pinch-to-zoom.
+    coupling: low
+    files:
+      - PlayerZoomGestureListener.kt (SDK internal)
+
+  - id: locale-helper
+    reason: >
+      LocaleHelper.setLocale() para aplicar el idioma de la UI.
+    coupling: medium
+    files:
+      - utils/LocaleHelper.kt (SDK internal)
+
+external:
+  - id: media3-ui
+    package: "androidx.media3:media3-ui:1.5.0"
+    reason: >
+      PlayerView y componentes de UI customizables.
+    coupling: high
+    risk: low

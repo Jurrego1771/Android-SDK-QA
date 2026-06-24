@@ -1,0 +1,36 @@
+version: "1.0"
+module: subtitles
+last_updated: "2026-06-23"
+
+internal:
+  - id: subtitle-parser
+    reason: >
+      CustomAssSubtitleParser para ASS/SSA (anime, contenido latino).
+      CustomSubtitleParserFactory lo registra en el media source.
+    coupling: high
+    files:
+      - CustomAssSubtitleParser.kt (SDK internal)
+      - CustomSubtitleParserFactory.kt
+
+  - id: subtitle-config
+    reason: >
+      ConfigMain.subtitle contiene lista de tracks con URL y nombre.
+    coupling: medium
+    files:
+      - model/config/ConfigMain.kt
+
+  - id: subtitle-dialogs
+    reason: >
+      TrackSelectionDialog (mobile) y TVSubtitleAudioDialog (TV).
+    coupling: medium
+    files:
+      - TrackSelectionDialog.kt
+      - TVSubtitleAudioDialog.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      ExoPlayer maneja WebVTT, SRT, CEA-608/708 nativamente.
+    coupling: high
+    risk: low

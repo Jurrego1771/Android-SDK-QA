@@ -1,0 +1,32 @@
+version: "1.0"
+module: audio
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: AUD-RISK-001
+    severity: medium
+    title: "Audio en background requiere ForegroundService"
+    description: >
+      Sin un service declarado en el Manifest, el audio se corta
+      cuando la app va a background.
+    affected_files:
+      - "MediastreamPlayerService.kt"
+    trigger: "Audio en background sin service"
+    mitigation: >
+      Usar constructor con isFromSyncService=true y declarar
+      MediastreamPlayerService en el Manifest.
+    test_priority: MUST
+
+  - id: AUD-RISK-002
+    severity: low
+    title: "Metadata de audio live puede no llegar si SSE falla"
+    description: >
+      onLiveAudioCurrentSongChanged depende de SSE. Si la conexion
+      SSE falla, la metadata no se actualiza.
+    affected_files:
+      - "MediastreamPlayer.kt (SSE handling)"
+    trigger: "Red inestable durante stream de audio live"
+    mitigation: >
+      El callback recibe null data en caso de falla.
+    test_priority: COULD

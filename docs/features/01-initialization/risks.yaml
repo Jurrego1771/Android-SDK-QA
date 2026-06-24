@@ -1,0 +1,78 @@
+version: "1.0"
+module: initialization
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: INIT-RISK-001
+    severity: high
+    title: "Sin id ni src: la inicializacion falla silenciosamente"
+    description: >
+      Si MediastreamPlayerConfig tiene tanto id=null como src=null, el player
+      intenta hacer la llamada a la API con parametros invalidos y el resultado
+      es impredecible. Puede resultar en un player colgado sin errores.
+    affected_files:
+      - "MediastreamPlayer.kt (manejo de id/src)"
+      - "ApiService.kt"
+    trigger: "new MediastreamPlayer() con config.id=null y config.src=null"
+    mitigation: >
+      El integrador debe asegurar que al menos id o src este definido.
+      Agregar validacion en el cliente antes de construir el player.
+    test_priority: MUST
+
+  - id: INIT-RISK-002
+    severity: high
+    title: "Sin conectividad al inicializar: el player queda colgado"
+    description: >
+      Si no hay conexion a red, getMediaInfo() falla pero el SDK no propaga
+      un error claro al cliente. El integrador no sabe que el player no va
+      a funcionar.
+    affected_files:
+      - "ApiService.kt (getMediaInfo)"
+    trigger: "Inicializacion sin conexion a internet"
+    mitigation: >
+      El integrador puede implementar un timeout propio o verificar conectividad
+      antes de inicializar. El SDK no tiene mitigacion integrada.
+    test_priority: MUST
+
+  - id: INIT-RISK-003
+    severity: high
+    title: "Activity destruida antes del callback: NPE o leak"
+    description: >
+      Si la Activity es destruida (ej. rotacion) antes de que playerViewReady
+      o onReady se disparen, el callback intenta actualizar una Activity inexistente.
+    affected_files:
+      - "MediastreamPlayer.kt (callbacks)"
+    trigger: "Rotacion de dispositivo durante inicializacion"
+    mitigation: >
+      El cliente debe manejar el ciclo de vida correctamente.
+      El SDK envia callbacks desde threads internos.
+    test_priority: SHOULD
+
+  - id: INIT-RISK-004
+    severity: medium
+    title: "Doble inicializacion sin release: estado inconsistente"
+    description: >
+      Crear un nuevo MediastreamPlayer sin llamar releasePlayer() primero puede
+      causar comportamiento impredecible (recursos duplicados, callbacks multiples).
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "new MediastreamPlayer() sin haber llamado releasePlayer() previamente"
+    mitigation: >
+      El integrador debe seguir el patron: construir -> usar -> release -> destruir.
+      El SDK no detecta ni previene doble inicializacion.
+    test_priority: SHOULD
+
+  - id: INIT-RISK-005
+    severity: medium
+    title: "playerContainer null: player inicializa sin UI visible"
+    description: >
+      Si playerContainer es null, el SDK no inserta la vista del player.
+      El video sigue existiendo en msPlayer pero el usuario no lo ve.
+    affected_files:
+      - "MediastreamPlayer.kt"
+    trigger: "Constructor con playerContainer=null"
+    mitigation: >
+      El integrador debe pasar un FrameLayout valido si quiere mostrar video.
+      Si solo quiere audio, puede usar PlayerType.AUDIO.
+    test_priority: COULD

@@ -1,0 +1,33 @@
+version: "1.0"
+module: android-auto
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: AUTO-RISK-001
+    severity: high
+    title: "Testing de Auto requiere Desktop Head Unit"
+    description: >
+      Android Auto no se puede probar con un emulador standard.
+      Se necesita el emulador de Android Auto o Desktop Head Unit.
+    affected_files:
+      - "Auto testing infrastructure"
+    trigger: "Correr tests de Auto sin HU"
+    mitigation: >
+      Solo tests de integracion que usan mock del MediaLibraryService.
+      E2E requiere hardware especifico.
+    test_priority: MUST
+
+  - id: AUTO-RISK-002
+    severity: medium
+    title: "Service es exported=true - seguridad"
+    description: >
+      MediastreamPlayerServiceWithSync tiene exported=true.
+      Cualquier app puede theoretically conectarse.
+    affected_files:
+      - "MediastreamPlayerServiceWithSync.kt"
+    trigger: "Otra app intenta controlar el service"
+    mitigation: >
+      Android Auto requiere que el service sea exported.
+      El Cast SDK manage permissions internamente.
+    test_priority: COULD

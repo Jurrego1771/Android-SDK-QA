@@ -1,0 +1,21 @@
+version: "1.0"
+module: analytics-youbora
+last_updated: "2026-06-23"
+
+defects:
+
+  - id: YB-DEF-001
+    status: known_bug
+    severity: medium
+    title: "ClassCastException en Youbora al cambiar estado de playback"
+    description: >
+      Error documentado en 09-drm.md: ClassCastException ContextImpl -> Activity
+      ocurre en Youbora al hacer play/pause rapidamente. Bug en el adapter
+      de Youbora o en como el SDK lo usa.
+    affected_files:
+      - "Youbora adapter / MediastreamPlayer.kt"
+    trigger: "Cambio rapido de play a pause con Youbora habilitado"
+    workaround: "Ninguno desde QA. Reportar a Mediastream."
+    regression_risk: low
+    related_ac: YB-AC-001
+    validation_status: documented

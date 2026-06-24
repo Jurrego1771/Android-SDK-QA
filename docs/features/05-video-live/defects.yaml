@@ -1,0 +1,9 @@
+version: "1.0"
+module: video-live
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  Ver core-player/defects.yaml para defectos de IMA que afectan live
+  (Activity leak en live con ads).

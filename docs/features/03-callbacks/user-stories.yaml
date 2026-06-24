@@ -1,0 +1,93 @@
+version: "1.0"
+module: callbacks
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: CB-US-001
+    persona: Integrator
+    narrative:
+      as: "integrador que quiere recibir eventos del player"
+      want: "registrar un MediastreamPlayerCallback para recibir onReady/onPlay/onError"
+      so_that: "puedo sincronizar mi UI con el estado del player"
+    business_value: HIGH
+    risk_area:
+      - callbacks
+    related_features:
+      - initialization
+    acceptance:
+      - CB-AC-001
+    notes: >
+      El SDK soporta multiples callbacks. addPlayerCallback() los agrega
+      a una lista y los dispatcha en orden.
+
+  - id: CB-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ver el contenido reproducirse automaticamente"
+      so_that: "no tengo que presionar play"
+    business_value: HIGH
+    risk_area:
+      - callbacks
+    related_features:
+      - video-vod
+    acceptance:
+      - CB-AC-002
+    notes: >
+      autoplay=true + onReady() -> onPlay() automatico.
+
+  - id: CB-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "pausar y resumir la reproduccion"
+      so_that: "puedo detener temporalmente el contenido"
+    business_value: HIGH
+    risk_area:
+      - callbacks
+    acceptance:
+      - CB-AC-003
+
+  - id: CB-US-004
+    persona: Integrator
+    narrative:
+      as: "integrador que necesita reaccionar a errores"
+      want: "recibir onError cuando hay un problema critico"
+      so_that: "puedo mostrar un mensaje al usuario"
+    business_value: HIGH
+    risk_area:
+      - callbacks
+    acceptance:
+      - CB-AC-004
+    notes: >
+      onError es critico (player se detiene). onPlaybackErrors y
+      onEmbedErrors son menos severos.
+
+  - id: CB-US-005
+    persona: Integrator
+    narrative:
+      as: "integrador de Chromecast"
+      want: "recibir callbacks del ciclo de Cast"
+      so_that: "puedo actualizar mi UI cuando el contenido se transmite al TV"
+    business_value: MEDIUM
+    risk_area:
+      - callbacks
+    related_features:
+      - chromecast
+    acceptance:
+      - CB-AC-005
+
+  - id: CB-US-006
+    persona: Integrator
+    narrative:
+      as: "integrador de ads"
+      want: "recibir eventos de anuncios (STARTED, COMPLETED, SKIPPED)"
+      so_that: "puedo mostrar indicadores de ad y trackear conversiones"
+    business_value: MEDIUM
+    risk_area:
+      - callbacks
+    related_features:
+      - ads-ima
+    acceptance:
+      - CB-AC-006

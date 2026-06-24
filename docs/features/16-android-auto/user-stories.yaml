@@ -1,0 +1,36 @@
+version: "1.0"
+module: android-auto
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: AUTO-US-001
+    persona: Viewer
+    narrative:
+      as: "conductor/pasajero"
+      want: "ver tabs de contenido de audio en Android Auto"
+      so_that: "puedo seleccionar un stream para reproducir en el telefono"
+    business_value: HIGH
+    risk_area:
+      - android-auto
+    related_features:
+      - audio
+      - services
+    acceptance:
+      - AUTO-AC-001
+    notes: >
+      Requiere emulador de Android Auto o Desktop Head Unit.
+
+  - id: AUTO-US-002
+    persona: Viewer
+    narrative:
+      as: "oyente de podcast"
+      want: "ver mis podcasts en Android Auto"
+      so_that: "puedo seleccionar y reproducir desde la pantalla del auto"
+    business_value: MEDIUM
+    risk_area:
+      - android-auto
+    related_features:
+      - audio
+    acceptance:
+      - AUTO-AC-002

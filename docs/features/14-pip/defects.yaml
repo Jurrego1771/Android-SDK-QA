@@ -1,0 +1,25 @@
+version: "1.0"
+module: pip
+last_updated: "2026-06-23"
+
+defects:
+
+  - id: PIP-DEF-001
+    status: known_bug
+    severity: high
+    title: "onUserLeaveHint() no es confiable en dispositivos OEM"
+    description: >
+      En Samsung One UI y Xiaomi HyperOS, onUserLeaveHint() no se
+      dispara consistentemente al presionar Recientes. PiP no se
+      activaba con ese trigger. Bug confirmado en SDK 10.0.3-alpha06.
+    affected_files:
+      - "Activity del cliente (onUserLeaveHint override)"
+    trigger: "Presionar boton Recientes en Samsung/Xiaomi"
+    workaround: >
+      Usar onPause() + guardias (!isFinishing, isPlaying) para API 26-30.
+      setAutoEnterEnabled para API 31+.
+    regression_risk: medium
+    related_ac: PIP-AC-001
+    source: >
+      Confirmado QA 2026-05-12, SDK 10.0.3-alpha06.
+    validation_status: confirmed

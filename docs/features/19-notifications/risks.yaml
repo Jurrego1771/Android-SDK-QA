@@ -1,0 +1,32 @@
+version: "1.0"
+module: notifications
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: NOTIF-RISK-001
+    severity: medium
+    title: "POST_NOTIFICATIONS permission requerida en Android 13+"
+    description: >
+      Android 13+ requiere el permiso POST_NOTIFICATIONS.
+      Sin el, la notificacion no aparecera.
+    affected_files:
+      - "Activity del cliente"
+    trigger: "Android 13+ sin solicitar el permiso"
+    mitigation: >
+      El cliente debe solicitar el permiso en runtime.
+      El SDK degrada graciosamente si no lo tiene.
+    test_priority: MUST
+
+  - id: NOTIF-RISK-002
+    severity: low
+    title: "Notificacion no se actualiza con metadata"
+    description: >
+      Si notificationTitle/Description/iconUrl no se setean,
+      la notificacion aparecera sin informacion util.
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+    trigger: "Config sin metadata de notificacion"
+    mitigation: >
+      Siempre setear notificationTitle y notificationDescription.
+    test_priority: COULD

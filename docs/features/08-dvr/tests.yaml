@@ -1,0 +1,62 @@
+version: "1.0"
+module: dvr
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-DVR-001
+    priority: MUST
+    title: "DVR habilitado muestra la seekbar DvrTimeBar"
+    suggested_spec: "integration/DvrTest.kt"
+
+  - id: GAP-DVR-002
+    priority: MUST
+    title: "Seek hacia atras lleva al tiempo correcto"
+    suggested_spec: "integration/DvrSeekTest.kt"
+    notes: >
+      Verificar que la posicion en el timeline corresponde al momento
+      real del contenido. ALTA PRIORIDAD por complejidad de offsets.
+
+  - id: GAP-DVR-003
+    priority: MUST
+    title: "Seek al inicio de la ventana DVR funciona"
+    suggested_spec: "integration/DvrSeekTest.kt"
+
+  - id: GAP-DVR-004
+    priority: MUST
+    title: "Seek al live edge funciona (posicion maxima)"
+    suggested_spec: "integration/DvrSeekTest.kt"
+
+  - id: GAP-DVR-005
+    priority: MUST
+    title: "Posicion actual se actualiza durante reproduccion"
+    suggested_spec: "integration/DvrTest.kt"
+
+  - id: GAP-DVR-006
+    priority: MUST
+    title: "Con windowDvr=3600, no se puede ir mas de 1 hora atras"
+    suggested_spec: "integration/DvrWindowTest.kt"
+
+  - id: GAP-DVR-007
+    priority: MUST
+    title: "Reanudar desde posicion DVR (no live edge) mantiene posicion"
+    suggested_spec: "integration/DvrSeekTest.kt"
+
+  - id: GAP-DVR-008
+    priority: MUST
+    title: "Volver al live edge desde posicion DVR"
+    suggested_spec: "integration/DvrSeekTest.kt"
+
+  - id: GAP-DVR-009
+    priority: HIGH
+    title: "DVR + ads: el timeline incluye correctamente el tiempo de anuncios"
+    suggested_spec: "integration/DvrDaiTest.kt"
+    notes: >
+      ALTA PRIORIDAD. DVR + DAI es la combinacion mas compleja.
+
+  - id: GAP-DVR-010
+    priority: SHOULD
+    title: "DVR disabled: no muestra seekbar de DVR"
+    suggested_spec: "integration/DvrTest.kt"

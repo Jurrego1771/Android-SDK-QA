@@ -1,0 +1,76 @@
+version: "1.0"
+module: pip
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-PIP-001
+    priority: MUST
+    title: "pip=ENABLE -> startPiP() entra en modo PiP"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-002
+    priority: MUST
+    title: "pip=DISABLE -> startPiP() NO entra en modo PiP"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-003
+    priority: MUST
+    title: "pip=NONE + API devuelve pip=true -> startPiP() entra"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-004
+    priority: MUST
+    title: "pip=NONE + API devuelve pip=false -> startPiP() NO entra"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-005
+    priority: MUST
+    title: "La reproduccion continua sin interrupcion al entrar a PiP"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-006
+    priority: MUST
+    title: "onPictureInPictureModeChanged(true) oculta los controles"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-007
+    priority: MUST
+    title: "onPictureInPictureModeChanged(false) restaura los controles"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-008
+    priority: MUST
+    title: "Cerrar la ventana PiP dispara onPlayerClosed()"
+    suggested_spec: "integration/PipTest.kt"
+
+  - id: GAP-PIP-009
+    priority: MUST
+    title: "startPiP() en API < 26 no lanza excepcion"
+    suggested_spec: "integration/PipCompatibilityTest.kt"
+
+  - id: GAP-PIP-010
+    priority: SHOULD
+    title: "Boton Home activa PiP correctamente (API 26+)"
+    suggested_spec: "integration/PipTriggerTest.kt"
+
+  - id: GAP-PIP-011
+    priority: SHOULD
+    title: "Boton Recientes activa PiP correctamente (API 26+)"
+    suggested_spec: "integration/PipTriggerTest.kt"
+    notes: >
+      Verificar PIP-DEF-001 en Samsung/Xiaomi.
+
+  - id: GAP-PIP-012
+    priority: SHOULD
+    title: "Boton Atras NO entra en PiP"
+    suggested_spec: "integration/PipTriggerTest.kt"
+
+  - id: GAP-PIP-013
+    priority: SHOULD
+    title: "Llamada entrante con video pausado NO entra en PiP"
+    suggested_spec: "integration/PipTriggerTest.kt"
+    notes: >
+      Guardia isPlaying debe bloquear.

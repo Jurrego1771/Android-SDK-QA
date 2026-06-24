@@ -1,0 +1,264 @@
+version: "1.0"
+module: core-player
+last_updated: "2026-06-12"
+
+# Tests instrumentados reales (androidTest) en el proyecto QA SDK-Android-Qa.
+# Ruta base: app/src/androidTest/java/com/example/sdk_qa/
+# Convenciones: anotaciones @MobileOnly / @TVOnly filtran por dispositivo; @Ignore
+# marca bugs conocidos del SDK con la razón documentada. Dispositivo físico de
+# referencia: Sony BRAVIA (192.168.0.24:5555). Ver test_infra en memoria del proyecto.
+
+existing_tests:
+
+  - id: CORE-TC-001
+    name: "releasePlayer_doesNotLeakActivity"
+    file: "integration/PlayerLifecycleTest.kt:47"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: passing
+    notes: "VOD sin ads. Verifica que releasePlayer() no retiene la Activity (LeakCanary)."
+
+  - id: CORE-TC-002
+    name: "sdkCallbacks_onReady_arrivesOnMainThread"
+    file: "integration/PlayerLifecycleTest.kt:71"
+    type: instrumented
+    ac_ref: [CORE-AC-001]
+    status: passing
+    notes: "Confirma que onReady() llega en el main thread."
+
+  - id: CORE-TC-003
+    name: "sdkCallbacks_onPlay_arrivesOnMainThread"
+    file: "integration/PlayerLifecycleTest.kt:90"
+    type: instrumented
+    ac_ref: [CORE-AC-001, CORE-AC-003]
+    status: ignored
+    defect_ref: CORE-DEF-004
+    notes: >
+      @Ignore — SDK Bug #5: IMA registra un ActivityLifecycleCallback global; tras
+      LifecycleTest, onPlay hace timeout. Pasa en aislamiento.
+
+  - id: CORE-TC-004
+    name: "invalidContentId_triggersOnError"
+    file: "integration/PlayerLifecycleTest.kt:109"
+    type: instrumented
+    ac_ref: [CORE-AC-007]
+    status: ignored
+    defect_ref: CORE-DEF-002
+    notes: >
+      @Ignore — SDK silencia 404: un id inexistente NO dispara onError/onEmbedErrors.
+
+  - id: CORE-TC-005
+    name: "reloadPlayer_previousCallbackState_isClean"
+    file: "integration/PlayerLifecycleTest.kt:132"
+    type: instrumented
+    ac_ref: [CORE-AC-009, CORE-AC-006]
+    status: passing
+    notes: "Verifica que tras reloadPlayer el estado de callbacks queda limpio (sin duplicados)."
+
+  - id: CORE-TC-006
+    name: "rotation_playerReinitializes_onReady_fires"
+    file: "integration/LifecycleTest.kt:49"
+    type: instrumented
+    ac_ref: [CORE-AC-001]
+    status: passing
+    notes: "Tras rotación, el player se reinicializa y onReady vuelve a dispararse."
+
+  - id: CORE-TC-007
+    name: "rotation_doesNotLeakPreviousActivity"
+    file: "integration/LifecycleTest.kt:73"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: passing
+    notes: "La Activity previa no se fuga tras rotación (LeakCanary)."
+
+  - id: CORE-TC-008
+    name: "rapidRecreations_playerRemainsResponsive"
+    file: "integration/LifecycleTest.kt:95"
+    type: instrumented
+    ac_ref: [CORE-AC-001, CORE-AC-003]
+    status: passing
+    notes: "Recreaciones rápidas de Activity; el player sigue respondiendo a comandos."
+
+  - id: CORE-TC-009
+    name: "background_playerStateIsConsistent"
+    file: "integration/LifecycleTest.kt:127"
+    type: instrumented
+    ac_ref: [CORE-AC-003]
+    status: passing
+    notes: "Estado de reproducción consistente al pasar a background."
+
+  - id: CORE-TC-010
+    name: "foregroundAfterBackground_playerRespondsToCommands"
+    file: "integration/LifecycleTest.kt:164"
+    type: instrumented
+    ac_ref: [CORE-AC-003]
+    status: passing
+
+  - id: CORE-TC-011
+    name: "foregroundAfterBackground_seekWorks"
+    file: "integration/LifecycleTest.kt:202"
+    type: instrumented
+    ac_ref: [CORE-AC-004]
+    status: passing
+    notes: "seekTo funciona tras volver de background."
+
+  - id: CORE-TC-012
+    name: "onDestroy_releasesPlayer_noLeak"
+    file: "integration/LifecycleTest.kt:250"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: passing
+
+  - id: CORE-TC-013
+    name: "vod_onDestroy_releasesPlayer_noLeak"
+    file: "integration/LifecycleTest.kt:267"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: passing
+
+  - id: CORE-TC-014
+    name: "live_onDestroy_releasesPlayer_noLeak"
+    file: "integration/LifecycleTest.kt:283"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: ignored
+    defect_ref: CORE-DEF-001
+    notes: "@Ignore — SDK Bug #1: IMA AdTagLoader retiene la Activity ~5s vía lambda."
+
+  - id: CORE-TC-015
+    name: "liveDvr_onDestroy_releasesPlayer_noLeak"
+    file: "integration/LifecycleTest.kt:299"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: ignored
+    defect_ref: CORE-DEF-001
+    notes: "@Ignore — mismo bug IMA AdTagLoader que CORE-TC-014."
+
+  - id: CORE-TC-016
+    name: "episode_onDestroy_releasesPlayer_noLeak"
+    file: "integration/LifecycleTest.kt:314"
+    type: instrumented
+    ac_ref: [CORE-AC-005]
+    status: passing
+
+  - id: CORE-TC-017
+    name: "FullscreenOverrideTest (suite)"
+    file: "integration/FullscreenOverrideTest.kt"
+    type: instrumented
+    ac_ref: [CORE-AC-017]
+    status: passing
+    notes: >
+      Suite de override de rotación en fullscreen (API onFullscreenOnClick/OffClick,
+      forceBackPressedWhenFullScreen). Ver módulo fullscreen-override.
+
+  - id: CORE-TC-018
+    name: "CallbackOrderTest (suite)"
+    file: "integration/CallbackOrderTest.kt"
+    type: instrumented
+    ac_ref: [CORE-AC-001, CORE-AC-003, CORE-AC-006]
+    status: passing
+    notes: "Verifica el orden y unicidad de los callbacks del ciclo de vida."
+
+coverage_gaps:
+
+  - id: GAP-CORE-001
+    priority: MUST
+    ac_ref: CORE-AC-002
+    title: "Constructor estándar rechaza Context no-Activity"
+    suggested_spec: "integration/PlayerConstructorTest.kt"
+    notes: >
+      Pasar un Context (no Activity) al constructor estándar y verificar que se lanza
+      IllegalArgumentException con el mensaje esperado (BR-CORE-001).
+
+  - id: GAP-CORE-002
+    priority: MUST
+    ac_ref: CORE-AC-010
+    title: "getVersion() retorna '10.0.8-alpha01'"
+    suggested_spec: "integration/PlayerInfoTest.kt"
+    notes: >
+      Test trivial pero útil como tripwire: si Mediastream actualiza el SDK sin
+      tocar el literal hardcodeado (BR-CORE-025), este test lo detecta.
+
+  - id: GAP-CORE-003
+    priority: MUST
+    ac_ref: CORE-AC-008
+    title: "El idioma de la UI se aplica desde config.language (es/en/pt)"
+    suggested_spec: "integration/PlayerLanguageTest.kt"
+    notes: >
+      Construir con language=SPANISH y verificar que un string visible del player
+      (ej. tooltip de un control) está en español. Recordar: default real es ENGLISH.
+
+  - id: GAP-CORE-004
+    priority: MUST
+    ac_ref: CORE-AC-011
+    title: "reloadPlayer(newConfig) cambia el idioma de la UI"
+    suggested_spec: "integration/PlayerLanguageTest.kt"
+    notes: >
+      Inicializar en ENGLISH, llamar reloadPlayer con language=SPANISH y verificar
+      el cambio (BR-CORE-010). Documenta que language NO es un flag persistente.
+
+  - id: GAP-CORE-005
+    priority: SHOULD
+    ac_ref: CORE-AC-012
+    title: "changeSpeed cambia la velocidad de reproducción"
+    suggested_spec: "integration/PlaybackControlTest.kt"
+    notes: >
+      Medir el avance de getCurrentPosition tras changeSpeed(2.0f) en una ventana
+      de tiempo conocida. No valida rango: probar también un valor extremo.
+
+  - id: GAP-CORE-006
+    priority: SHOULD
+    ac_ref: [CORE-AC-014, CORE-AC-015]
+    title: "Getters degradan a 0 sin lanzar antes de READY"
+    suggested_spec: "integration/PlayerGettersTest.kt"
+    notes: >
+      Llamar getHeight/getBitrate/getBandwidth/getCurrentPosition/getDuration/
+      getContentDuration inmediatamente tras construir (antes de onReady) y verificar
+      que retornan 0/0L sin excepción (BR-CORE-007/008).
+
+  - id: GAP-CORE-007
+    priority: SHOULD
+    ac_ref: CORE-AC-018
+    title: "getAdQueryString auto-inyecta ppid/rdid/idtype/is_lat"
+    suggested_spec: "unit/AdQueryStringTest.kt"
+    notes: >
+      Test unitario puro de MediastreamPlayerConfig.getAdQueryString: verificar
+      inyección de ppid (fallback a customerID), idtype=aaid en 'android' y afai en
+      'firetv', y que un valor ya presente en la URL NO se duplica (BR-CORE-023).
+      No requiere dispositivo.
+
+  - id: GAP-CORE-008
+    priority: SHOULD
+    ac_ref: CORE-AC-009
+    title: "mergePersistentFrom preserva flags de UI y toma fuente/DVR/language del nuevo"
+    suggested_spec: "unit/ConfigMergeTest.kt"
+    notes: >
+      Test unitario de mergePersistentFrom: verificar campo por campo qué viene del
+      previo y qué del nuevo (BR-CORE-009/010). No requiere dispositivo.
+
+  - id: GAP-CORE-009
+    priority: COULD
+    ac_ref: CORE-AC-016
+    title: "getDeviceType retorna la categoría correcta"
+    suggested_spec: "integration/DeviceTypeTest.kt"
+    notes: >
+      En BRAVIA debe retornar 'androidtv'; en móvil 'android'. @TVOnly / @MobileOnly
+      según el dispositivo de ejecución.
+
+  - id: GAP-CORE-010
+    priority: COULD
+    ac_ref: CORE-AC-019
+    title: "startPiP entra en Picture-in-Picture en Android O+"
+    suggested_spec: "integration/PipTest.kt"
+    notes: >
+      @MobileOnly (TV no soporta PiP de la misma forma). Verificar entrada a PiP y
+      propagación de onPictureInPictureModeChanged(true).
+
+  - id: GAP-CORE-011
+    priority: COULD
+    ac_ref: CORE-AC-021
+    title: "isVodCase true cuando dvrStart y dvrEnd están definidos"
+    suggested_spec: "unit/IsVodCaseTest.kt"
+    notes: >
+      Difícil de aislar como unit (depende de msConfig interno). Alternativa: test
+      instrumentado construyendo con dvrStart/dvrEnd y leyendo isVodCase().

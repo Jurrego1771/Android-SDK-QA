@@ -1,0 +1,50 @@
+version: "1.0"
+module: video-live
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: LIVE-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador de stream en vivo"
+      want: "ver el stream en tiempo real"
+      so_that: "puedo consumir contenido en vivo sin DVR"
+    business_value: HIGH
+    risk_area:
+      - video-live
+    related_features:
+      - initialization
+      - callbacks
+    acceptance:
+      - LIVE-AC-001
+    notes: >
+      type=VideoTypes.LIVE, dvr=false. No hay seekbar.
+
+  - id: LIVE-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador de live"
+      want: "estar siempre en el borde del live"
+      so_that: "veo lo que esta pasando ahora mismo"
+    business_value: HIGH
+    risk_area:
+      - video-live
+    acceptance:
+      - LIVE-AC-002
+    notes: >
+      startAt es ignorado en live. Siempre live edge.
+
+  - id: LIVE-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador de live"
+      want: "que el player se reconecte automaticamente si el stream se interrumpe"
+      so_that: "no tengo que hacer nada manualmente para recuperar la transmision"
+    business_value: MEDIUM
+    risk_area:
+      - video-live
+    acceptance:
+      - LIVE-AC-003
+    notes: >
+      ExoPlayer reintenta automaticamente. Si falla indefinidamente, onError.

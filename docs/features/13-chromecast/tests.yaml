@@ -1,0 +1,39 @@
+version: "1.0"
+module: chromecast
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-CC-001
+    priority: MUST
+    title: "onCastAvailable(true) cuando hay Chromecast en la red"
+    suggested_spec: "integration/ChromecastTest.kt"
+    notes: >
+      Mockear CastContext. Verificar callback con Cast disponible.
+
+  - id: GAP-CC-002
+    priority: MUST
+    title: "onCastAvailable(false) cuando no hay dispositivos"
+    suggested_spec: "integration/ChromecastTest.kt"
+
+  - id: GAP-CC-003
+    priority: MUST
+    title: "Ciclo completo: Starting -> Started -> Ending -> Ended"
+    suggested_spec: "integration/ChromecastTest.kt"
+
+  - id: GAP-CC-004
+    priority: SHOULD
+    title: "La reproduccion continua en el TV durante sesion Cast"
+    suggested_spec: "integration/ChromecastTest.kt"
+
+  - id: GAP-CC-005
+    priority: SHOULD
+    title: "Al terminar Cast, la reproduccion retoma en el dispositivo"
+    suggested_spec: "integration/ChromecastTest.kt"
+
+  - id: GAP-CC-006
+    priority: SHOULD
+    title: "castEnable es true cuando Cast esta disponible"
+    suggested_spec: "integration/ChromecastTest.kt"

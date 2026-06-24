@@ -1,0 +1,38 @@
+version: "1.0"
+module: analytics-comscore
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-COM-001
+    priority: MUST
+    title: "Comscore se inicializa cuando la API devuelve datos de Comscore"
+    suggested_spec: "integration/ComscoreTest.kt"
+    notes: >
+      Mockear ComscoreAnalyticsManager. Verificar que se instancia.
+
+  - id: GAP-COM-002
+    priority: MUST
+    title: "NO se inicializa cuando la API no devuelve datos de Comscore"
+    suggested_spec: "integration/ComscoreTest.kt"
+    notes: >
+      Verificar que el manager no se crea si comscore=null.
+
+  - id: GAP-COM-003
+    priority: SHOULD
+    title: "Evento de play se registra en Comscore al iniciar"
+    suggested_spec: "integration/ComscoreEventsTest.kt"
+    notes: >
+      Mockear Comscore. Verificar que se llama con params correctos.
+
+  - id: GAP-COM-004
+    priority: SHOULD
+    title: "Evento de pause se registra correctamente"
+    suggested_spec: "integration/ComscoreEventsTest.kt"
+
+  - id: GAP-COM-005
+    priority: SHOULD
+    title: "Evento de end se registra al finalizar el contenido"
+    suggested_spec: "integration/ComscoreEventsTest.kt"

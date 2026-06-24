@@ -1,0 +1,41 @@
+version: "1.0"
+module: callbacks
+last_updated: "2026-06-23"
+
+defects:
+
+  - id: CB-DEF-001
+    status: known_bug
+    severity: high
+    title: "playerViewReady se dispara desde thread no-main"
+    description: >
+      El callback playerViewReady llega desde un thread interno de ExoPlayer,
+      no del main thread. onReady y onPlay SI llegan del main.
+      Integradores que actualicen UI directamente en playerViewReady sin
+      runOnUiThread obtienen CalledFromWrongThreadException.
+    affected_files:
+      - "MediastreamPlayer.kt (emision de playerViewReady)"
+    trigger: "UI updates directas dentro de playerViewReady"
+    workaround: "Envolver logica de UI con activity.runOnUiThread { ... }"
+    regression_risk: low
+    related_ac: CB-AC-001
+    source: >
+      Confirmado en Sony BRAVIA VU31 4K, Android 14.
+    validation_status: confirmed
+
+  - id: CB-DEF-002
+    status: known_bug
+    severity: high
+    title: "SDK silencia errores 404 de la API"
+    description: >
+      Un id inexistente devuelve 404 de mdstrm.com pero el SDK NO dispara
+      onError ni onEmbedErrors. El error queda totalmente silenciado.
+    affected_files:
+      - "MediastreamPlayer.kt (manejo de getMediaInfo)"
+    trigger: "config.id inexistente"
+    workaround: "Validar el id antes de construir el player."
+    regression_risk: medium
+    related_ac: CB-AC-004
+    source: >
+      Confirmado en suite QA en Sony BRAVIA.
+    validation_status: confirmed

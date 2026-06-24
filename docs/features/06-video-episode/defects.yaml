@@ -1,0 +1,9 @@
+version: "1.0"
+module: video-episode
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  No hay defectos documentados para el feature de episodes.
+  El overlay y la logica de timing son relativamente nuevos.

@@ -1,0 +1,59 @@
+version: "1.0"
+module: drm
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-DRM-001
+    priority: MUST
+    title: "VOD con DRM carga y reproduce (token valido)"
+    suggested_spec: "integration/DrmTest.kt"
+    notes: >
+      Verificar que onReady y onPlay llegan sin errores de licencia.
+
+  - id: GAP-DRM-002
+    priority: MUST
+    title: "videoFormat=DASH es obligatorio para DRM"
+    suggested_spec: "integration/DrmConfigTest.kt"
+    notes: >
+      DRM con HLS no funciona. Test debe fallar si videoFormat!=DASH.
+
+  - id: GAP-DRM-003
+    priority: MUST
+    title: "Token vencido -> onPlaybackErrors o onError con codigo DRM"
+    suggested_spec: "integration/DrmErrorTest.kt"
+    notes: >
+      El SDK propaga el error de licencia. Verificar que se recibe.
+
+  - id: GAP-DRM-004
+    priority: MUST
+    title: "Token con Key ID incorrecto -> error 4032"
+    suggested_spec: "integration/DrmErrorTest.kt"
+
+  - id: GAP-DRM-005
+    priority: MUST
+    title: "Secuencia de callbacks correcta: playerViewReady -> buffering -> onReady -> onPlay"
+    suggested_spec: "integration/DrmTest.kt"
+
+  - id: GAP-DRM-006
+    priority: SHOULD
+    title: "Live con DRM funciona igual que VOD"
+    suggested_spec: "integration/DrmLiveTest.kt"
+    notes: >
+      DRM en live es menos comun pero posible.
+
+  - id: GAP-DRM-007
+    priority: SHOULD
+    title: "isDebug=true muestra requests de licencia en logcat"
+    suggested_spec: "integration/DrmDebugTest.kt"
+    notes: >
+      Filtrar logcat con ExoPlayerLib:W DrmSessionManager:D.
+
+  - id: GAP-DRM-008
+    priority: COULD
+    title: "Nivel Widevine del dispositivo (L1 vs L3)"
+    suggested_spec: "unit/WidevineLevelTest.kt"
+    notes: >
+      Test unitario verificando el nivel de seguridad del dispositivo.

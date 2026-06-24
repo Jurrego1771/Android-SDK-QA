@@ -1,0 +1,42 @@
+version: "1.0"
+module: notifications
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-NOTIF-001
+    priority: MUST
+    title: "Notificacion aparece al iniciar reproduccion"
+    suggested_spec: "integration/NotificationTest.kt"
+
+  - id: GAP-NOTIF-002
+    priority: MUST
+    title: "El titulo y descripcion se muestran correctamente"
+    suggested_spec: "integration/NotificationTest.kt"
+
+  - id: GAP-NOTIF-003
+    priority: MUST
+    title: "El artwork se carga desde notificationIconUrl"
+    suggested_spec: "integration/NotificationTest.kt"
+
+  - id: GAP-NOTIF-004
+    priority: MUST
+    title: "Boton pause/play en la notificacion funciona"
+    suggested_spec: "integration/NotificationControlTest.kt"
+
+  - id: GAP-NOTIF-005
+    priority: MUST
+    title: "Boton siguiente en la notificacion (notificationHasNext=true)"
+    suggested_spec: "integration/NotificationControlTest.kt"
+
+  - id: GAP-NOTIF-006
+    priority: MUST
+    title: "Notificacion desaparece al cerrar el player"
+    suggested_spec: "integration/NotificationTest.kt"
+
+  - id: GAP-NOTIF-007
+    priority: SHOULD
+    title: "Android 13+: sin POST_NOTIFICATIONS, no lanza excepcion"
+    suggested_spec: "integration/NotificationPermissionTest.kt"

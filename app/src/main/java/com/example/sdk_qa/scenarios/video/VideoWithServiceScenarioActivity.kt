@@ -18,8 +18,8 @@ class VideoWithServiceScenarioActivity : BaseScenarioActivity() {
     override fun getScenarioTitle() = "Video + Service"
 
     override fun buildConfig() = MediastreamPlayerConfig().apply {
-        id = TestContent.Video.VOD_SHORT
-        accountID = TestContent.ACCOUNT_ID
+        id = TestContent.Video.VOD_LONG
+        //accountID = TestContent.ACCOUNT_ID
         type = MediastreamPlayerConfig.VideoTypes.VOD
         environment = TestContent.ENV
         notificationHasNext = true

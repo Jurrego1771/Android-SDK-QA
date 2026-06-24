@@ -1,0 +1,51 @@
+version: "1.0"
+module: android-tv
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: ATV-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador en Android TV o Fire TV"
+      want: "navegar y controlar el player con el control remoto"
+      so_that: "puedo usar el player sin pantalla tactil"
+    business_value: HIGH
+    risk_area:
+      - android-tv
+    related_features:
+      - ui-customization
+    acceptance:
+      - ATV-AC-001
+    notes: >
+      D-pad navigation. UI optimizada para control remoto.
+
+  - id: ATV-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador en TV"
+      want: "ver el dialogo de seleccion de tracks/subtitulos"
+      so_that: "puedo cambiar idioma o subtitulos"
+    business_value: MEDIUM
+    risk_area:
+      - android-tv
+    related_features:
+      - subtitles
+    acceptance:
+      - ATV-AC-002
+    notes: >
+      TVSubtitleAudioDialog en lugar de TrackSelectionDialog.
+
+  - id: ATV-US-003
+    persona: Integrator
+    narrative:
+      as: "integrador que detecta el tipo de dispositivo"
+      want: "obtener el tipo de dispositivo via API del SDK"
+      so_that: "puedo adaptar mi UI o behavior segun el dispositivo"
+    business_value: MEDIUM
+    risk_area:
+      - android-tv
+    acceptance:
+      - ATV-AC-003
+    notes: >
+      isAndroidTV(), isFireTV(), getDeviceType().

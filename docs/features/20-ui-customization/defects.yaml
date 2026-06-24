@@ -1,0 +1,9 @@
+version: "1.0"
+module: ui-customization
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  Ver core-player para defectos de idioma (default ENGLISH vs
+  expectativa LATAM).

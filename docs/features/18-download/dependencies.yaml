@@ -1,0 +1,34 @@
+version: "1.0"
+module: download
+last_updated: "2026-06-23"
+
+internal:
+  - id: download-tracker
+    reason: >
+      DownloadTracker gestina el estado de las descargas.
+    coupling: high
+    files:
+      - DownloadTracker.kt (SDK internal)
+
+  - id: download-service
+    reason: >
+      DemoDownloadService para descargas en background.
+    coupling: high
+    files:
+      - DemoDownloadService.kt (SDK internal)
+
+  - id: local-source
+    reason: >
+      onLocalSourceAdded callback cuando se usa fuente local
+      (descargada).
+    coupling: medium
+    files:
+      - MediastreamPlayerCallback.kt
+
+external:
+  - id: media3-datasource
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      DownloadManager de ExoPlayer para manejo de descargas.
+    coupling: high
+    risk: low

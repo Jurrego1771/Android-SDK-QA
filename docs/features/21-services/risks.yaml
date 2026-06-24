@@ -1,0 +1,46 @@
+version: "1.0"
+module: services
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: SVC-RISK-001
+    severity: high
+    title: "EventBus del cliente puede interferir con el del SDK"
+    description: >
+      Si el cliente usa EventBus en su app, puede interceptar
+      eventos del SDK (MessageEvent, UpdateNotificationEvent).
+    affected_files:
+      - "MediastreamPlayer.kt, MediastreamPlayerService.kt"
+    trigger: "Cliente usa EventBus con subscriber en activity"
+    mitigation: >
+      El cliente debe usar sticky events o filters para no
+      interceptar eventos del SDK.
+    test_priority: SHOULD
+
+  - id: SVC-RISK-002
+    severity: medium
+    title: "Service es foreground - batery impact"
+    description: >
+      ForegroundService consume bateria. El cliente deberia
+      minimizar el tiempo en foreground.
+    affected_files:
+      - "MediastreamPlayerService.kt"
+    trigger: "Audio en background por largos periodos"
+    mitigation: >
+      Android gestiona el ciclo de vida. No hay action del SDK.
+    test_priority: COULD
+
+  - id: SVC-RISK-003
+    severity: low
+    title: "isFromSyncService=true requiere service valido"
+    description: >
+      El constructor con isFromSyncService=true inicializa
+      sin Activity. Si se usa incorrectamente, puede fallar.
+    affected_files:
+      - "MediastreamPlayer.kt (constructor con isFromSyncService)"
+    trigger: "isFromSyncService=true sin un service"
+    mitigation: >
+      Solo usar con MediastreamPlayerService o
+      MediastreamPlayerServiceWithSync.
+    test_priority: COULD

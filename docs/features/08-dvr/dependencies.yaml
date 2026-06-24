@@ -1,0 +1,44 @@
+version: "1.0"
+module: dvr
+last_updated: "2026-06-23"
+
+internal:
+  - id: dvr-time-bar
+    reason: >
+      Seekbar personalizada que muestra el timeline DVR.
+      Diferente de la seekbar standard de ExoPlayer.
+    coupling: high
+    files:
+      - DvrTimeBar.kt (SDK internal)
+
+  - id: fake-timeline-view
+    reason: >
+      Representacion visual del timeline ficticio DVR.
+    coupling: high
+    files:
+      - FakeTimelineView.kt (SDK internal)
+
+  - id: dai-controller
+    reason: >
+      MediastreamDAIController integra ads DAI con el timeline DVR.
+      Concern: con ads + DVR la complejidad se multiplica.
+    coupling: medium
+    files:
+      - MediastreamDAIController.kt (SDK internal)
+
+  - id: offset-logic
+    reason: >
+      Logica compleja de conversion entre tiempo ficticio DVR y
+      tiempo real del segmento HLS. ALTO RIESGO de bugs.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt
+
+external:
+  - id: media3-exoplayer
+    package: "androidx.media3:media3-exoplayer:1.5.0"
+    reason: >
+      ExoPlayer provee el timeline real de segmentos HLS.
+      El SDK lo envolvuelve en el fictitious timeline.
+    coupling: high
+    risk: high

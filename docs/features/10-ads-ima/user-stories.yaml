@@ -1,0 +1,64 @@
+version: "1.0"
+module: ads-ima
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: ADS-US-001
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ver anuncios antes del contenido principal"
+      so_that: "el contenido puede ser monetizado"
+    business_value: HIGH
+    risk_area:
+      - ads-ima
+    related_features:
+      - video-vod
+      - video-live
+    acceptance:
+      - ADS-AC-001
+    notes: >
+      Preroll via adURL VAST/VMAP.
+
+  - id: ADS-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "saltarme un anuncio si es skippeable"
+      so_that: "no tengo que ver anuncios largos"
+    business_value: LOW
+    risk_area:
+      - ads-ima
+    acceptance:
+      - ADS-AC-002
+    notes: >
+      El SDK muestra el boton de skip cuando el ad lo permite.
+
+  - id: ADS-US-003
+    persona: Integrator
+    narrative:
+      as: "integrador de monetizacion"
+      want: "que el contenido principal continue si el ad falla"
+      so_that: "el usuario no se queda sin ver nada por un ad roto"
+    business_value: HIGH
+    risk_area:
+      - ads-ima
+    acceptance:
+      - ADS-AC-003
+    notes: >
+      onAdErrorEvent no debe detener el contenido principal.
+
+  - id: ADS-US-004
+    persona: Integrator
+    narrative:
+      as: "integrador"
+      want: "inyectar parametros custom en el ad tag"
+      so_that: "los reportes de monetizacion son correctos"
+    business_value: MEDIUM
+    risk_area:
+      - ads-ima
+    acceptance:
+      - ADS-AC-004
+    notes: >
+      addAdCustomAttribute() para ppid, section, etc.

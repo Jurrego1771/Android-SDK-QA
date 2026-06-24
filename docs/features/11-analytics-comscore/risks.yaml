@@ -1,0 +1,18 @@
+version: "1.0"
+module: analytics-comscore
+last_updated: "2026-06-23"
+
+risks:
+
+  - id: COM-RISK-001
+    severity: low
+    title: "Comscore se inicializa sin datos: puede fallar silenciosamente"
+    description: >
+      Si ConfigMain.comscore es null o incomplete, el SDK podria
+      intentar inicializar Comscore con config invalida.
+    affected_files:
+      - "ComscoreAnalyticsManager.kt"
+    trigger: "API no devuelve datos de Comscore"
+    mitigation: >
+      El SDK solo inicializa si comscore esta presente en ConfigMain.
+    test_priority: COULD

@@ -1,0 +1,72 @@
+version: "1.0"
+module: video-episode
+last_updated: "2026-06-23"
+
+existing_tests: []
+
+coverage_gaps:
+
+  - id: GAP-EP-001
+    priority: MUST
+    title: "nextEpisodeIncoming se dispara 3 segundos antes de appearTime"
+    suggested_spec: "integration/NextEpisodeTimingTest.kt"
+
+  - id: GAP-EP-002
+    priority: MUST
+    title: "nextEpisodeIncoming NO se dispara mas de una vez por reproduccion"
+    suggested_spec: "integration/NextEpisodeTimingTest.kt"
+
+  - id: GAP-EP-003
+    priority: MUST
+    title: "Overlay aparece en el segundo correcto (duracion - nextEpisodeTime)"
+    suggested_spec: "integration/NextEpisodeUITest.kt"
+
+  - id: GAP-EP-004
+    priority: MUST
+    title: "Animacion fill dura 5 segundos exactos"
+    suggested_spec: "integration/NextEpisodeUITest.kt"
+
+  - id: GAP-EP-005
+    priority: MUST
+    title: "Modo API: overlay aparece automaticamente sin updateNextEpisode"
+    suggested_spec: "integration/NextEpisodeTest.kt"
+
+  - id: GAP-EP-006
+    priority: MUST
+    title: "Auto-transicion ocurre a los 5 segundos sin interaccion"
+    suggested_spec: "integration/NextEpisodeUITest.kt"
+
+  - id: GAP-EP-007
+    priority: MUST
+    title: "onNewSourceAdded y onPlayerReload se disparan tras transicion"
+    suggested_spec: "integration/NextEpisodeTest.kt"
+
+  - id: GAP-EP-008
+    priority: MUST
+    title: "Modo manual: sin updateNextEpisode() el overlay NO aparece"
+    suggested_spec: "integration/NextEpisodeManualTest.kt"
+
+  - id: GAP-EP-009
+    priority: MUST
+    title: "Modo manual: con updateNextEpisode() el overlay aparece"
+    suggested_spec: "integration/NextEpisodeManualTest.kt"
+
+  - id: GAP-EP-010
+    priority: SHOULD
+    title: "Click en 'Ver creditos': oculta overlay, continua, NO transiciona"
+    suggested_spec: "integration/NextEpisodeUITest.kt"
+
+  - id: GAP-EP-011
+    priority: SHOULD
+    title: "Click en 'Siguiente episodio': transicion inmediata"
+    suggested_spec: "integration/NextEpisodeUITest.kt"
+
+  - id: GAP-EP-012
+    priority: SHOULD
+    title: "TV D-pad: focus se mueve correctamente a los botones"
+    suggested_spec: "integration/NextEpisodeTVTest.kt"
+
+  - id: GAP-EP-013
+    priority: COULD
+    title: "Ultimo episodio: overlay NO aparece"
+    suggested_spec: "integration/NextEpisodeTest.kt"

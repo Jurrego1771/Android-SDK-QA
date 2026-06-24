@@ -1,0 +1,9 @@
+version: "1.0"
+module: video-vod
+last_updated: "2026-06-23"
+
+defects: []
+
+notes: >
+  Ver core-player/defects.yaml para defectos de reproduccion (IMA leaks,
+  errores silenciados, callbacks en thread incorrecto).

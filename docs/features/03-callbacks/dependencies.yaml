@@ -1,0 +1,43 @@
+version: "1.0"
+module: callbacks
+last_updated: "2026-06-23"
+
+internal:
+  - id: callback-interface
+    reason: >
+      MediastreamPlayerCallback es la interfaz de 35+ metodos.
+      open interface con implementaciones por defecto.
+    coupling: high
+    files:
+      - MediastreamPlayerCallback.kt
+
+  - id: callback-registry
+    reason: >
+      El player mantiene una lista de callbacks (msCallbacks).
+      addPlayerCallback agrega a la lista, removePlayerCallback elimina.
+    coupling: high
+    files:
+      - MediastreamPlayer.kt
+
+  - id: event-types
+    reason: >
+      AdEvent.AdEventType define los tipos de eventos de ads:
+      LOADED, STARTED, COMPLETED, SKIPPED, CLICKED, etc.
+    coupling: medium
+    files:
+      - AdEvent.kt (IMA)
+
+external:
+  - id: google-ima
+    package: "com.google.ads.interactivemedia.v3"
+    reason: >
+      AdEvent y AdError llegan desde IMA al callback del SDK.
+    coupling: high
+    risk: high
+
+  - id: google-cast
+    package: "com.google.android.gms.cast"
+    reason: >
+      Callbacks de Cast (onCastSessionStarted, etc.) vienen del Cast SDK.
+    coupling: medium
+    risk: medium

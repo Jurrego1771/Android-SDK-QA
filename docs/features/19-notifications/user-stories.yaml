@@ -1,0 +1,52 @@
+version: "1.0"
+module: notifications
+last_updated: "2026-06-23"
+
+user_stories:
+
+  - id: NOTIF-US-001
+    persona: Viewer
+    narrative:
+      as: "oyente de audio en background"
+      want: "controles de reproduccion en la notificacion"
+      so_that: "puedo pausar/play sin abrir la app"
+    business_value: HIGH
+    risk_area:
+      - notifications
+    related_features:
+      - audio
+      - services
+    acceptance:
+      - NOTIF-AC-001
+    notes: >
+      MediaSession + PlayerNotificationManager.
+
+  - id: NOTIF-US-002
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "ver el titulo y artwork en la notificacion"
+      so_that: "se que contenido esta sonando"
+    business_value: MEDIUM
+    risk_area:
+      - notifications
+    acceptance:
+      - NOTIF-AC-002
+    notes: >
+      notificationTitle, notificationDescription, notificationIconUrl.
+
+  - id: NOTIF-US-003
+    persona: Viewer
+    narrative:
+      as: "espectador"
+      want: "boton siguiente en la notificacion"
+      so_that: "puedo cambiar al siguiente episodio desde la notificacion"
+    business_value: MEDIUM
+    risk_area:
+      - notifications
+    related_features:
+      - video-episode
+    acceptance:
+      - NOTIF-AC-003
+    notes: >
+      notificationHasNext=true.
