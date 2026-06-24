@@ -113,6 +113,14 @@
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:supportsPictureInPicture="true" />
 
+        <!-- [VOD loop] VOD con loop=true (end-of-playback) -->
+        <activity
+            android:name=".scenarios.video.VideoVodLoopScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
         <!-- [Cast] VOD con Chromecast -->
         <activity
             android:name=".scenarios.video.VideoCastVodScenarioActivity"
@@ -124,6 +132,14 @@
         <!-- [Cast] Live con Chromecast -->
         <activity
             android:name=".scenarios.video.VideoCastLiveScenarioActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sdkqa.Scenario"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true" />
+
+        <!-- [Cast] Episode con Chromecast -->
+        <activity
+            android:name=".scenarios.video.VideoCastEpisodeScenarioActivity"
             android:exported="false"
             android:theme="@style/Theme.Sdkqa.Scenario"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"

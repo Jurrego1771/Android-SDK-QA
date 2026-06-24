@@ -11,6 +11,7 @@ import com.example.sdk_qa.scenarios.audio.AudioLiveScenarioActivity
 import com.example.sdk_qa.scenarios.audio.AudioVodScenarioActivity
 import com.example.sdk_qa.scenarios.audio.AudioWithServiceScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoAdsScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoCastEpisodeScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoCastLiveScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoCastVodScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoContentSwitcherActivity
@@ -24,6 +25,7 @@ import com.example.sdk_qa.scenarios.video.VideoLiveScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoPipScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoReelsScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoSubtitleScenarioActivity
+import com.example.sdk_qa.scenarios.video.VideoVodLoopScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoVodScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoWithServiceScenarioActivity
 
@@ -70,6 +72,7 @@ class DeepLinkRouterActivity : Activity() {
         val SCENARIOS: Map<String, Class<out Activity>> = mapOf(
             // Video
             "vod" to VideoVodScenarioActivity::class.java,
+            "vod-loop" to VideoVodLoopScenarioActivity::class.java,
             "live" to VideoLiveScenarioActivity::class.java,
             "livedvr" to VideoLiveDvrScenarioActivity::class.java,
             "lived" to VideoLiveDScenarioActivity::class.java,
@@ -82,6 +85,7 @@ class DeepLinkRouterActivity : Activity() {
             "switcher" to VideoContentSwitcherActivity::class.java,
             "cast-vod" to VideoCastVodScenarioActivity::class.java,
             "cast-live" to VideoCastLiveScenarioActivity::class.java,
+            "cast-episode" to VideoCastEpisodeScenarioActivity::class.java,
             "subtitles" to VideoSubtitleScenarioActivity::class.java,
             "fullscreen" to VideoFullscreenOverrideScenarioActivity::class.java,
             "service" to VideoWithServiceScenarioActivity::class.java,

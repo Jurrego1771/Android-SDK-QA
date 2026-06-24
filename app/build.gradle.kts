@@ -77,7 +77,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.5.0")
 
     // Mediastream SDK bajo test
-    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.8-alpha06")
+    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.8-alpha08")
 
 
 
