@@ -74,6 +74,8 @@ jobs:
             ai-output/strategy.md
             ai-output/exploration.md
             ai-output/test-analysis-report.md
+            ai-output/session-diff.md
+            ai-output/version-comparison-report.md
             ai-output/report/
           retention-days: 30
           if-no-files-found: ignore

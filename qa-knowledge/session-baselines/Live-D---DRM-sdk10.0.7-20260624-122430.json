@@ -1,0 +1,95 @@
+{
+  "content": {
+    "environment": "https:\/\/develop.mdstrm.com",
+    "id": "699afcb05a41925324fa4605",
+    "type": "live-stream"
+  },
+  "eventCount": 9,
+  "metrics": {
+    "bitrateSwitches": 0,
+    "droppedFrames": 0,
+    "loadErrorCount": 4,
+    "rebufferCount": 0,
+    "rebufferMs": 0,
+    "resolution": "—",
+    "ttffMs": -1,
+    "videoCodec": "—"
+  },
+  "offMainThread": [],
+  "playback": {
+    "format": "hls"
+  },
+  "scenario": "Live D — DRM",
+  "schema": "sdkqa.session.v2",
+  "sdk": {
+    "version": "10.0.7"
+  },
+  "timeline": [
+    {
+      "initial": true,
+      "offsetMs": 0,
+      "source": "exo",
+      "thread": "main",
+      "type": "buffering_start"
+    },
+    {
+      "offsetMs": 1,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onBuffering"
+    },
+    {
+      "offsetMs": 2931,
+      "source": "sdk",
+      "thread": "main",
+      "type": "playerViewReady"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 404",
+      "httpStatus": 404,
+      "offsetMs": 3848,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 404",
+      "httpStatus": 404,
+      "offsetMs": 4036,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 404",
+      "httpStatus": 404,
+      "offsetMs": 5238,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 404",
+      "httpStatus": 404,
+      "offsetMs": 7440,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "code": "ERROR_CODE_IO_BAD_HTTP_STATUS",
+      "message": "Source error",
+      "offsetMs": 7469,
+      "source": "exo",
+      "thread": "main",
+      "type": "player_error"
+    },
+    {
+      "offsetMs": 7473,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onPlaybackErrors"
+    }
+  ],
+  "truncated": false
+}

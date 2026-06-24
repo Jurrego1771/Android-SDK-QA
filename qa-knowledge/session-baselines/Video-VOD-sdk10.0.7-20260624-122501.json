@@ -1,0 +1,70 @@
+{
+  "content": {
+    "environment": "https:\/\/mdstrm.com",
+    "id": "696e5966d7559b0a0a5225de",
+    "type": "video"
+  },
+  "eventCount": 6,
+  "metrics": {
+    "bitrateSwitches": 0,
+    "droppedFrames": 0,
+    "loadErrorCount": 0,
+    "rebufferCount": 0,
+    "rebufferMs": 0,
+    "resolution": "854x480",
+    "ttffMs": 3011,
+    "videoCodec": "avc1"
+  },
+  "offMainThread": [],
+  "playback": {
+    "format": "hls"
+  },
+  "scenario": "Video VOD",
+  "schema": "sdkqa.session.v2",
+  "sdk": {
+    "version": "10.0.7"
+  },
+  "timeline": [
+    {
+      "offsetMs": 0,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onBuffering"
+    },
+    {
+      "abrSwitch": false,
+      "bitrateBps": 1442000,
+      "codec": "avc1",
+      "offsetMs": 1111,
+      "resolution": "854x480",
+      "source": "exo",
+      "thread": "main",
+      "type": "video_format"
+    },
+    {
+      "offsetMs": 1317,
+      "source": "exo",
+      "thread": "main",
+      "type": "first_frame"
+    },
+    {
+      "offsetMs": 1393,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onReady"
+    },
+    {
+      "offsetMs": 1400,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onPlay"
+    },
+    {
+      "offsetMs": 2986,
+      "source": "sdk",
+      "thread": "main",
+      "type": "playerViewReady"
+    }
+  ],
+  "truncated": false
+}

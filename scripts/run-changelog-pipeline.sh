@@ -96,6 +96,23 @@ fi
 # ── 7. Análisis de resultados (headless) ────────────────────────────────────
 run_agent "/test-analyzer" "${AI_OUTPUT}/test-analysis-report.md"
 
+# ── 7b. Diff de sesiones vs baseline + interpretación (Capa C) ───────────────
+# Compara las capturas de esta versión (ai-output/report/sessions) contra el baseline aceptado
+# (qa-knowledge/session-baselines). Solo si hay baseline Y capturas nuevas; best-effort (no aborta
+# el PR si falta material — el diff es complementario al análisis de tests).
+BASELINE_DIR="${PROJECT_ROOT}/qa-knowledge/session-baselines"
+NEW_SESSIONS_DIR="${AI_OUTPUT}/report/sessions"
+if compgen -G "${BASELINE_DIR}/*.json" >/dev/null && compgen -G "${NEW_SESSIONS_DIR}/*.json" >/dev/null; then
+  log "Diff de sesiones vs baseline (Capa C)"
+  if node "${SCRIPT_DIR}/diff-sessions.cjs" "$BASELINE_DIR" "$NEW_SESSIONS_DIR" "${AI_OUTPUT}/session-diff.md"; then
+    run_agent "/version-comparator" "${AI_OUTPUT}/version-comparison-report.md"
+  else
+    echo "  ⚠ diff-sessions.cjs falló — se omite la interpretación de versiones (no bloquea el PR)."
+  fi
+else
+  echo "  (sin baseline en ${BASELINE_DIR} o sin capturas nuevas — se omite el diff de sesiones)"
+fi
+
 # ── 8. Rama + PR (NO merge → revisión humana) ───────────────────────────────
 log "Creando rama + PR"
 BRANCH="auto/changelog-${SDK_VERSION}"
@@ -115,7 +132,7 @@ COMMIT
 git push -u origin "$BRANCH" || fail "git push"
 PR_URL=$(gh pr create --fill --base main --head "$BRANCH" 2>/dev/null \
   --title "QA auto: changelog SDK ${SDK_VERSION}" \
-  --body "Pipeline dirigido por changelog. Run exit=${RUN_EXIT}. Reportes en ai-output/. **Requiere revisión humana** antes de merge." \
+  --body "Pipeline dirigido por changelog. Run exit=${RUN_EXIT}. Reportes en ai-output/ (analysis, strategy, exploration, test-analysis-report, session-diff + version-comparison-report si hubo baseline). **Requiere revisión humana** antes de merge. Si el comparador no reporta regresiones, promover \`ai-output/report/sessions/*.json\` a \`qa-knowledge/session-baselines/\`." \
   || echo "")
 
 slack "PR de QA para SDK ${SDK_VERSION} creado: ${PR_URL:-(ver GitHub)} · run exit=${RUN_EXIT}"

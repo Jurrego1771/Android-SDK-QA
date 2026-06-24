@@ -1,0 +1,119 @@
+{
+  "content": {
+    "environment": "https:\/\/mdstrm.com",
+    "id": "5fd39e065d68477eaa1ccf5a",
+    "type": "live-stream"
+  },
+  "eventCount": 12,
+  "metrics": {
+    "bitrateSwitches": 0,
+    "droppedFrames": 0,
+    "loadErrorCount": 7,
+    "rebufferCount": 0,
+    "rebufferMs": 0,
+    "resolution": "—",
+    "ttffMs": -1,
+    "videoCodec": "—"
+  },
+  "offMainThread": [],
+  "playback": {
+    "format": "hls"
+  },
+  "scenario": "Video Live DRM",
+  "schema": "sdkqa.session.v2",
+  "sdk": {
+    "version": "10.0.7"
+  },
+  "timeline": [
+    {
+      "initial": true,
+      "offsetMs": 0,
+      "source": "exo",
+      "thread": "main",
+      "type": "buffering_start"
+    },
+    {
+      "offsetMs": 1,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onBuffering"
+    },
+    {
+      "offsetMs": 2996,
+      "source": "sdk",
+      "thread": "main",
+      "type": "playerViewReady"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 502",
+      "httpStatus": 502,
+      "offsetMs": 4219,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 502",
+      "httpStatus": 502,
+      "offsetMs": 6244,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 502",
+      "httpStatus": 502,
+      "offsetMs": 8274,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 502",
+      "httpStatus": 502,
+      "offsetMs": 10232,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 404",
+      "httpStatus": 404,
+      "offsetMs": 11216,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 502",
+      "httpStatus": 502,
+      "offsetMs": 13834,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "error": "InvalidResponseCodeException: Response code: 404",
+      "httpStatus": 404,
+      "offsetMs": 16915,
+      "source": "exo",
+      "thread": "main",
+      "type": "load_error"
+    },
+    {
+      "code": "ERROR_CODE_IO_BAD_HTTP_STATUS",
+      "message": "Source error",
+      "offsetMs": 16930,
+      "source": "exo",
+      "thread": "main",
+      "type": "player_error"
+    },
+    {
+      "offsetMs": 16932,
+      "source": "sdk",
+      "thread": "main",
+      "type": "onPlaybackErrors"
+    }
+  ],
+  "truncated": false
+}
