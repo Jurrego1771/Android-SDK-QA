@@ -62,8 +62,8 @@ object SessionExporter {
         val scenario = runCatching { activity.getScenarioTitle() }.getOrDefault("scenario")
         val version = liveVersion ?: "unknown"
         val ts = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val name = "${sanitize(scenario)}-sdk${sanitize(version)}-$ts.json"
-        val body = stablePretty(json)
+        val name = "${StableJson.sanitizeForFilename(scenario)}-sdk${StableJson.sanitizeForFilename(version)}-$ts.json"
+        val body = StableJson.pretty(json)
 
         // Reset para que la próxima sesión no herede señales de esta. El snapshot del recorder
         // ya quedó dentro de `json`, así que es seguro soltarlo aquí.
@@ -148,44 +148,5 @@ object SessionExporter {
             .put("timeline", timeline)
             .put("offMainThread", JSONArray(offMain.toList()))
             .put("metrics", metrics)
-    }
-
-    private fun sanitize(s: String): String =
-        s.replace(Regex("[^A-Za-z0-9._-]"), "-").trim('-').ifEmpty { "x" }
-
-    // ---------------------------------------------------------------------
-    // Serializador estable: ordena las claves de cada objeto alfabéticamente
-    // (los arrays conservan su orden, que es significativo) → diffs por línea limpios.
-    // ---------------------------------------------------------------------
-    private fun stablePretty(value: Any?, indent: Int = 0): String {
-        val pad = "  ".repeat(indent)
-        val padIn = "  ".repeat(indent + 1)
-        return when (value) {
-            is JSONObject -> {
-                val keys = value.keys().asSequence().toSortedSet()
-                if (keys.isEmpty()) "{}" else buildString {
-                    append("{\n")
-                    keys.forEachIndexed { i, k ->
-                        append(padIn).append(JSONObject.quote(k)).append(": ")
-                        append(stablePretty(value.get(k), indent + 1))
-                        append(if (i < keys.size - 1) ",\n" else "\n")
-                    }
-                    append(pad).append("}")
-                }
-            }
-            is JSONArray -> {
-                if (value.length() == 0) "[]" else buildString {
-                    append("[\n")
-                    for (i in 0 until value.length()) {
-                        append(padIn).append(stablePretty(value.get(i), indent + 1))
-                        append(if (i < value.length() - 1) ",\n" else "\n")
-                    }
-                    append(pad).append("]")
-                }
-            }
-            is String -> JSONObject.quote(value)
-            JSONObject.NULL, null -> "null"
-            else -> value.toString() // números y booleanos
-        }
     }
 }

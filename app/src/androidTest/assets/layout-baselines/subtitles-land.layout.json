@@ -1,0 +1,137 @@
+{
+  "anchors": [
+    {
+      "name": "btn_back_ten",
+      "present": true,
+      "relBottom": 0.565,
+      "relLeft": 0.387,
+      "relRight": 0.434,
+      "relTop": 0.46,
+      "visible": true
+    },
+    {
+      "name": "btn_fullscreen_on",
+      "present": true,
+      "relBottom": 0.981,
+      "relLeft": 0.875,
+      "relRight": 0.917,
+      "relTop": 0.889,
+      "visible": true
+    },
+    {
+      "name": "btn_fwd_ten",
+      "present": true,
+      "relBottom": 0.565,
+      "relLeft": 0.514,
+      "relRight": 0.561,
+      "relTop": 0.46,
+      "visible": true
+    },
+    {
+      "name": "btn_settings",
+      "present": true,
+      "relBottom": 0.981,
+      "relLeft": 0.823,
+      "relRight": 0.865,
+      "relTop": 0.889,
+      "visible": true
+    },
+    {
+      "name": "dvr_timeline_container",
+      "present": true,
+      "relBottom": 0.883,
+      "relLeft": 0.052,
+      "relRight": 0.896,
+      "relTop": 0.82,
+      "visible": true
+    },
+    {
+      "name": "exo_content_frame",
+      "present": true,
+      "relBottom": 1.0,
+      "relLeft": 0.0,
+      "relRight": 0.948,
+      "relTop": 0.073,
+      "visible": true
+    },
+    {
+      "name": "exo_duration",
+      "present": true,
+      "relBottom": 0.868,
+      "relLeft": 0.896,
+      "relRight": 0.937,
+      "relTop": 0.836,
+      "visible": true
+    },
+    {
+      "name": "exo_play_pause",
+      "present": true,
+      "relBottom": 0.565,
+      "relLeft": 0.45,
+      "relRight": 0.498,
+      "relTop": 0.46,
+      "visible": true
+    },
+    {
+      "name": "exo_position",
+      "present": true,
+      "relBottom": 0.868,
+      "relLeft": 0.011,
+      "relRight": 0.052,
+      "relTop": 0.836,
+      "visible": true
+    },
+    {
+      "name": "exo_progress",
+      "present": true,
+      "relBottom": 0.883,
+      "relLeft": 0.056,
+      "relRight": 0.891,
+      "relTop": 0.82,
+      "visible": true
+    },
+    {
+      "name": "exo_subtitle",
+      "present": true,
+      "relBottom": 0.988,
+      "relLeft": 0.02,
+      "relRight": 0.061,
+      "relTop": 0.895,
+      "visible": true
+    },
+    {
+      "name": "media_route_button",
+      "present": false,
+      "visible": false
+    },
+    {
+      "name": "seek_bar_layout",
+      "present": true,
+      "relBottom": 0.883,
+      "relLeft": 0.011,
+      "relRight": 0.937,
+      "relTop": 0.82,
+      "visible": true
+    },
+    {
+      "name": "txt_title",
+      "present": true,
+      "relBottom": 0.169,
+      "relLeft": 0.0,
+      "relRight": 0.893,
+      "relTop": 0.117,
+      "visible": true
+    }
+  ],
+  "container": {
+    "density": 2.625,
+    "hPx": 1080,
+    "wPx": 2400
+  },
+  "device": "SM-A536E",
+  "scenario": "subtitles-land",
+  "schema": "sdkqa.layout.v1",
+  "sdk": {
+    "version": "10.0.7"
+  }
+}

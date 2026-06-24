@@ -76,8 +76,10 @@ dependencies {
     // contrato de compilación del PlaybackMetrics. Gradle reconcilia a la versión más alta.
     implementation("androidx.media3:media3-exoplayer:1.5.0")
 
-    // Mediastream SDK — 10.0.5-alpha01 adds onFullscreenOnClick override API
-    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.7")
+    // Mediastream SDK bajo test
+    implementation("io.github.mediastream:mediastreamplatformsdkandroid:10.0.8-alpha06")
+
+
 
     // --- Test dependencies ---
     testImplementation(libs.junit)
