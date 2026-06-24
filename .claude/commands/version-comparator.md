@@ -66,6 +66,9 @@ Escribe `ai-output/version-comparison-report.md`:
    `node scripts/diff-sessions.cjs <dir-baseline> <dir-nueva>`
 2. NO inventes números — usa solo los del session-diff.md. Tu aporte es la clasificación, no el cálculo.
 3. Toda clasificación ESPERADO debe citar la entrada del changelog (de analysis.md) que la explica.
-4. Si una captura parece incompleta (TTFF negativo, eventos de carga ausentes), NO la clasifiques como
-   regresión — márcala DATO-INCOMPLETO y recomienda recapturar. No alarmes con datos malos.
+4. Si el `session-diff.md` ya marcó un escenario como `🟥 NO COMPARABLE — RECAPTURAR` (el script
+   detectó captura cortada), repórtalo como DATO-INCOMPLETO sin re-derivar y recomienda recapturar.
+   NO lo clasifiques como regresión ni alarmes con datos malos. (El script distingue una captura
+   cortada de una captura completa de un FALLO real —player_error/onPlaybackErrors—; esta última SÍ
+   es comparable y un cambio en ella entre versiones puede ser ESPERADO o REGRESIÓN según el changelog.)
 5. Sé conservador con REGRESIÓN: solo si el cambio estructural NO lo explica el changelog Y degrada algo.

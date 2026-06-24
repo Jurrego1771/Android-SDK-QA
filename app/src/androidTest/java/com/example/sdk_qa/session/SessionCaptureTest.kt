@@ -43,13 +43,24 @@ class SessionCaptureTest {
     private fun <T : BaseScenarioActivity> capture(clazz: Class<T>) {
         // .use{} cierra al final → finish → onDestroy → SessionExporter.export.
         ActivityScenario.launch(clazz).use { scenario ->
-            // Esperar onReady sin assert (tolerante): si no llega, igual exportamos lo que haya.
+            // Esperar a un estado CONCLUYENTE (tolerante, sin assert): o renderizó el primer frame
+            // (ttffMs>=0) o disparó un error terminal. NO basta onReady: un escenario puede llegar a
+            // onReady/onPlay y cerrarse sin pintar (ttffMs=-1, sin first_frame), produciendo un JSON
+            // que el comparador marca "no comparable / recapturar". Esperar a concluyente hace que la
+            // captura nazca comparable por construcción. Si no concluye en el timeout, igual exportamos
+            // lo que haya (el gate de diff-sessions.cjs lo detecta y pide recaptura).
             runCatching {
-                var captorReady = false
+                var conclusive = false
                 val start = System.currentTimeMillis()
-                while (System.currentTimeMillis() - start < readyTimeoutMs && !captorReady) {
-                    scenario.onActivity { captorReady = it.callbackCaptor.hasEvent("onReady") }
-                    if (!captorReady) Thread.sleep(500)
+                while (System.currentTimeMillis() - start < readyTimeoutMs && !conclusive) {
+                    scenario.onActivity { act ->
+                        val rendered = act.playbackMetrics.snapshot(act.player?.msPlayer).ttffMs >= 0
+                        val failed = act.callbackCaptor.hasEvent("onError") ||
+                            act.callbackCaptor.hasEvent("onPlaybackErrors") ||
+                            act.callbackCaptor.hasEvent("onEmbedErrors")
+                        conclusive = rendered || failed
+                    }
+                    if (!conclusive) Thread.sleep(500)
                 }
             }
             // Soak: dejar correr para que el timeline capture eventos de reproducción reales.

@@ -104,10 +104,16 @@ BASELINE_DIR="${PROJECT_ROOT}/qa-knowledge/session-baselines"
 NEW_SESSIONS_DIR="${AI_OUTPUT}/report/sessions"
 if compgen -G "${BASELINE_DIR}/*.json" >/dev/null && compgen -G "${NEW_SESSIONS_DIR}/*.json" >/dev/null; then
   log "Diff de sesiones vs baseline (Capa C)"
-  if node "${SCRIPT_DIR}/diff-sessions.cjs" "$BASELINE_DIR" "$NEW_SESSIONS_DIR" "${AI_OUTPUT}/session-diff.md"; then
+  node "${SCRIPT_DIR}/diff-sessions.cjs" "$BASELINE_DIR" "$NEW_SESSIONS_DIR" "${AI_OUTPUT}/session-diff.md"
+  DIFF_EXIT=$?
+  # exit 0 = diff concluyente · exit 5 = no concluyente (capturas cortadas/set desalineado) → en
+  # ambos hay un session-diff.md válido y el agente debe interpretarlo (en el caso 5 reportará
+  # RECAPTURAR). Solo otro código (2 = mal invocado) se trata como fallo y se omite el agente.
+  if [[ $DIFF_EXIT -eq 0 || $DIFF_EXIT -eq 5 ]]; then
+    [[ $DIFF_EXIT -eq 5 ]] && { echo "  ⚠ diff NO concluyente (capturas incompletas) — el reporte recomendará recapturar."; slack "Diff de sesiones $SDK_VERSION no concluyente: capturas incompletas. Revisar version-comparison-report."; }
     run_agent "/version-comparator" "${AI_OUTPUT}/version-comparison-report.md"
   else
-    echo "  ⚠ diff-sessions.cjs falló — se omite la interpretación de versiones (no bloquea el PR)."
+    echo "  ⚠ diff-sessions.cjs error de invocación (exit $DIFF_EXIT) — se omite la interpretación (no bloquea el PR)."
   fi
 else
   echo "  (sin baseline en ${BASELINE_DIR} o sin capturas nuevas — se omite el diff de sesiones)"

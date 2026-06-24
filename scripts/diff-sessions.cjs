@@ -48,6 +48,27 @@ function loadByScenario(dir) {
 const seq = d => (d.timeline || []).map(e => `${e.source}:${e.type}`);
 const esc = s => String(s);
 
+// --- Gate de completitud: GIGO guard. Distingue una captura CONCLUYENTE de una CORTADA.
+// Una captura es concluyente (comparable) si alcanzó un estado terminal observable:
+//   (a) renderizó → evento `first_frame` presente (reproducción OK), o
+//   (b) falló de verdad → `player_error`/`onPlaybackErrors` (fallo reproducible, comparable entre
+//       versiones — `loadErrorCount` es una métrica; un Live caído que sigue caído ES un dato, no ruido).
+// Es CORTADA (→ RECAPTURAR) solo si no tiene NINGUNO de los dos: quedó en estado indeterminado
+// (p.ej. alpha08 VOD: onReady/onPlay/onPause sin first_frame ni error → la sesión se cerró antes de pintar).
+// `truncated=true` también la marca cortada. NO se usa ttffMs como criterio: en un error legítimo
+// ttffMs=-1 es correcto (nunca hubo frame porque falló), no señal de captura mala.
+function assessCompleteness(d) {
+  const types = (d.timeline || []).map(e => e.type);
+  const hasFirstFrame = types.includes('first_frame');
+  const hasTerminalError = types.includes('player_error') || types.includes('onPlaybackErrors');
+  const reasons = [];
+  if (d.truncated === true) reasons.push('timeline truncado');
+  if (!hasFirstFrame && !hasTerminalError) {
+    reasons.push('ni first_frame ni error terminal — sesión cortada en estado indeterminado');
+  }
+  return { complete: reasons.length === 0, reasons, hasFirstFrame, hasTerminalError };
+}
+
 const base = loadByScenario(baseDir);
 const neu = loadByScenario(newDir);
 const baseVer = Object.values(base)[0]?.sdk?.version || '(baseline)';
@@ -62,12 +83,25 @@ md += `> Comparación determinista (script). La interpretación (esperado/regres
 md += `> Δ ESTRUCTURAL (orden de callbacks) = señal fuerte; Δ MÉTRICAS numéricas = pueden ser ruido de red (tol TTFF ±${TTFF_TOL_MS}ms).\n\n`;
 
 let structuralChanges = 0;
+let incompleteCaptures = 0;
+let missingScenarios = 0;
 
 for (const sc of scenarios) {
   const b = base[sc], n = neu[sc];
   md += `## ${esc(sc)}\n\n`;
-  if (!b) { md += `⚠️ Sin baseline para este escenario (solo en versión nueva).\n\n`; continue; }
-  if (!n) { md += `⚠️ Sin sesión en la versión nueva (solo en baseline).\n\n`; continue; }
+  if (!b) { md += `⚠️ Sin baseline para este escenario (solo en versión nueva) — set DESALINEADO.\n\n`; missingScenarios++; continue; }
+  if (!n) { md += `⚠️ Sin sesión en la versión nueva (solo en baseline) — set DESALINEADO, ¿falló la captura?\n\n`; missingScenarios++; continue; }
+
+  // --- Gate de completitud (GIGO): no diffear capturas que no reprodujeron ---
+  const cb = assessCompleteness(b), cn = assessCompleteness(n);
+  if (!cb.complete || !cn.complete) {
+    incompleteCaptures++;
+    md += `🟥 **NO COMPARABLE — captura incompleta → RECAPTURAR.**\n`;
+    if (!cb.complete) md += `- baseline (${esc(baseVer)}): ${cb.reasons.join('; ')}\n`;
+    if (!cn.complete) md += `- nueva (${esc(newVer)}): ${cn.reasons.join('; ')}\n`;
+    md += `- Se omite el diff de este escenario (no se cuenta como cambio estructural).\n\n`;
+    continue;
+  }
 
   // --- Δ ESTRUCTURAL: secuencia de tipos de evento ---
   const bs = seq(b), ns = seq(n);
@@ -127,14 +161,23 @@ for (const sc of scenarios) {
   }
 }
 
+const comparable = scenarios.length - incompleteCaptures - missingScenarios;
 md += `---\n\n`;
 md += `## Resumen\n`;
-md += `- Escenarios comparados: ${scenarios.length}\n`;
+md += `- Escenarios en el set: ${scenarios.length} · comparados de verdad: **${comparable}**\n`;
+md += `- Capturas incompletas (no comparables → RECAPTURAR): **${incompleteCaptures}**\n`;
+md += `- Escenarios desalineados (solo en una versión): **${missingScenarios}**\n`;
 md += `- Cambios estructurales detectados (orden callbacks / threading / formato): **${structuralChanges}**\n`;
-md += structuralChanges === 0
-  ? `- ✅ Sin cambios estructurales — diferencias solo en métricas numéricas (posible ruido de red).\n`
-  : `- 🔶 Hay cambios estructurales → revisar con /version-comparator si son esperados por el changelog o regresiones.\n`;
+if (incompleteCaptures > 0 || missingScenarios > 0) {
+  md += `- ⚠️ El diff NO es concluyente: hay capturas incompletas o set desalineado. Recapturar (set completo, dejar reproducir hasta first_frame + soak) y re-correr antes de emitir veredicto.\n`;
+} else if (structuralChanges === 0) {
+  md += `- ✅ Set completo y alineado, sin cambios estructurales — diferencias solo en métricas numéricas (posible ruido de red).\n`;
+} else {
+  md += `- 🔶 Set completo, pero hay cambios estructurales → revisar con /version-comparator si son esperados por el changelog o regresiones.\n`;
+}
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, md);
-console.log(`✓ ${OUT} (${scenarios.length} escenarios, ${structuralChanges} cambios estructurales)`);
+console.log(`✓ ${OUT} (${comparable}/${scenarios.length} comparables, ${incompleteCaptures} incompletas, ${structuralChanges} cambios estructurales)`);
+// Exit 5 = diff no concluyente (capturas incompletas / set desalineado) → el pipeline puede decidir recapturar.
+process.exit((incompleteCaptures > 0 || missingScenarios > 0) ? 5 : 0);
