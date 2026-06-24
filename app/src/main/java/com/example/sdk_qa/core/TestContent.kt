@@ -15,6 +15,7 @@ object TestContent {
 
     /** Entorno por defecto para todos los escenarios */
     val ENV = MediastreamPlayerConfig.Environment.PRODUCTION
+    // val ENV = MediastreamPlayerConfig.Environment.EU   // variante EU (requiere SDK -eu y accessToken)
     // val ENV = MediastreamPlayerConfig.Environment.DEV  // descomentar para pruebas en DEV
 
     // -------------------------------------------------------------------------
@@ -22,7 +23,7 @@ object TestContent {
     // -------------------------------------------------------------------------
     object Video {
         /** VOD corto — mismo contenido que el reel inicial */
-        const val VOD_SHORT = "6980e43ac0ac0673d0944d63"
+        const val VOD_SHORT = "696e5966d7559b0a0a5225de"
 
         /** VOD normal (~10 min) — para pruebas de seek. TODO: reemplazar con VOD más largo */
         const val VOD_LONG = "696e5966d7559b0a0a5225de"
@@ -45,8 +46,8 @@ object TestContent {
         /** Tercer episodio para modo manual — reutiliza el mismo para validar el callback */
         const val EPISODE_CUSTOM_3 = "69e14468941e7a8050a8584f"
 
-        /** VOD con múltiples anuncios IMA configurados */
-        const val VOD_WITH_ADS = "696bc8a832ce0ef08c6fa0ef"
+        /** VOD con múltiples anuncios IMA: preroll + midroll (4 ads @ seg 14) + postroll */
+        const val VOD_WITH_ADS = "6a3c14c8a9b8c3b23b2e0f86"
 
         /** VOD con subtítulos (WebVTT o ASS/SSA) configurados en la plataforma.
          *  TODO: reemplazar con ID real — actualmente alias de VOD_LONG */
@@ -57,6 +58,17 @@ object TestContent {
 
         /** URL directa de HLS público — no requiere API, para tests de red */
         const val SRC_DIRECT_HLS = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+
+        /** VOD para prueba de cast (rama EU 10.0.8-alpha-eu-01) — requiere accessToken */
+        const val CAST_VOD = "69cd939ba93693e9b03200b4"
+        const val CAST_VOD_TOKEN =
+            "Ydv8KEHlMp6AXLZyH8jryT5OCc9mCXJa7u3YxksZxnleiXEEnewLR6edGr6TK396lMfvr1FMDbG"
+
+        /** Episode (con siguiente configurado) para prueba de cast en EU — requiere accessToken.
+         *  Sirve para validar que la sesión de cast se mantiene al cambiar de episodio. */
+        const val CAST_EPISODE = "6a39b9db2f77c7113ed97117"
+        const val CAST_EPISODE_TOKEN =
+            "ViHk6YhfhqEZvRk5p7ngyw1FeiRZ6QQU3gDfLoDXVhxK2N0PfU8V2p6qeKxQ3VBMqx2dhr5Tn6k"
     }
 
     // -------------------------------------------------------------------------
@@ -64,7 +76,7 @@ object TestContent {
     // -------------------------------------------------------------------------
     object Audio {
         /** Radio en vivo */
-        const val LIVE = "632c9b23d1dcd7027f32f7fe"
+        const val LIVE = "699f00cc48481b0e6ee49f8f"
 
         /** Podcast / audio bajo demanda */
         const val VOD = "659c1a5cb66e51001357f22c"
