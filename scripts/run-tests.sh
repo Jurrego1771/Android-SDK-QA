@@ -14,6 +14,9 @@
 #   --smoke                           Alias para --package smoke
 #   --skip-build                      Saltear el paso de Gradle build
 #   --no-report                       No generar HTML report al final
+#   --no-preflight                    Saltear el preflight gate (sonda de entorno)
+#   --capture-sessions                Capturar timeline JSON por escenario (Capa C) para diff
+#                                     entre versiones del SDK; se incluyen en el report
 #   -h, --help                        Mostrar esta ayuda
 #
 # Ejemplos:
@@ -52,6 +55,8 @@ TEST_CLASS=""
 TEST_PACKAGE=""
 SMOKE_ONLY=false
 NO_REPORT=false
+NO_PREFLIGHT=false
+CAPTURE_SESSIONS=false
 
 APP_PACKAGE="com.example.sdk_qa"
 ANNOTATION_PKG="${APP_PACKAGE}.annotation"
@@ -68,6 +73,11 @@ INSTRUMENT_RAW="${AI_OUTPUT}/instrument-raw.txt"
 RESULTS_JSON="${AI_OUTPUT}/test-results.json"
 REPORT_DIR="${AI_OUTPUT}/report"
 KNOWN_DEVICES_FILE="${SCRIPT_DIR}/.known-devices"
+
+# JUnit XML del Orchestrator (Gradle connectedAndroidTest) — fuente de verdad de resultados
+XML_DIR="${PROJECT_ROOT}/app/build/outputs/androidTest-results/connected/debug"
+PREFLIGHT_CLASS="${APP_PACKAGE}.preflight.PreflightTest"
+EXIT_ENV_DOWN=2  # código de salida cuando el preflight detecta entorno no disponible
 
 # Detectar si estamos en Windows (Git Bash / MSYS)
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
@@ -92,6 +102,8 @@ while [[ $# -gt 0 ]]; do
         --smoke)       SMOKE_ONLY=true;    shift   ;;
         --skip-build)  SKIP_BUILD=true;    shift   ;;
         --no-report)   NO_REPORT=true;     shift   ;;
+        --no-preflight) NO_PREFLIGHT=true; shift   ;;
+        --capture-sessions) CAPTURE_SESSIONS=true; shift ;;
         -h|--help)     show_help; exit 0           ;;
         *) log_error "Opción desconocida: '$1'. Usa --help para ver las opciones." ;;
     esac
@@ -469,47 +481,86 @@ log_ok "Procesos detenidos"
 SCREENRECORD_PID=""
 VIDEO_PATH=""
 
-# ─── Paso 7: Ejecutar tests ───────────────────────────────────────────────────
-log_step "Ejecutando tests"
+# ─── Paso 6b: Preflight gate ──────────────────────────────────────────────────
+# Sonda de salud del entorno ANTES de la batería completa. Ejercita la cadena
+# device → red → backend Mediastream → init del SDK con la ruta feliz canónica.
+# Si falla, ABORTA con código $EXIT_ENV_DOWN en vez de gastar ~28 min produciendo
+# decenas de falsos rojos indistinguibles de una regresión real.
+#
+# Corre vía `am instrument` directo (1 test, ~30s, no necesita orchestrator).
+# Se saltea con --no-preflight o cuando se apunta a una clase específica (--class),
+# donde el objetivo es depurar esa clase, no validar el entorno.
+if [[ "$NO_PREFLIGHT" == true ]]; then
+    log_warn "Preflight gate saltado (--no-preflight)"
+elif [[ -n "$TEST_CLASS" ]]; then
+    log_info "Preflight gate omitido (run dirigido a --class $TEST_CLASS)"
+else
+    log_step "Preflight gate"
+    log_info "Sondeando entorno (VOD real → onReady, máx 30s)..."
+
+    PREFLIGHT_RAW="${AI_OUTPUT}/preflight-raw.txt"
+    set +e
+    adb -s "$DEVICE_SERIAL" shell am instrument -w \
+        -e class "$PREFLIGHT_CLASS" \
+        "$TEST_RUNNER" 2>&1 | tee "$PREFLIGHT_RAW"
+    set -e
+
+    # Éxito sólo si corrió >=1 test y no hubo FAILURES.
+    if grep -q "FAILURES!!!" "$PREFLIGHT_RAW" || ! grep -qE "^OK \([1-9]" "$PREFLIGHT_RAW"; then
+        echo ""
+        echo -e "${RED}${BOLD}╔══════════════════════════════════════════╗${NC}"
+        echo -e "${RED}${BOLD}║   ✗  ENTORNO NO DISPONIBLE — SUITE ABORTADA   ║${NC}"
+        echo -e "${RED}${BOLD}╚══════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "  El preflight no pudo cargar un VOD por el backend de Mediastream."
+        echo -e "  No se ejecuta la batería completa para no generar falsos rojos."
+        echo ""
+        echo -e "${BOLD}── Diagnóstico (SDK_QA_FAIL) ──────────────────────${NC}"
+        adb -s "$DEVICE_SERIAL" logcat -d -s SDK_QA_FAIL 2>/dev/null | \
+            grep -v "^-" | tail -8 || echo "  (sin entradas)"
+        echo ""
+        echo -e "  Reintenta cuando el backend/red estén disponibles, o usa --no-preflight para forzar."
+        exit "$EXIT_ENV_DOWN"
+    fi
+    log_ok "Entorno saludable — procediendo con la batería"
+fi
+
+# ─── Paso 7: Ejecutar tests (Orchestrator vía Gradle) ─────────────────────────
+# El Orchestrator aísla cada test en su propia instrumentación (testOptions
+# execution = ANDROIDX_TEST_ORCHESTRATOR + clearPackageData en build.gradle.kts):
+# un crash o leak de IMA ya no contamina los tests siguientes. `am instrument`
+# directo NO usa el Orchestrator — por eso la ejecución va por connectedAndroidTest.
+log_step "Ejecutando tests (Orchestrator)"
+
+# Convertir los filtros de instrumentación a args de Gradle.
+# INSTRUMENT_ARGS tiene forma " -e KEY VALUE ..."; Gradle los recibe como
+# -Pandroid.testInstrumentationRunnerArguments.KEY=VALUE (los valores no tienen espacios).
+GRADLE_ARGS=()
+read -ra _IA <<< "$INSTRUMENT_ARGS"
+_i=0
+while [[ $_i -lt ${#_IA[@]} ]]; do
+    if [[ "${_IA[$_i]}" == "-e" ]]; then
+        GRADLE_ARGS+=("-Pandroid.testInstrumentationRunnerArguments.${_IA[$((_i+1))]}=${_IA[$((_i+2))]}")
+        _i=$((_i+3))
+    else
+        _i=$((_i+1))
+    fi
+done
+
+# Limpiar XML de corridas previas para no mezclar resultados viejos.
+rm -f "${XML_DIR}"/TEST-*.xml 2>/dev/null || true
 
 echo -e ""
 START_TS=$(date +%s)
 
-# Mostrar output en tiempo real — parsea el formato brief de ADB:
-#   com.example.sdk_qa.SomeTest:...E..   (. = pass, E = fail en la línea de clase)
-#   Error in methodName(className):      (bloque de error siguiente)
-#   .                                    (pass suelto después de un error)
-show_realtime_output() {
-    local cur_suite=""
-    while IFS= read -r line; do
-        # Línea de suite: "com.example.sdk_qa.foo.BarTest:...E."
-        if [[ "$line" =~ ^com\.example\.sdk_qa\.(.+):(.*)$ ]]; then
-            cur_suite="${BASH_REMATCH[1]##*.}"
-            local trail="${BASH_REMATCH[2]}"
-            local c
-            for (( c=0; c<${#trail}; c++ )); do
-                ch="${trail:$c:1}"
-                if [[ "$ch" == "." ]]; then
-                    echo -e "  ${GREEN}✓${NC}  ${cur_suite}"
-                elif [[ "$ch" == "E" ]]; then
-                    : # el nombre real llega en el bloque "Error in" siguiente
-                fi
-            done
-        # Inicio de bloque de error
-        elif [[ "$line" =~ ^Error\ in\ ([a-zA-Z_][a-zA-Z0-9_]*)\( ]]; then
-            echo -e "  ${RED}✗${NC}  ${cur_suite}.${BASH_REMATCH[1]}"
-        # Pass suelto después de un bloque de error
-        elif [[ "$line" == "." ]]; then
-            echo -e "  ${GREEN}✓${NC}  ${cur_suite}"
-        fi
-    done
-}
-
-# Guardar output crudo + mostrar en tiempo real
+# Gradle connectedDebugAndroidTest devuelve != 0 si algún test falla; el veredicto
+# real se calcula del JUnit XML (Paso 9). Log completo a INSTRUMENT_RAW; en pantalla
+# sólo el progreso relevante.
 set +e
-adb -s "$DEVICE_SERIAL" shell am instrument -w \
-    $INSTRUMENT_ARGS \
-    "$TEST_RUNNER" 2>&1 | tee "$INSTRUMENT_RAW" | show_realtime_output
+ANDROID_SERIAL="$DEVICE_SERIAL" "$GRADLEW" connectedDebugAndroidTest \
+    "${GRADLE_ARGS[@]}" 2>&1 | tee "$INSTRUMENT_RAW" | \
+    grep --line-buffered -E "Starting [0-9]+ tests|Finished [0-9]+ tests|tests on|> Task :app:connected|BUILD (SUCCESSFUL|FAILED)|^FAILURE:|error:" \
+    || true
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
 
@@ -520,57 +571,15 @@ SECONDS_REM=$((ELAPSED % 60))
 
 # ─── Paso 8: (grabación deshabilitada) ───────────────────────────────────────
 
-# ─── Paso 9: Parsear resultados del raw file ──────────────────────────────────
-# Node.js imprime comandos bash que eval pobla PASSED_TESTS / FAILED_TESTS.
+# ─── Paso 9: Parsear resultados del JUnit XML (fuente de verdad) ──────────────
+# parse-junit-xml.cjs escribe test-results.json Y emite líneas eval-ables que
+# pueblan PASSED_TESTS / FAILED_TESTS / FAILED_REASONS. Reemplaza el scraping del
+# formato brief de am instrument (frágil — reportaba conteos incorrectos).
 PASSED_TESTS=()
 FAILED_TESTS=()
 FAILED_REASONS=()
 
-eval "$(node - "$INSTRUMENT_RAW" <<'JSEOF'
-const fs = require('fs');
-const rawPath = process.argv[2];
-let content = '';
-try { content = fs.readFileSync(rawPath, 'utf8'); } catch(_) { process.exit(0); }
-
-const passed = [], failed = [];
-let currentClass = '', inError = false, errorEntry = null;
-
-for (const line of content.split(/\r?\n/)) {
-    const suiteM = line.match(/^(com\.example\.sdk_qa\.\S+?):(.*)/);
-    if (suiteM) {
-        currentClass = suiteM[1];
-        for (const ch of suiteM[2]) {
-            if (ch === '.') passed.push({ cls: currentClass, test: 'unknown' });
-        }
-        inError = false; errorEntry = null;
-        continue;
-    }
-    const errM = line.match(/^Error in (\w+)\(/);
-    if (errM) {
-        if (passed.length && passed[passed.length-1].test === 'unknown') passed.pop();
-        errorEntry = { cls: currentClass, test: errM[1], reason: '' };
-        failed.push(errorEntry);
-        inError = true;
-        continue;
-    }
-    if (inError && errorEntry && !errorEntry.reason) {
-        const s = line.trim();
-        if (s && !s.startsWith('at ') && s !== '') errorEntry.reason = s.slice(0, 200);
-    }
-    if (line.trim() === '.') {
-        passed.push({ cls: currentClass, test: 'unknown' });
-        inError = false; errorEntry = null;
-    }
-}
-
-const q = s => "'" + s.replace(/'/g, "'\\''") + "'";
-for (const t of passed)  process.stdout.write('PASSED_TESTS+=(' + q(t.cls + '.' + t.test) + ')\n');
-for (const t of failed) {
-    process.stdout.write('FAILED_TESTS+=(' + q(t.cls + '.' + t.test) + ')\n');
-    process.stdout.write('FAILED_REASONS+=(' + q(t.reason) + ')\n');
-}
-JSEOF
-)"
+eval "$(node "${SCRIPT_DIR}/parse-junit-xml.cjs" "$XML_DIR" "$RESULTS_JSON" "${MINUTES}m${SECONDS_REM}s")"
 
 # ─── Paso 9b: Screenshot via adb si hubo fallos (fallback al device-side) ────
 # SdkEvidenceRule intenta takeScreenshot() en el test; en TV puede retornar null.
@@ -613,57 +622,35 @@ if [[ $N_FAIL -gt 0 ]]; then
     echo ""
 fi
 
-# ─── Paso 11: Generar test-results.json ───────────────────────────────────────
+# ─── Paso 11: test-results.json ──────────────────────────────────────────────
+# Ya fue escrito por parse-junit-xml.cjs en el Paso 9 (a partir del JUnit XML).
 if [[ "$NO_REPORT" == false ]]; then
-    log_info "Generando test-results.json..."
+    [[ -f "$RESULTS_JSON" ]] \
+        && log_ok "test-results.json generado: $RESULTS_JSON" \
+        || log_warn "test-results.json no se generó (sin XML — ¿el runner murió antes de emitir resultados?)"
+fi
 
-    node - "$INSTRUMENT_RAW" "$RESULTS_JSON" "${MINUTES}m${SECONDS_REM}s" <<'JSEOF'
-const fs = require('fs');
-const [rawPath, outPath, duration] = process.argv.slice(2);
-let content = '';
-try { content = fs.readFileSync(rawPath, 'utf8'); } catch(_) {}
-
-const passedTests = [], failedTests = [];
-let currentClass = '', inError = false, errorEntry = null;
-
-for (const line of content.split(/\r?\n/)) {
-    const suiteM = line.match(/^(com\.example\.sdk_qa\.\S+?):(.*)/);
-    if (suiteM) {
-        currentClass = suiteM[1];
-        for (const ch of suiteM[2]) {
-            if (ch === '.') passedTests.push({ name: '—', class: currentClass, status: 'passed', duration: '' });
-        }
-        inError = false; errorEntry = null;
-        continue;
-    }
-    const errM = line.match(/^Error in (\w+)\(/);
-    if (errM) {
-        errorEntry = { name: errM[1], class: currentClass, status: 'failed', duration: '', error: '' };
-        failedTests.push(errorEntry);
-        inError = true;
-        continue;
-    }
-    if (inError && errorEntry && !errorEntry.error) {
-        const s = line.trim();
-        if (s && !s.startsWith('at ') && !s.startsWith('expected') &&
-            !s.startsWith('Recibidos') && !s.startsWith('Faltantes'))
-            errorEntry.error = s;
-    }
-    if (line.trim() === '.') {
-        passedTests.push({ name: '—', class: currentClass, status: 'passed', duration: '' });
-        inError = false; errorEntry = null;
-    }
-}
-
-const result = {
-    tests: [...failedTests, ...passedTests],
-    summary: { total: passedTests.length + failedTests.length,
-               passed: passedTests.length, failed: failedTests.length, duration }
-};
-fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
-JSEOF
-
-    log_ok "test-results.json generado: $RESULTS_JSON"
+# ─── Paso 11.5: Captura de sesiones (Capa C) para diff entre versiones del SDK ─
+# OPCIONAL (--capture-sessions). Corre SessionCaptureTest vía `am instrument` DIRECTO
+# (sin Orchestrator), porque el clearPackageData del Orchestrator borra getExternalFilesDir
+# y los JSON de timeline se perderían. Baja los JSON a $REPORT_DIR/sessions para el informe.
+SESSIONS_DIR="${REPORT_DIR}/sessions"
+if [[ "$CAPTURE_SESSIONS" == true ]]; then
+    log_step "Capturando sesiones (timeline JSON para diff de versiones)"
+    DEVICE_SESSIONS="/sdcard/Android/data/${APP_PACKAGE}/files/sessions"
+    adb -s "$DEVICE_SERIAL" shell rm -rf "$DEVICE_SESSIONS" 2>/dev/null || true
+    adb -s "$DEVICE_SERIAL" shell am instrument -w \
+        -e class "${APP_PACKAGE}.session.SessionCaptureTest" \
+        "$TEST_RUNNER" 2>&1 | tail -3 || true
+    mkdir -p "$SESSIONS_DIR"
+    if adb -s "$DEVICE_SERIAL" pull "$DEVICE_SESSIONS" "$SESSIONS_DIR/_pull" >/dev/null 2>&1; then
+        mv "$SESSIONS_DIR/_pull"/*.json "$SESSIONS_DIR/" 2>/dev/null || true
+        rm -rf "$SESSIONS_DIR/_pull"
+        N_SESS=$(ls "$SESSIONS_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')
+        log_ok "Sesiones capturadas: ${N_SESS} JSON en ${SESSIONS_DIR}"
+    else
+        log_warn "No se pudieron recuperar JSON de sesión (¿ningún escenario exportó?)"
+    fi
 fi
 
 # ─── Paso 12: Generar HTML report ────────────────────────────────────────────
@@ -722,8 +709,9 @@ elif [[ "$EXIT_CODE" -ne 0 && $N_PASS -eq 0 ]]; then
     echo -e "${RED}${BOLD}║   ✗  RUNNER FALLÓ — 0 TESTS      ║${NC}"
     echo -e "${RED}${BOLD}╚══════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  adb instrument salió con código $EXIT_CODE y no ejecutó ningún test."
-    echo -e "  Raw output: $INSTRUMENT_RAW"
+    echo -e "  Gradle connectedAndroidTest salió con código $EXIT_CODE y no produjo resultados (XML vacío)."
+    echo -e "  Causas típicas: fallo de build/install, device desconectado, o filtro que no matchea ninguna clase."
+    echo -e "  Log completo: $INSTRUMENT_RAW"
     echo -e "  Logcat: adb -s $DEVICE_SERIAL logcat -d -s AndroidRuntime,TestRunner"
     exit 1
 else

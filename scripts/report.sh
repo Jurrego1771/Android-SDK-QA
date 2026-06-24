@@ -125,6 +125,40 @@ process.stdout.write(html);
 JSEOF
 2>/dev/null || echo "<!-- no test data -->")
 
+# ─── Sesiones capturadas (Capa C) — timeline JSON para diff entre versiones ────
+SESSIONS_SECTION=$(node - "$OUTPUT_DIR/sessions" <<'JSESS'
+const fs = require('fs'), path = require('path');
+const dir = process.argv[2];
+if (!fs.existsSync(dir)) process.exit(0);
+const files = fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort();
+if (!files.length) process.exit(0);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+let rows = '';
+for (const f of files) {
+    let d; try { d = JSON.parse(fs.readFileSync(path.join(dir,f),'utf8')); } catch(_) { continue; }
+    const m = d.metrics || {};
+    const sdk = (d.sdk && d.sdk.version) || '?';
+    rows += `<tr>
+        <td class="test-name">${esc(d.scenario||f)}</td>
+        <td>${esc(sdk)}</td>
+        <td class="duration">${esc(d.eventCount ?? '?')}</td>
+        <td class="duration">${esc(m.ttffMs ?? '?')}</td>
+        <td class="duration">${esc(m.rebufferCount ?? '?')}</td>
+        <td class="duration">${esc(m.loadErrorCount ?? '?')}</td>
+        <td class="test-name">${esc(m.resolution||'?')} ${esc(m.videoCodec||'')}</td>
+        <td><a href="sessions/${esc(f)}" style="color:var(--accent)">JSON</a></td>
+    </tr>`;
+}
+process.stdout.write(`<div class="section">
+  <h2>Sesiones capturadas (timeline · diff entre versiones del SDK)</h2>
+  <table>
+    <tr style="color:var(--muted)"><td>Escenario</td><td>SDK</td><td>Eventos</td><td>TTFF</td><td>Rebuf</td><td>LoadErr</td><td>Formato</td><td>Archivo</td></tr>
+    ${rows}
+  </table>
+</div>`);
+JSESS
+2>/dev/null || echo "")
+
 VIDEO_SECTION=""
 if $HAS_VIDEO; then
 VIDEO_SECTION='<div class="section video-section">
@@ -224,6 +258,8 @@ cat > "$OUTPUT_DIR/index.html" <<HTML
 </div>
 
 $VIDEO_SECTION
+
+$SESSIONS_SECTION
 
 <div class="section">
   <h2>Tests</h2>
