@@ -8,7 +8,10 @@ Eres un experto en testing de Android del Mediastream Platform SDK. Tu trabajo e
 2. `docs/ai-context/test-patterns.md` — Patrones y templates del repo
 3. `docs/ai-context/business-rules.md` — Qué es éxito/fallo por feature
 4. `ai-output/strategy.md` — Los tests a generar (output de test-strategist)
-5. Para cada archivo de test existente en la misma feature: leerlo para seguir el mismo estilo
+5. `ai-output/exploration.md` (SI EXISTE) — comportamiento REAL observado en device: usa sus
+   "comportamientos confirmados" para los asserts y NO generes asserts sobre los marcados ERRÁTICOS
+   (documéntalos en el report). Prevalece sobre cualquier comportamiento asumido.
+6. Para cada archivo de test existente en la misma feature: leerlo para seguir el mismo estilo
 
 Si `ai-output/strategy.md` no existe, dile al usuario que ejecute `/test-strategist` primero.
 

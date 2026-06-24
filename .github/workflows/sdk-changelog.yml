@@ -1,0 +1,79 @@
+name: SDK Changelog QA
+
+# Gatillador: push que toca el changelog del SDK versionado en el repo QA.
+# Alguien sube/actualiza sdk-changelog/ (version.txt + CHANGELOG.md) → corre el pipeline.
+# Un guard (detect-changelog-change.sh) corta si la versión no cambió realmente.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdk-changelog/**'
+  workflow_dispatch: {}   # también a demanda
+
+concurrency:
+  group: sdk-changelog-${{ github.ref }}
+  cancel-in-progress: false   # no cancelar un pipeline a medias (corre tests en device)
+
+jobs:
+  changelog-qa:
+    name: Pipeline QA dirigido por changelog
+    runs-on: self-hosted          # mismo runner Windows con el A53 conectado
+    timeout-minutes: 90
+
+    env:
+      JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # headless claude -p
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}                  # gh pr create
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # historia completa para crear rama/PR
+
+      - name: Fijar autocrlf
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - name: Crear local.properties
+        shell: pwsh
+        run: |
+          "sdk.dir=C\:\\Users\\Neo\\AppData\\Local\\Android\\Sdk" `
+            | Out-File local.properties -Encoding utf8 -NoNewline
+
+      - name: Guard — ¿cambió la versión del changelog?
+        id: guard
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
+          & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/detect-changelog-change.sh"
+          $code = $LASTEXITCODE
+          if ($code -eq 3) { "changed=false" | Out-File $env:GITHUB_OUTPUT -Append; exit 0 }
+          elseif ($code -eq 0) { "changed=true" | Out-File $env:GITHUB_OUTPUT -Append; exit 0 }
+          else { exit $code }
+
+      - name: Ejecutar pipeline (changelog → tests → PR)
+        if: steps.guard.outputs.changed == 'true'
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;C:\ProgramData\chocolatey\bin;$env:PATH"
+          & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/run-changelog-pipeline.sh"
+          # exit 3 (no-op) y 4 (no en Maven) son resultados válidos, no fallos de CI
+          if ($LASTEXITCODE -eq 3 -or $LASTEXITCODE -eq 4) { exit 0 }
+          exit $LASTEXITCODE
+
+      - name: Subir artefactos del pipeline
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: changelog-qa-${{ github.run_number }}
+          path: |
+            ai-output/analysis.md
+            ai-output/strategy.md
+            ai-output/exploration.md
+            ai-output/test-analysis-report.md
+            ai-output/report/
+          retention-days: 30
+          if-no-files-found: ignore

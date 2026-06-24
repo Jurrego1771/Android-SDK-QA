@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# ============================================================================
+# run-changelog-pipeline.sh — Orquestador del pipeline de QA dirigido por changelog.
+#
+# Encadena: fetch → maven-check → [agentes IA headless] → bump → run-tests → analyzer → PR.
+# Cada agente IA corre vía `claude -p "<slash-command>"` (headless) y debe producir su archivo
+# de contrato en ai-output/ (fail-fast si no aparece).
+#
+# Requisitos:
+#   - Claude Code CLI en PATH + ANTHROPIC_API_KEY (headless autónomo).
+#   - gh autenticado (PR). Device A53 conectado (etapa explore + run-tests).
+#
+# Exit: 0 = pipeline ok (PR abierto) · 3 = sin cambios (no-op) · 4 = SDK no en Maven
+#       2 = entorno caído (device) · 1 = fallo de alguna etapa
+# ============================================================================
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+AI_OUTPUT="${PROJECT_ROOT}/ai-output"
+CHANGELOG_DIR="${PROJECT_ROOT}/sdk-changelog"
+STATE_FILE="${CHANGELOG_DIR}/.last-processed"
+BUILD_GRADLE="${PROJECT_ROOT}/app/build.gradle.kts"
+
+# Flags de claude -p para CI headless. Ajustables por env. El permission-mode debe permitir
+# que los agentes escriban archivos sin prompt; en runner aislado se acepta bypassPermissions.
+CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+CLAUDE_FLAGS="${CLAUDE_FLAGS:---permission-mode acceptEdits}"
+
+log()  { echo -e "\n▶ $*"; }
+fail() { echo "✗ $*" >&2; exit 1; }
+
+slack() {  # notificación best-effort (no rompe el pipeline si falla)
+  [[ -n "${SLACK_WEBHOOK_URL:-}" ]] || return 0
+  curl -s -X POST -H 'Content-type: application/json' \
+    --data "{\"text\":\"[changelog-pipeline] $1\"}" "$SLACK_WEBHOOK_URL" >/dev/null 2>&1 || true
+}
+
+# --- Helper: corre un agente IA headless y verifica su archivo de salida -----
+run_agent() {
+  local slash="$1" out="$2"
+  log "Agente $slash (headless)…"
+  "$CLAUDE_BIN" -p "$slash" $CLAUDE_FLAGS \
+    || fail "claude -p $slash devolvió error (¿ANTHROPIC_API_KEY? ¿claude en PATH?)"
+  [[ -f "$out" ]] || fail "$slash no produjo $out"
+  echo "  ✓ $out"
+}
+
+# ── 0. Guard: ¿cambió la versión? ───────────────────────────────────────────
+bash "${SCRIPT_DIR}/detect-changelog-change.sh"
+case $? in
+  0) ;;                       # versión nueva → seguir
+  3) echo "Sin cambios — no-op."; exit 3 ;;
+  *) fail "detect-changelog-change.sh error" ;;
+esac
+
+# ── 1. Ingesta ──────────────────────────────────────────────────────────────
+log "Ingesta del changelog"
+bash "${SCRIPT_DIR}/fetch-changelog.sh" || fail "fetch-changelog.sh"
+SDK_VERSION="$(grep '^sdk_version=' "${AI_OUTPUT}/changelog-meta.txt" | cut -d= -f2)"
+[[ -n "$SDK_VERSION" ]] || fail "no se pudo leer sdk_version"
+echo "  versión: $SDK_VERSION"
+
+# ── 2. Maven check (antes de buildear / gastar tokens) ──────────────────────
+log "Verificando disponibilidad en Maven"
+if ! bash "${SCRIPT_DIR}/check-maven-available.sh" "$SDK_VERSION"; then
+  slack "Versión $SDK_VERSION en el changelog pero NO disponible en Maven todavía. Abort limpio."
+  echo "SDK $SDK_VERSION no disponible en Maven — abort limpio."; exit 4
+fi
+
+# ── 3. Cadena de agentes IA (headless) ──────────────────────────────────────
+run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
+run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
+run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # requiere device + MCP
+
+# ── 4. Bump de la versión del SDK ───────────────────────────────────────────
+log "Bump SDK → $SDK_VERSION en build.gradle.kts"
+sed -i -E "s|(mediastreamplatformsdkandroid:)[^\"]+|\1${SDK_VERSION}|" "$BUILD_GRADLE"
+grep -q "mediastreamplatformsdkandroid:${SDK_VERSION}" "$BUILD_GRADLE" || fail "bump no aplicó"
+
+# ── 5. Generación de tests (headless) ───────────────────────────────────────
+run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
+
+# ── 6. Ejecutar la suite en device ──────────────────────────────────────────
+log "Ejecutando tests en device"
+bash "${SCRIPT_DIR}/run-tests.sh" --target mobile --size all --capture-sessions
+RUN_EXIT=$?
+if [[ $RUN_EXIT -eq 2 ]]; then
+  slack "Entorno caído (device/backend) — pipeline abortado sin PR para $SDK_VERSION."
+  echo "Entorno caído (exit 2) — no se crea PR."; exit 2
+fi
+# exit 1 (tests fallaron) NO aborta: el analyzer clasifica y el PR documenta los fallos.
+
+# ── 7. Análisis de resultados (headless) ────────────────────────────────────
+run_agent "/test-analyzer" "${AI_OUTPUT}/test-analysis-report.md"
+
+# ── 8. Rama + PR (NO merge → revisión humana) ───────────────────────────────
+log "Creando rama + PR"
+BRANCH="auto/changelog-${SDK_VERSION}"
+git checkout -B "$BRANCH"
+echo "$SDK_VERSION" > "$STATE_FILE"   # marca como procesada SOLO al llegar aquí
+git add -A
+git commit -F - <<COMMIT
+test(auto): QA dirigido por changelog SDK ${SDK_VERSION}
+
+Pipeline automático (changelog → analyze → strategist → explore(MCP) → generate → run → analyze).
+Bump del SDK a ${SDK_VERSION}. Tests generados/ejecutados; ver ai-output/ para reportes.
+REQUIERE REVISIÓN HUMANA antes de merge (principio docs/testing/ai-workflow.md).
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+COMMIT
+
+git push -u origin "$BRANCH" || fail "git push"
+PR_URL=$(gh pr create --fill --base main --head "$BRANCH" 2>/dev/null \
+  --title "QA auto: changelog SDK ${SDK_VERSION}" \
+  --body "Pipeline dirigido por changelog. Run exit=${RUN_EXIT}. Reportes en ai-output/. **Requiere revisión humana** antes de merge." \
+  || echo "")
+
+slack "PR de QA para SDK ${SDK_VERSION} creado: ${PR_URL:-(ver GitHub)} · run exit=${RUN_EXIT}"
+log "Pipeline completo. PR: ${PR_URL:-(revisar GitHub)}"
+exit 0
