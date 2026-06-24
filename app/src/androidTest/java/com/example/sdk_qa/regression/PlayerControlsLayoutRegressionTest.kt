@@ -4,6 +4,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.sdk_qa.annotation.ManualOnly
 import com.example.sdk_qa.core.BaseScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoEpisodeApiScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoFullscreenOverrideScenarioActivity
@@ -77,7 +78,8 @@ class PlayerControlsLayoutRegressionTest {
     @Test fun layout_vod()        = runScenario("vod", VideoVodScenarioActivity::class.java)
     @Test fun layout_live()       = runScenario("live", VideoLiveScenarioActivity::class.java)
     @Test fun layout_livedvr()    = runScenario("livedvr", VideoLiveDvrScenarioActivity::class.java)
-    @Test fun layout_lived()      = runScenario("lived", VideoLiveDScenarioActivity::class.java)
+    // DRM (Widevine) on-demand: licencia costosa + contenido en DEV inestable → fuera de la suite.
+    @Test @ManualOnly fun layout_lived() = runScenario("lived", VideoLiveDScenarioActivity::class.java)
     @Test fun layout_episode()    = runScenario("episode", VideoEpisodeApiScenarioActivity::class.java)
     @Test fun layout_subtitles()  = runScenario("subtitles", VideoSubtitleScenarioActivity::class.java)
     @Test fun layout_fullscreen() = runScenario("fullscreen", VideoFullscreenOverrideScenarioActivity::class.java)

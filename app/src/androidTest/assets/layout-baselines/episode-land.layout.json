@@ -3,46 +3,46 @@
     {
       "name": "btn_back_ten",
       "present": true,
-      "relBottom": 0.565,
-      "relLeft": 0.387,
-      "relRight": 0.434,
+      "relBottom": 0.559,
+      "relLeft": 0.393,
+      "relRight": 0.437,
       "relTop": 0.46,
       "visible": true
     },
     {
       "name": "btn_fullscreen_on",
       "present": true,
-      "relBottom": 0.981,
-      "relLeft": 0.875,
-      "relRight": 0.917,
-      "relTop": 0.889,
+      "relBottom": 0.983,
+      "relLeft": 0.882,
+      "relRight": 0.921,
+      "relTop": 0.895,
       "visible": true
     },
     {
       "name": "btn_fwd_ten",
       "present": true,
-      "relBottom": 0.565,
-      "relLeft": 0.514,
-      "relRight": 0.561,
+      "relBottom": 0.559,
+      "relLeft": 0.513,
+      "relRight": 0.558,
       "relTop": 0.46,
       "visible": true
     },
     {
       "name": "btn_settings",
       "present": true,
-      "relBottom": 0.981,
-      "relLeft": 0.823,
-      "relRight": 0.865,
-      "relTop": 0.889,
+      "relBottom": 0.983,
+      "relLeft": 0.832,
+      "relRight": 0.871,
+      "relTop": 0.895,
       "visible": true
     },
     {
       "name": "dvr_timeline_container",
       "present": true,
-      "relBottom": 0.883,
-      "relLeft": 0.052,
-      "relRight": 0.896,
-      "relTop": 0.82,
+      "relBottom": 0.889,
+      "relLeft": 0.056,
+      "relRight": 0.9,
+      "relTop": 0.83,
       "visible": true
     },
     {
@@ -50,53 +50,53 @@
       "present": true,
       "relBottom": 1.0,
       "relLeft": 0.0,
-      "relRight": 0.948,
-      "relTop": 0.073,
+      "relRight": 0.95,
+      "relTop": 0.065,
       "visible": true
     },
     {
       "name": "exo_duration",
       "present": true,
-      "relBottom": 0.868,
-      "relLeft": 0.896,
-      "relRight": 0.937,
-      "relTop": 0.836,
+      "relBottom": 0.879,
+      "relLeft": 0.9,
+      "relRight": 0.94,
+      "relTop": 0.839,
       "visible": true
     },
     {
       "name": "exo_play_pause",
       "present": true,
-      "relBottom": 0.565,
-      "relLeft": 0.45,
-      "relRight": 0.498,
+      "relBottom": 0.559,
+      "relLeft": 0.453,
+      "relRight": 0.497,
       "relTop": 0.46,
       "visible": true
     },
     {
       "name": "exo_position",
       "present": true,
-      "relBottom": 0.868,
-      "relLeft": 0.011,
-      "relRight": 0.052,
-      "relTop": 0.836,
+      "relBottom": 0.879,
+      "relLeft": 0.01,
+      "relRight": 0.056,
+      "relTop": 0.839,
       "visible": true
     },
     {
       "name": "exo_progress",
       "present": true,
-      "relBottom": 0.883,
-      "relLeft": 0.056,
-      "relRight": 0.891,
-      "relTop": 0.82,
+      "relBottom": 0.889,
+      "relLeft": 0.06,
+      "relRight": 0.896,
+      "relTop": 0.83,
       "visible": true
     },
     {
       "name": "exo_subtitle",
       "present": true,
-      "relBottom": 0.988,
-      "relLeft": 0.02,
-      "relRight": 0.061,
-      "relTop": 0.895,
+      "relBottom": 0.989,
+      "relLeft": 0.019,
+      "relRight": 0.058,
+      "relTop": 0.901,
       "visible": true
     },
     {
@@ -107,31 +107,31 @@
     {
       "name": "seek_bar_layout",
       "present": true,
-      "relBottom": 0.883,
-      "relLeft": 0.011,
-      "relRight": 0.937,
-      "relTop": 0.82,
+      "relBottom": 0.889,
+      "relLeft": 0.01,
+      "relRight": 0.94,
+      "relTop": 0.83,
       "visible": true
     },
     {
       "name": "txt_title",
       "present": true,
-      "relBottom": 0.169,
+      "relBottom": 0.156,
       "relLeft": 0.0,
-      "relRight": 0.893,
-      "relTop": 0.117,
+      "relRight": 0.898,
+      "relTop": 0.107,
       "visible": true
     }
   ],
   "container": {
-    "density": 2.625,
-    "hPx": 1080,
-    "wPx": 2400
+    "density": 2.8125,
+    "hPx": 1220,
+    "wPx": 2712
   },
-  "device": "SM-A536E",
+  "device": "motorola edge 60 fusion",
   "scenario": "episode-land",
   "schema": "sdkqa.layout.v1",
   "sdk": {
-    "version": "10.0.7"
+    "version": "10.0.8-alpha08"
   }
 }

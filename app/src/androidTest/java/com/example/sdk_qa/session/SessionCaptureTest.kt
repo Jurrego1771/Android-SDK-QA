@@ -4,6 +4,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.sdk_qa.annotation.ManualOnly
 import com.example.sdk_qa.core.BaseScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoAdsScenarioActivity
 import com.example.sdk_qa.scenarios.video.VideoEpisodeApiScenarioActivity
@@ -73,7 +74,8 @@ class SessionCaptureTest {
     @Test fun capture_vod()       = capture(VideoVodScenarioActivity::class.java)
     @Test fun capture_live()      = capture(VideoLiveScenarioActivity::class.java)
     @Test fun capture_livedvr()   = capture(VideoLiveDvrScenarioActivity::class.java)
-    @Test fun capture_lived()     = capture(VideoLiveDScenarioActivity::class.java)
+    // DRM (Widevine) on-demand: licencia costosa + contenido en DEV inestable → fuera de la suite.
+    @Test @ManualOnly fun capture_lived() = capture(VideoLiveDScenarioActivity::class.java)
     @Test fun capture_episode()   = capture(VideoEpisodeApiScenarioActivity::class.java)
     @Test fun capture_ads()       = capture(VideoAdsScenarioActivity::class.java)
     @Test fun capture_subtitles() = capture(VideoSubtitleScenarioActivity::class.java)

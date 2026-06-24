@@ -3,11 +3,11 @@
     {
       "name": "btn_back_ten",
       "present": true,
-      "relBottom": 0.511,
-      "relLeft": 0.317,
-      "relRight": 0.416,
-      "relTop": 0.466,
-      "visible": true
+      "relBottom": 0.047,
+      "relLeft": 0.0,
+      "relRight": 0.0,
+      "relTop": 0.047,
+      "visible": false
     },
     {
       "name": "btn_fullscreen_on",
@@ -21,11 +21,11 @@
     {
       "name": "btn_fwd_ten",
       "present": true,
-      "relBottom": 0.511,
-      "relLeft": 0.584,
-      "relRight": 0.684,
-      "relTop": 0.466,
-      "visible": true
+      "relBottom": 0.047,
+      "relLeft": 0.0,
+      "relRight": 0.0,
+      "relTop": 0.047,
+      "visible": false
     },
     {
       "name": "btn_settings",
@@ -40,8 +40,8 @@
       "name": "dvr_timeline_container",
       "present": true,
       "relBottom": 0.9,
-      "relLeft": 0.125,
-      "relRight": 0.888,
+      "relLeft": 0.023,
+      "relRight": 0.977,
       "relTop": 0.874,
       "visible": true
     },
@@ -57,47 +57,47 @@
     {
       "name": "exo_duration",
       "present": true,
-      "relBottom": 0.896,
-      "relLeft": 0.888,
-      "relRight": 0.977,
-      "relTop": 0.878,
-      "visible": true
+      "relBottom": 0.047,
+      "relLeft": 0.0,
+      "relRight": 0.0,
+      "relTop": 0.047,
+      "visible": false
     },
     {
       "name": "exo_play_pause",
       "present": true,
-      "relBottom": 0.511,
+      "relBottom": 0.498,
       "relLeft": 0.451,
       "relRight": 0.55,
-      "relTop": 0.466,
+      "relTop": 0.454,
       "visible": true
     },
     {
       "name": "exo_position",
       "present": true,
-      "relBottom": 0.896,
-      "relLeft": 0.023,
-      "relRight": 0.125,
-      "relTop": 0.878,
-      "visible": true
+      "relBottom": 0.047,
+      "relLeft": 0.0,
+      "relRight": 0.0,
+      "relTop": 0.047,
+      "visible": false
     },
     {
       "name": "exo_progress",
       "present": true,
       "relBottom": 0.9,
-      "relLeft": 0.134,
-      "relRight": 0.879,
+      "relLeft": 0.032,
+      "relRight": 0.968,
       "relTop": 0.874,
       "visible": true
     },
     {
       "name": "exo_subtitle",
       "present": true,
-      "relBottom": 0.945,
-      "relLeft": 0.042,
-      "relRight": 0.13,
-      "relTop": 0.906,
-      "visible": true
+      "relBottom": 0.047,
+      "relLeft": 0.0,
+      "relRight": 0.0,
+      "relTop": 0.047,
+      "visible": false
     },
     {
       "name": "media_route_button",
@@ -129,7 +129,7 @@
     "wPx": 1220
   },
   "device": "motorola edge 60 fusion",
-  "scenario": "fullscreen-port",
+  "scenario": "live-port",
   "schema": "sdkqa.layout.v1",
   "sdk": {
     "version": "10.0.8-alpha08"

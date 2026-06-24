@@ -35,3 +35,14 @@ annotation class MobileOnly
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class FireTvOnly
+
+/**
+ * Prueba on-demand / manual: NO entra en la suite automatizada (run-tests.sh la excluye SIEMPRE).
+ * Para escenarios costosos o de licencia que se verifican a mano cuando hace falta — p. ej. DRM
+ * (Widevine): la adquisición de licencia es costosa y el contenido suele vivir en entornos DEV
+ * inestables, así que no aporta señal fiable en CI. Correr a demanda con:
+ *   adb shell am instrument -w -e class <ClaseTest>#<metodo> <runner>
+ */
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class ManualOnly

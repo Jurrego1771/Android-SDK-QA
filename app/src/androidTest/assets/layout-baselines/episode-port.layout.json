@@ -3,100 +3,100 @@
     {
       "name": "btn_back_ten",
       "present": true,
-      "relBottom": 0.505,
-      "relLeft": 0.307,
-      "relRight": 0.412,
-      "relTop": 0.458,
+      "relBottom": 0.511,
+      "relLeft": 0.317,
+      "relRight": 0.416,
+      "relTop": 0.466,
       "visible": true
     },
     {
       "name": "btn_fullscreen_on",
       "present": true,
-      "relBottom": 0.939,
-      "relLeft": 0.84,
-      "relRight": 0.932,
-      "relTop": 0.898,
+      "relBottom": 0.942,
+      "relLeft": 0.848,
+      "relRight": 0.935,
+      "relTop": 0.903,
       "visible": true
     },
     {
       "name": "btn_fwd_ten",
       "present": true,
-      "relBottom": 0.505,
-      "relLeft": 0.589,
-      "relRight": 0.694,
-      "relTop": 0.458,
+      "relBottom": 0.511,
+      "relLeft": 0.584,
+      "relRight": 0.684,
+      "relTop": 0.466,
       "visible": true
     },
     {
       "name": "btn_settings",
       "present": true,
-      "relBottom": 0.939,
-      "relLeft": 0.723,
-      "relRight": 0.816,
-      "relTop": 0.898,
+      "relBottom": 0.942,
+      "relLeft": 0.737,
+      "relRight": 0.825,
+      "relTop": 0.903,
       "visible": true
     },
     {
       "name": "dvr_timeline_container",
       "present": true,
-      "relBottom": 0.895,
-      "relLeft": 0.115,
-      "relRight": 0.885,
-      "relTop": 0.867,
+      "relBottom": 0.9,
+      "relLeft": 0.125,
+      "relRight": 0.888,
+      "relTop": 0.874,
       "visible": true
     },
     {
       "name": "exo_content_frame",
       "present": true,
-      "relBottom": 0.948,
+      "relBottom": 0.95,
       "relLeft": 0.0,
       "relRight": 1.0,
-      "relTop": 0.037,
+      "relTop": 0.047,
       "visible": true
     },
     {
       "name": "exo_duration",
       "present": true,
-      "relBottom": 0.888,
-      "relLeft": 0.885,
-      "relRight": 0.976,
-      "relTop": 0.874,
+      "relBottom": 0.896,
+      "relLeft": 0.888,
+      "relRight": 0.977,
+      "relTop": 0.878,
       "visible": true
     },
     {
       "name": "exo_play_pause",
       "present": true,
-      "relBottom": 0.505,
-      "relLeft": 0.448,
-      "relRight": 0.553,
-      "relTop": 0.458,
+      "relBottom": 0.511,
+      "relLeft": 0.451,
+      "relRight": 0.55,
+      "relTop": 0.466,
       "visible": true
     },
     {
       "name": "exo_position",
       "present": true,
-      "relBottom": 0.888,
-      "relLeft": 0.024,
-      "relRight": 0.115,
-      "relTop": 0.874,
+      "relBottom": 0.896,
+      "relLeft": 0.023,
+      "relRight": 0.125,
+      "relTop": 0.878,
       "visible": true
     },
     {
       "name": "exo_progress",
       "present": true,
-      "relBottom": 0.895,
-      "relLeft": 0.125,
-      "relRight": 0.875,
-      "relTop": 0.867,
+      "relBottom": 0.9,
+      "relLeft": 0.134,
+      "relRight": 0.879,
+      "relTop": 0.874,
       "visible": true
     },
     {
       "name": "exo_subtitle",
       "present": true,
-      "relBottom": 0.942,
-      "relLeft": 0.044,
-      "relRight": 0.136,
-      "relTop": 0.9,
+      "relBottom": 0.945,
+      "relLeft": 0.042,
+      "relRight": 0.13,
+      "relTop": 0.906,
       "visible": true
     },
     {
@@ -107,31 +107,31 @@
     {
       "name": "seek_bar_layout",
       "present": true,
-      "relBottom": 0.895,
-      "relLeft": 0.024,
-      "relRight": 0.976,
-      "relTop": 0.867,
+      "relBottom": 0.9,
+      "relLeft": 0.023,
+      "relRight": 0.977,
+      "relTop": 0.874,
       "visible": true
     },
     {
       "name": "txt_title",
       "present": true,
-      "relBottom": 0.08,
+      "relBottom": 0.088,
       "relLeft": 0.0,
-      "relRight": 0.879,
-      "relTop": 0.056,
+      "relRight": 0.884,
+      "relTop": 0.066,
       "visible": true
     }
   ],
   "container": {
-    "density": 2.625,
-    "hPx": 2400,
-    "wPx": 1080
+    "density": 2.8125,
+    "hPx": 2712,
+    "wPx": 1220
   },
-  "device": "SM-A536E",
+  "device": "motorola edge 60 fusion",
   "scenario": "episode-port",
   "schema": "sdkqa.layout.v1",
   "sdk": {
-    "version": "10.0.7"
+    "version": "10.0.8-alpha08"
   }
 }

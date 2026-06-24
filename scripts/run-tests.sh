@@ -399,33 +399,37 @@ log_step "Configuración de tests"
 
 INSTRUMENT_ARGS=""
 
-# Filtro por tipo de dispositivo
+# Filtro por tipo de dispositivo → acumula anotaciones a EXCLUIR en TYPE_NOT_ANNOT (lista por coma).
+# @ManualOnly se excluye SIEMPRE (pruebas on-demand: DRM costoso, etc.) — se añade tras el case.
+# Nota: am instrument solo respeta UN `-e notAnnotation` (el último gana), por eso se construye una
+# sola lista y se emite un único arg al final.
+TYPE_NOT_ANNOT=""
 case "$TARGET" in
     tv)
-        INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.FireTvOnly"
+        TYPE_NOT_ANNOT="${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.FireTvOnly"
         log_info "Target: Android TV  — excluye @MobileOnly y @FireTvOnly"
         ;;
     firetv)
-        INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.TvOnly"
+        TYPE_NOT_ANNOT="${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.TvOnly"
         log_info "Target: Fire TV     — excluye @MobileOnly y @TvOnly"
         ;;
     mobile)
-        INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.TvOnly,${ANNOTATION_PKG}.FireTvOnly"
+        TYPE_NOT_ANNOT="${ANNOTATION_PKG}.TvOnly,${ANNOTATION_PKG}.FireTvOnly"
         log_info "Target: Mobile      — excluye @TvOnly y @FireTvOnly"
         ;;
     all)
         # Auto-apply annotation filter based on detected device type
         case "$DETECTED_TYPE" in
             tv)
-                INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.FireTvOnly"
+                TYPE_NOT_ANNOT="${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.FireTvOnly"
                 log_info "Target: all (TV detectado) — excluye @MobileOnly y @FireTvOnly"
                 ;;
             firetv)
-                INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.TvOnly"
+                TYPE_NOT_ANNOT="${ANNOTATION_PKG}.MobileOnly,${ANNOTATION_PKG}.TvOnly"
                 log_info "Target: all (FireTV detectado) — excluye @MobileOnly y @TvOnly"
                 ;;
             mobile)
-                INSTRUMENT_ARGS+=" -e notAnnotation ${ANNOTATION_PKG}.TvOnly,${ANNOTATION_PKG}.FireTvOnly"
+                TYPE_NOT_ANNOT="${ANNOTATION_PKG}.TvOnly,${ANNOTATION_PKG}.FireTvOnly"
                 log_info "Target: all (Mobile detectado) — excluye @TvOnly y @FireTvOnly"
                 ;;
             *)
@@ -434,6 +438,12 @@ case "$TARGET" in
         esac
         ;;
 esac
+
+# @ManualOnly SIEMPRE excluida (DRM costoso / pruebas on-demand). Se concatena a las de tipo.
+NOT_ANNOT="${ANNOTATION_PKG}.ManualOnly"
+[[ -n "$TYPE_NOT_ANNOT" ]] && NOT_ANNOT="${TYPE_NOT_ANNOT},${NOT_ANNOT}"
+INSTRUMENT_ARGS+=" -e notAnnotation ${NOT_ANNOT}"
+log_info "Excluye @ManualOnly (on-demand) — correr DRM a mano con am instrument -e class"
 
 # Filtro por tamaño (@MediumTest / @LargeTest)
 case "$SIZE_FILTER" in
@@ -638,12 +648,18 @@ SESSIONS_DIR="${REPORT_DIR}/sessions"
 if [[ "$CAPTURE_SESSIONS" == true ]]; then
     log_step "Capturando sesiones (timeline JSON para diff de versiones)"
     DEVICE_SESSIONS="/sdcard/Android/data/${APP_PACKAGE}/files/sessions"
-    adb -s "$DEVICE_SERIAL" shell rm -rf "$DEVICE_SESSIONS" 2>/dev/null || true
+    # El Orchestrator (connectedAndroidTest) DESINSTALA los APKs al terminar la suite, así que
+    # reinstalamos antes del `am instrument` directo (si no, "Unable to find instrumentation").
+    adb -s "$DEVICE_SERIAL" install -r -t "$APK_APP"  >/dev/null 2>&1 || true
+    adb -s "$DEVICE_SERIAL" install -r -t "$APK_TEST" >/dev/null 2>&1 || true
+    # MSYS_NO_PATHCONV=1 inline: en Git Bash (Windows) evita que las rutas /sdcard se conviertan
+    # a rutas del host. Solo aquí — el resto del script usa rutas de host que SÍ deben convertirse.
+    MSYS_NO_PATHCONV=1 adb -s "$DEVICE_SERIAL" shell rm -rf "$DEVICE_SESSIONS" 2>/dev/null || true
     adb -s "$DEVICE_SERIAL" shell am instrument -w \
         -e class "${APP_PACKAGE}.session.SessionCaptureTest" \
         "$TEST_RUNNER" 2>&1 | tail -3 || true
     mkdir -p "$SESSIONS_DIR"
-    if adb -s "$DEVICE_SERIAL" pull "$DEVICE_SESSIONS" "$SESSIONS_DIR/_pull" >/dev/null 2>&1; then
+    if MSYS_NO_PATHCONV=1 adb -s "$DEVICE_SERIAL" pull "$DEVICE_SESSIONS" "$SESSIONS_DIR/_pull" >/dev/null 2>&1; then
         mv "$SESSIONS_DIR/_pull"/*.json "$SESSIONS_DIR/" 2>/dev/null || true
         rm -rf "$SESSIONS_DIR/_pull"
         N_SESS=$(ls "$SESSIONS_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')
