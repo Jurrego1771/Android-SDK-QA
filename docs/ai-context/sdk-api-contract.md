@@ -309,8 +309,13 @@ fun getPPIDFromAdTagParameters(): String?    // Obtiene PPID de los atributos
 
 ## 5. MediastreamPlayerCallback — Todos los Callbacks
 
-> **CRÍTICO:** Esta interfaz NO tiene implementaciones default. TODOS los métodos deben implementarse.
-> No se puede crear un anonymous object parcial sin compilar error.
+> **CRÍTICO:** La **mayoría** de los métodos son abstractos y deben implementarse — un anonymous
+> object parcial no compila. **Excepciones con default `{}`** (no obligatorios), verificadas contra
+> el código del SDK: en 10.0.x → `nextEpisodeIncoming`, `nextEpisodeLoadRequested`; la línea 11.0.0
+> agrega además `onSwipeToItem`, `onEndReached`, `onEpisodeInfoClick` (feature Vertical/Reels).
+> `onFullscreen(enteredForPip: Boolean = false)` tiene parámetro con valor por defecto.
+> ⚠️ Una versión previa de esta nota afirmaba "NINGÚN default" — falso; corregido 2026-06-25 contra
+> el fuente. Para generar un callback de test, implementá los abstractos; los de default son opcionales.
 
 ### Ciclo de vida del player
 ```kotlin
