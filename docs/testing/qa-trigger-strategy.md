@@ -155,7 +155,11 @@ git, irreversible). En su lugar:
 3. **Clasificador de rama**: `classify-branch.sh` — tipo ← nombre, features ← `git diff <rama>..master`
    + índice inverso, changelog opcional → `change-meta.txt`.
 4. **Router en el orquestador**: ramificar `watch-sdk.sh` por `change_type` (alcance de `run-tests.sh`).
-5. **Build local → mavenLocal** para feature/fix.
+5. **Build local → mavenLocal** para feature/fix. ✅ hecho (`build-sdk-local.sh`). Verificado
+   end-to-end: el `.aar` de Maven de una rama de trabajo NO corresponde a su código (homónimos
+   desfasados); buildear desde la rama → mavenLocal → el QA compila (donde contra Maven fallaba).
+   Nota: el `publishToMavenLocal` del SDK falla (doble sources jar) → se usa assembleRelease + install
+   manual del AAR/POM a `~/.m2`.
 6. **workflow_dispatch con `sdk_branch`** + cron de versiones (descubrimiento). ✅ hecho.
 7. **Adaptación de API (compile-gate)** — el paso que falta para que FEATURE no muera en un build
    roto: `compileDebugAndroidTestKotlin` tras el bump; si falla por la interfaz, un agente agrega los
