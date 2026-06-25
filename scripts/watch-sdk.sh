@@ -87,6 +87,8 @@ grep -q "mediastreamplatformsdkandroid:${SDK_VERSION}" "$BUILD_GRADLE" || fail "
 
 # ── 5. Generación + 6. Ejecución en device ───────────────────────────────────
 run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
+log "Preparando device (anti-suspensión, idempotente)"
+bash "${SCRIPT_DIR}/prep-device.sh" || echo "  ⚠ prep-device falló (¿device conectado?) — run-tests lo detectará"
 log "Ejecutando tests en device"
 bash "${SCRIPT_DIR}/run-tests.sh" --target mobile --size all --capture-sessions
 RUN_EXIT=$?
