@@ -22,62 +22,54 @@ jobs:
     runs-on: [self-hosted, mac-mini]
     timeout-minutes: 90
     permissions:
-      contents: write          # push del reporte a la rama gh-pages
+      contents: write
 
     env:
-      JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
+      JAVA_HOME: /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+      ANDROID_HOME: /Users/juliourrego/Library/Android/sdk
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # headless claude -p
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}                  # gh pr create
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0          # historia completa para crear rama/PR
-
-      - name: Fijar autocrlf
-        shell: pwsh
-        run: git config --global core.autocrlf false
-
-      - name: Crear local.properties
-        shell: pwsh
-        run: |
-          "sdk.dir=C\:\\Users\\Neo\\AppData\\Local\\Android\\Sdk" `
-            | Out-File local.properties -Encoding utf8 -NoNewline
+          fetch-depth: 0
 
       - name: Guard — ¿cambió la versión del changelog?
         id: guard
-        shell: pwsh
         run: |
-          $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
-          & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/detect-changelog-change.sh"
-          $code = $LASTEXITCODE
-          if ($code -eq 3) { "changed=false" | Out-File $env:GITHUB_OUTPUT -Append; exit 0 }
-          elseif ($code -eq 0) { "changed=true" | Out-File $env:GITHUB_OUTPUT -Append; exit 0 }
-          else { exit $code }
+          bash scripts/detect-changelog-change.sh && code=0 || code=$?
+          if [[ $code -eq 3 ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          elif [[ $code -eq 0 ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            exit $code
+          fi
+
+      - name: Crear local.properties
+        if: steps.guard.outputs.changed == 'true'
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Ejecutar pipeline (changelog → tests → PR)
         if: steps.guard.outputs.changed == 'true'
-        shell: pwsh
         run: |
-          $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;C:\ProgramData\chocolatey\bin;$env:PATH"
-          $owner = "${{ github.repository_owner }}".ToLower()
-          $env:REPORT_URL = "https://$owner.github.io/${{ github.event.repository.name }}/"
-          & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/run-changelog-pipeline.sh"
+          export PATH="$ANDROID_HOME/platform-tools:/opt/homebrew/bin:$PATH"
+          export REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          bash scripts/run-changelog-pipeline.sh || code=$?
           # exit 3 (no-op) y 4 (no en Maven) son resultados válidos, no fallos de CI
-          if ($LASTEXITCODE -eq 3 -or $LASTEXITCODE -eq 4) { exit 0 }
-          exit $LASTEXITCODE
+          [[ "${code:-0}" -eq 3 || "${code:-0}" -eq 4 ]] && exit 0
+          exit "${code:-0}"
 
-      - name: Publicar reporte a GitHub Pages (URL fija, force-orphan)
+      - name: Publicar reporte a GitHub Pages
         if: always() && steps.guard.outputs.changed == 'true'
-        shell: pwsh
         run: |
-          $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
-          if (Test-Path ai-output/report/index.html) {
-            & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/publish-report-pages.sh ai-output/report 'changelog run ${{ github.run_number }}'"
-          } else { Write-Host 'sin ai-output/report/index.html — nada que publicar' }
+          [[ -f ai-output/report/index.html ]] || exit 0
+          bash scripts/publish-report-pages.sh ai-output/report \
+            "changelog run ${{ github.run_number }}"
 
       - name: Subir artefactos del pipeline
         uses: actions/upload-artifact@v4
