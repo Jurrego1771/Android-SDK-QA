@@ -357,7 +357,11 @@ fi
 log_step "Instalación en $DEVICE_SERIAL"
 
 log_info "Instalando app..."
-_INSTALL_OUT=$(adb -s "$DEVICE_SERIAL" install -r -t "$APK_APP" 2>&1)
+# `|| true`: bajo `set -e`, si adb install devuelve ≠0 (p.ej. firma incompatible al cambiar de
+# máquina de build Windows→Mac: distinta ~/.android/debug.keystore → INSTALL_FAILED_UPDATE_INCOMPATIBLE)
+# el script abortaría AQUÍ, antes del manejo de error de abajo que desinstala y reinstala. Capturamos
+# el output sin abortar para que el self-heal (uninstall + reinstall) corra.
+_INSTALL_OUT=$(adb -s "$DEVICE_SERIAL" install -r -t "$APK_APP" 2>&1) || true
 if echo "$_INSTALL_OUT" | grep -qi "FAILED\|error"; then
     # INSTALL_FAILED_UPDATE_INCOMPATIBLE: desinstala y reintenta
     if echo "$_INSTALL_OUT" | grep -qi "UPDATE_INCOMPATIBLE\|SIGNATURES_DO_NOT_MATCH"; then
@@ -372,7 +376,7 @@ fi
 log_ok "App instalada"
 
 log_info "Instalando APK de tests..."
-_INSTALL_OUT=$(adb -s "$DEVICE_SERIAL" install -r -t "$APK_TEST" 2>&1)
+_INSTALL_OUT=$(adb -s "$DEVICE_SERIAL" install -r -t "$APK_TEST" 2>&1) || true  # no abortar por set -e; el manejo de firma incompatible está abajo
 if echo "$_INSTALL_OUT" | grep -qi "FAILED\|error"; then
     if echo "$_INSTALL_OUT" | grep -qi "UPDATE_INCOMPATIBLE\|SIGNATURES_DO_NOT_MATCH"; then
         log_warn "Firma incompatible — desinstalando APK de tests previo..."
