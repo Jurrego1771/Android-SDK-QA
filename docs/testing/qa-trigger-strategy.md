@@ -71,8 +71,14 @@ changelog=absent          # present|absent (solo enriquece)
 
 ```
 descubrir rama → clasificar → change_type + features[]
-  ├─ FEATURE  → curar rules.md + risks.yaml (US/AC) → /test-generator (tests nuevos)
-  │            → run: tests nuevos + REGRESIÓN de features acopladas (INDEX merge/coupling) + smoke
+  ├─ FEATURE  → curar rules.md + risks.yaml (US/AC)
+  │            → ADAPTACIÓN DE API (compile-gate): bump → compilar androidTest
+  │                 · si falla por la interfaz (callbacks nuevos / firmas cambiadas):
+  │                   un agente agrega los métodos faltantes a TODAS las clases que implementan
+  │                   MediastreamPlayerCallback (stubs que loguean vía CallbackCaptor) y crea las
+  │                   Activities/escenarios de la feature nueva (reusa /activity-creator)
+  │                 · recompila hasta que el APK de test buildea
+  │            → /test-generator (tests nuevos contra los AC) → run: nuevos + REGRESIÓN acoplada + smoke
   ├─ FIX      → kb-resolve(features) → recopilar tests existentes de esa(s) feature(s)
   │            → si el bug NO está cubierto: generar 1 test de regresión
   │            → run: --class/--package dirigido a esas features + smoke
@@ -85,6 +91,27 @@ descubrir rama → clasificar → change_type + features[]
   `defects.yaml`) de la feature nueva — historias/criterios/aceptación viven en `rules.md` (anclas
   `<PREFIX>-AC-NNN`); luego `/test-generator` produce los tests contra esos criterios.
 - **RELEASE:** validación amplia, sin generación nueva.
+
+### Adaptación de API (compile-gate) — pieza nueva del flujo FEATURE
+Un cambio de SDK puede **romper la compilación del QA** sin ser un fallo: p.ej. `feature/vertical`
+(11.0.0-alpha01) agrega `onSwipeToItem`, `onEndReached`, `onEpisodeInfoClick` a la interfaz
+`MediastreamPlayerCallback` (sin defaults → todas las clases que la implementan dejan de compilar).
+Hoy el pipeline bumpea y corre; si no compila, **falla sin diagnóstico útil**. Debe, en cambio:
+
+1. **Detectar** — el `changelog-analyzer` marca "callbacks/firmas nuevas en la interfaz" como señal
+   de adaptación; y un **compile-gate** (`./gradlew :app:compileDebugAndroidTestKotlin`) captura los
+   errores reales tras el bump.
+2. **Adaptar** (agente, sobre los errores del compilador):
+   - agrega los métodos faltantes (stubs con logging vía `CallbackCaptor`) a **todas** las clases que
+     implementan `MediastreamPlayerCallback` — Activities de escenario, helpers de test;
+   - crea las Activities/escenarios de la feature nueva con **`/activity-creator`** (ya existe) +
+     su deeplink en `DeepLinkRouterActivity`.
+3. **Recompilar** hasta que el APK de test buildea; recién entonces correr tests.
+4. El resultado (qué se agregó, qué rompió) va al PR — **requiere revisión humana** antes de merge.
+
+> Esto es lo que convierte un "feature nueva del SDK" en cobertura real en vez de un build roto.
+> El breaking change de la interfaz es además un **hallazgo** a documentar en `qa-knowledge` (riesgo
+> de compatibilidad para integradores).
 
 ## 5. Origen del binario  (decisión: build local del SDK → mavenLocal)
 
@@ -129,7 +156,12 @@ git, irreversible). En su lugar:
    + índice inverso, changelog opcional → `change-meta.txt`.
 4. **Router en el orquestador**: ramificar `watch-sdk.sh` por `change_type` (alcance de `run-tests.sh`).
 5. **Build local → mavenLocal** para feature/fix.
-6. **workflow_dispatch con `sdk_branch`** + cron de versiones (descubrimiento).
+6. **workflow_dispatch con `sdk_branch`** + cron de versiones (descubrimiento). ✅ hecho.
+7. **Adaptación de API (compile-gate)** — el paso que falta para que FEATURE no muera en un build
+   roto: `compileDebugAndroidTestKotlin` tras el bump; si falla por la interfaz, un agente agrega los
+   callbacks faltantes a las clases que implementan `MediastreamPlayerCallback` y crea los escenarios
+   con `/activity-creator`; recompila; documenta el breaking change en `qa-knowledge`. Ver §4.
 
 Fase 1 no depende de las demás. Las fases 2–4 dependen del grafo de conocimiento (INDEX + kb-resolve),
-ya en su sitio; la fase 2 mejora a medida que se migran features (más `affected_files` → mejor mapeo).
+ya en su sitio; la fase 2 mejora a medida que se migran features. La fase 7 es la que cierra el flujo
+FEATURE end-to-end (caso real que lo motiva: `feature/vertical` rompe la compilación del QA).
