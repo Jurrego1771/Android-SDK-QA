@@ -311,7 +311,7 @@ fun getPPIDFromAdTagParameters(): String?    // Obtiene PPID de los atributos
 
 > **CRÍTICO:** La **mayoría** de los métodos son abstractos y deben implementarse — un anonymous
 > object parcial no compila. **Excepciones con default `{}`** (no obligatorios), verificadas contra
-> el código del SDK: en 10.0.x → `nextEpisodeIncoming`, `nextEpisodeLoadRequested`; la línea 11.0.0
+> el código del SDK: en 10.0.x → `nextEpisodeIncoming`, `nextEpisodeLoadRequested`; la línea 11.0.0 <!-- lint-knowledge:allow-version -->
 > agrega además `onSwipeToItem`, `onEndReached`, `onEpisodeInfoClick` (feature Vertical/Reels).
 > `onFullscreen(enteredForPip: Boolean = false)` tiene parámetro con valor por defecto.
 > ⚠️ Una versión previa de esta nota afirmaba "NINGÚN default" — falso; corregido 2026-06-25 contra
