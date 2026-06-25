@@ -1,0 +1,73 @@
+version: "2.0"
+module: reels
+last_updated: "2026-06-25"
+
+# Migrado de docs/features/22-reels/ al schema mínimo (rules + risks + defects + tests).
+
+risks:
+
+  - id: REELS-RISK-001
+    severity: high
+    title: "playerId es obligatorio pero no se valida"
+    description: >
+      playerId es obligatorio para paginar el feed (endpoint de related reels). Sin él
+      el feed no pagina. No hay validación explícita.
+    affected_files:
+      - "ReelsV2Handler.kt"
+    trigger: "Config sin playerId en modo reels"
+    mitigation: "El integrador debe asegurar que playerId está presente."
+    test_priority: MUST
+
+  - id: REELS-RISK-002
+    severity: medium
+    title: "Pool de 6 players: memoria vs rendimiento"
+    description: >
+      6 ExoPlayers en RAM consumen memoria. En dispositivos limitados podría causar OOM.
+    affected_files:
+      - "PlayerPool.kt"
+    trigger: "Dispositivos con RAM limitada"
+    mitigation: "El número de players es fijo (6). Monitorear uso de memoria."
+    test_priority: SHOULD
+
+  - id: REELS-RISK-003
+    severity: medium
+    title: "Callbacks solo para el reel activo: el integrador puede confundirse"
+    description: >
+      Los callbacks solo se disparan para el reel en foco; los otros 5 players no emiten
+      eventos. Un integrador que no lo entienda podría asumir que funcionan como en un
+      player normal.
+    affected_files:
+      - "ReelsV2Handler.kt"
+    trigger: "Integrador suscribe callbacks esperando eventos de todos los reels"
+    mitigation: "Documentar que los callbacks son solo del reel activo."
+    test_priority: SHOULD
+
+  - id: REELS-RISK-004
+    severity: low
+    title: "ReelsPreferencesManager no es persistente"
+    description: >
+      Preferencias (isMuted, isMetadataVisible) son en memoria; se pierden al cerrar la app.
+    affected_files:
+      - "ReelsPreferencesManager.kt"
+    trigger: "Usuario espera que el mute persista entre sesiones"
+    mitigation: "No es persistente por diseño."
+    test_priority: COULD
+
+  - id: REELS-RISK-005
+    severity: high
+    title: "Cambio de callbacks de navegación en 11.0.0 (onNext → onSwipeToItem)"
+    description: >
+      En 10.0.x el swipe entre reels dispara onPause→onNext→onPlay (verificado en device,
+      GAP-REELS-003). La línea 11.0.0 (feature Vertical/Reels) introduce callbacks nuevos
+      onSwipeToItem(currentId)/onEndReached()/onEpisodeInfoClick(id, order). Un integrador
+      que escuche onNext podría dejar de recibir el evento de navegación si el SDK lo
+      reemplaza por onSwipeToItem. Es un cambio de comportamiento que el diff de sesiones /
+      version-comparator debe detectar al subir de versión.
+    affected_files:
+      - "ReelsV2Handler.kt / VerticalPlayerHandler"
+      - "MediastreamPlayerCallback (onSwipeToItem/onEndReached/onEpisodeInfoClick)"
+    trigger: "Subir el SDK a 11.0.0 y escuchar onNext en un feed reels/vertical"
+    mitigation: >
+      Al validar 11.0.0, comparar el timeline de swipe contra el baseline 10.0.x: ¿sigue
+      disparando onNext o lo reemplazó onSwipeToItem? Documentar para integradores.
+    test_priority: MUST

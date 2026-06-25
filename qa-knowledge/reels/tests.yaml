@@ -1,109 +1,98 @@
 version: "2.0"
 module: reels
-last_updated: "2026-06-23"
+last_updated: "2026-06-25"
 
-# Cada gap referencia el criterio de aceptación que satisface (covers: <AC id>),
-# definido en user-stories.yaml. Así la trazabilidad es US → AC → test.
-# Gaps sin AC (covers: ~) son secundarios/edge o esperan una user story.
+# DERIVADO: existing_tests = @Test reales (hoy ninguno para reels).
+# coverage_gaps = backlog priorizado; cada gap referencia el AC/riesgo que cubriría.
 
-existing_tests: []   # GAP total — Reels no tiene tests instrumentados hoy
+existing_tests: []
 
 coverage_gaps:
 
   - id: GAP-REELS-001
     priority: MUST
-    covers: REELS-AC-001
     title: "Modo reels se activa y el primer reel hace autoplay"
     suggested_spec: "integration/ReelsActivationTest.kt"
+    covers_ac: REELS-AC-002
 
   - id: GAP-REELS-002
     priority: MUST
-    covers: REELS-AC-005
     title: "playerId ausente: el feed no pagina (degradación/error observable)"
     suggested_spec: "integration/ReelsPaginationTest.kt"
+    covers_ac: REELS-AC-014
+    covers_risk: REELS-RISK-001
 
   - id: GAP-REELS-003
     priority: MUST
-    covers: REELS-AC-002
-    title: "Swipe arriba → onNext y reproduce el siguiente reel"
+    title: "Swipe arriba → navega al siguiente reel (onNext en 10.0.x / onSwipeToItem en 11.0.0)"
     suggested_spec: "integration/ReelsSwipeTest.kt"
-    notes: "Verificado en device: onPause → onNext → onPlay. ViewPager2 vertical."
+    covers_ac: REELS-AC-003
+    covers_risk: REELS-RISK-005
+    notes: "Verificado en 10.0.x: onPause→onNext→onPlay (ViewPager2 vertical). En 11.0.0 validar onSwipeToItem."
 
   - id: GAP-REELS-004
     priority: MUST
-    covers: REELS-AC-003
-    title: "Swipe abajo → onPrevious y reproduce el reel anterior"
+    title: "Swipe abajo → reproduce el reel anterior"
     suggested_spec: "integration/ReelsSwipeTest.kt"
+    covers_ac: REELS-AC-004
 
   - id: GAP-REELS-005
     priority: MUST
-    covers: REELS-AC-006
     title: "Reel al final → loopea, NO auto-avanza, NO dispara onNext"
     suggested_spec: "integration/ReelsLoopTest.kt"
+    covers_ac: REELS-AC-005
 
   - id: GAP-REELS-006
     priority: MUST
-    covers: REELS-AC-004
     title: "Callbacks NO se disparan para reels fuera de foco (solo el activo)"
     suggested_spec: "integration/ReelsCallbackTest.kt"
+    covers_ac: REELS-AC-006
+    covers_risk: REELS-RISK-003
 
   - id: GAP-REELS-007
     priority: MUST
-    covers: REELS-AC-005
     title: "Feed pagina: tras varios swipes sigue cargando reels (related reels API)"
     suggested_spec: "integration/ReelsPaginationTest.kt"
+    covers_ac: REELS-AC-007
 
   - id: GAP-REELS-008
     priority: SHOULD
-    covers: REELS-AC-007
     title: "Botón mute silencia/activa audio globalmente y persiste al hacer swipe"
     suggested_spec: "integration/ReelsControlsTest.kt"
-    notes: "@MobileOnly (tap por coordenada de reels_mute_button)."
+    covers_ac: REELS-AC-008
 
   - id: GAP-REELS-009
     priority: SHOULD
-    covers: REELS-AC-008
     title: "Tap en el video hace toggle play/pause del reel activo"
     suggested_spec: "integration/ReelsControlsTest.kt"
-    notes: "@MobileOnly."
+    covers_ac: REELS-AC-009
 
   - id: GAP-REELS-010
     priority: SHOULD
-    covers: REELS-AC-010
     title: "Botón dismiss dispara onDismissButton y cierra el feed"
     suggested_spec: "integration/ReelsControlsTest.kt"
-    notes: "reels_back_button (content-desc 'Back'). @MobileOnly."
+    covers_ac: REELS-AC-010
 
   - id: GAP-REELS-011
     priority: COULD
-    covers: REELS-AC-009
     title: "Barra de progreso visible pero NO seekeable"
     suggested_spec: "integration/ReelsControlsTest.kt"
+    covers_ac: REELS-AC-011
 
   - id: GAP-REELS-012
     priority: COULD
-    covers: ~          # sin AC: requiere una user story de Publisher (ads en feed)
     title: "Ads: cada interval reels aparece un intersticial y onAdEvents se dispara"
     suggested_spec: "integration/ReelsAdsTest.kt"
-    notes: >
-      ReelsAdsConfigModel.interval. Player IMA dedicado. Depende de contenido de prueba con
-      ads configurados en el player de reels.
+    covers_ac: REELS-AC-012
 
   - id: GAP-REELS-013
     priority: COULD
-    covers: ~
     title: "Ads: ALL_ADS_COMPLETED auto-avanza al siguiente reel"
     suggested_spec: "integration/ReelsAdsTest.kt"
+    covers_ac: REELS-AC-013
 
   - id: GAP-REELS-014
     priority: COULD
-    covers: ~          # observación de defecto, no AC
     title: "Título del reel proviene de metadata (no del nombre de archivo)"
     suggested_spec: "integration/ReelsMetadataTest.kt"
-    notes: "Ver REELS-DEF-001 (observado: render del filename .mp4)."
-
-notes: >
-  Reels es full-screen sin debug panel (FullScreenScenarioActivity) — observabilidad por logcat
-  (tag SDK_QA/VideoReels) + UiAutomator. El ObservabilityProvider/SessionExporter NO lo cubre
-  (solo rastrea BaseScenarioActivity). Para tests instrumentados habría que exponer estado vía el
-  callback o un captor dedicado.
+    covers_ac: REELS-AC-001

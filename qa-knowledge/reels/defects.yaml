@@ -1,0 +1,21 @@
+version: "2.0"
+module: reels
+last_updated: "2026-06-25"
+
+defects:
+
+  - id: REELS-DEF-001
+    status: documented
+    severity: low
+    title: "Título del reel proviene de metadata (no del nombre de archivo)"
+    description: >
+      El título del reel proviene de la metadata del contenido, no del nombre de archivo.
+      Es una observación para testing, no necesariamente un bug.
+    affected_files:
+      - "ReelsContentManager.kt"
+    trigger: "Verificar que el título viene de la metadata correcta"
+    workaround: "N/A — es comportamiento esperado."
+    regression_risk: low
+    ac_ref: REELS-AC-001
+    source: "Checklist de testing en el doc de feature (consolidado en rules.md)."
+    validation_status: documented

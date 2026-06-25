@@ -27,6 +27,11 @@ merge_candidates:
     absorbs:
       - pip-v10-upcoming
     reason: 'pip-v10-upcoming es la evolución planificada de pip (status: upcoming, aún no en prod).'
+  - keep: reels
+    absorbs:
+      - vertical
+    reason: |
+      Vertical player (VideoTypes.VERTICAL, línea 11.0.0) reusa la infraestructura de Reels (ViewPager2, pool de players, auto-advance) y comparte los callbacks nuevos onSwipeToItem/onEndReached/ onEpisodeInfoClick. El pipeline auto-creó VideoVerticalScenarioActivity; cuando Vertical madure, decidir si es feature propia (slug "vertical") o variante documentada dentro de reels. Ver REELS-RISK-005.
 groups:
   - foundation
   - playback
@@ -444,13 +449,14 @@ features:
       - reels
     counts:
       tests: 0
-      risks: 4
+      risks: 5
       defects: 1
-      user_stories: 4
+      user_stories: 0
       gaps: 14
     path_target: qa-knowledge/reels/
-    path_current: docs/features/22-reels/
-    migrated: false
+    path_current: qa-knowledge/reels/
+    migrated: true
+    notes: Migrada al schema de 4. Vertical (11.0.0) reusa su infraestructura — ver merge_candidate reels←vertical y REELS-RISK-005 (cambio onNext→onSwipeToItem).
   - slug: pip-v10-upcoming
     id_prefix: V10PIP
     title: Cambios PiP planificados v10 (NO en producción aún)
