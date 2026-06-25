@@ -1,0 +1,67 @@
+name: SDK Maven Watch (QA autónomo)
+
+# Cron autónomo: vigila el changelog del SDK + Maven y, cuando hay una versión nueva publicada,
+# corre el pipeline de QA caja-negra en el runner self-hosted (esta máquina + device).
+# NO requiere nada en el repo del SDK (sin workflow, sin PAT): usa el `gh` del runner.
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # cada 30 min (ajustable). El check es barato; el device solo se usa si hay versión nueva.
+  workflow_dispatch: {}       # disparo manual
+
+concurrency:
+  group: sdk-maven-watch
+  cancel-in-progress: false   # no cortar un QA a medias (corre tests en device)
+
+jobs:
+  watch:
+    name: Watch SDK + QA si hay versión nueva
+    runs-on: self-hosted
+    timeout-minutes: 90
+    env:
+      JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SDK_REPO: ${{ vars.SDK_REPO || 'mediastream/MediastreamPlatformSDKAndroid' }}
+      SDK_BRANCH: ${{ vars.SDK_BRANCH || '10.0.8' }}
+      # NO seteamos GH_TOKEN: el runner usa el login `gh` del usuario (lee el SDK y crea el PR).
+
+    steps:
+      - name: Checkout (repo QA)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fijar autocrlf
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - name: Crear local.properties
+        shell: pwsh
+        run: '"sdk.dir=C\:\\Users\\Neo\\AppData\\Local\\Android\\Sdk" | Out-File local.properties -Encoding utf8 -NoNewline'
+
+      - name: Vigilar SDK + QA si hay versión nueva
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;C:\ProgramData\chocolatey\bin;$env:PATH"
+          & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/watch-sdk.sh"
+          # exit 2 (entorno caído) es resultado válido, no fallo de CI (reintenta el próximo cron)
+          if ($LASTEXITCODE -eq 2) { exit 0 }
+          exit $LASTEXITCODE
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sdk-qa-${{ github.run_number }}
+          path: |
+            ai-output/changelog.md
+            ai-output/analysis.md
+            ai-output/strategy.md
+            ai-output/exploration.md
+            ai-output/test-analysis-report.md
+            ai-output/session-diff.md
+            ai-output/version-comparison-report.md
+            ai-output/report/
+          retention-days: 30
+          if-no-files-found: ignore

@@ -49,5 +49,5 @@ midscene_run/
 .idea/deploymentTargetSelector.xml
 .idea/misc.xml
 
-# Estado local del polling del SDK (último sha procesado) — runtime, no versionar
-.sdk-poll-state
+# Estado del watcher del SDK (última versión probada) — runtime, no versionar
+.last-tested-sdk
