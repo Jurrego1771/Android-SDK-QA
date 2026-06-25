@@ -49,5 +49,5 @@ midscene_run/
 .idea/deploymentTargetSelector.xml
 .idea/misc.xml
 
-# Estado del watcher del SDK (última versión probada) — runtime, no versionar
-.last-tested-sdk
+# Estado del watcher del SDK (última versión probada, por-rama) — runtime, no versionar
+.last-tested-sdk*

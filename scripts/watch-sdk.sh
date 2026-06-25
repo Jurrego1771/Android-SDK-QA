@@ -31,11 +31,18 @@ fi
 
 AI_OUTPUT="${PROJECT_ROOT}/ai-output"
 BUILD_GRADLE="${PROJECT_ROOT}/app/build.gradle.kts"
-STATE_FILE="${PROJECT_ROOT}/.last-tested-sdk"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 CLAUDE_FLAGS="${CLAUDE_FLAGS:---permission-mode acceptEdits}"
 export SDK_REPO="${SDK_REPO:-mediastream/MediastreamPlatformSDKAndroid}"
 export SDK_BRANCH="${SDK_BRANCH:-10.0.8}"
+
+# Estado por-rama: probar feature/vertical a demanda NO debe pisar el "último probado" de la línea
+# principal (10.0.8). La rama default conserva el nombre histórico; otras llevan sufijo saneado.
+if [[ "$SDK_BRANCH" == "10.0.8" ]]; then
+  STATE_FILE="${PROJECT_ROOT}/.last-tested-sdk"
+else
+  STATE_FILE="${PROJECT_ROOT}/.last-tested-sdk-$(echo "$SDK_BRANCH" | tr '/:' '--')"
+fi
 
 log()  { echo -e "\n▶ $*"; }
 fail() { echo "✗ $*" >&2; exit 1; }

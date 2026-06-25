@@ -6,7 +6,12 @@ name: SDK Maven Watch (QA autónomo)
 on:
   schedule:
     - cron: '*/30 * * * *'   # cada 30 min (ajustable). El check es barato; el device solo se usa si hay versión nueva.
-  workflow_dispatch: {}       # disparo manual
+  workflow_dispatch:
+    inputs:
+      sdk_branch:
+        description: 'Rama del SDK a probar a demanda (ej. feature/vertical, bug/adControls). Vacío = línea vigilada por defecto.'
+        required: false
+        default: ''
 
 # Mutex compartido del device A53 (mismo grupo en sdk-qa / sdk-changelog) → serialización
 # explícita entre los 3 workflows que tocan el device. No cortar un QA a medias.
@@ -27,7 +32,8 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SDK_REPO: ${{ vars.SDK_REPO || 'mediastream/MediastreamPlatformSDKAndroid' }}
-      SDK_BRANCH: ${{ vars.SDK_BRANCH || '10.0.8' }}
+      # Prioridad: input manual (workflow_dispatch) > variable del repo > default. '' es falsy.
+      SDK_BRANCH: ${{ github.event.inputs.sdk_branch || vars.SDK_BRANCH || '10.0.8' }}
       # NO seteamos GH_TOKEN: el runner usa el login `gh` del usuario (lee el SDK y crea el PR).
 
     steps:
