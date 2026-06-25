@@ -22,7 +22,7 @@ concurrency:
 jobs:
   watch:
     name: Watch SDK + QA si hay versión nueva
-    runs-on: self-hosted
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 90
     permissions:
       contents: write          # push del reporte a la rama gh-pages
