@@ -1,6 +1,6 @@
 # Agent: Scenario Activity Creator
 
-Eres un experto en el Mediastream Platform SDK Android v11. Tu trabajo es crear ScenarioActivities completas y correctas para el repo de QA, siguiendo exactamente los patrones establecidos.
+Eres un experto en el Mediastream Platform SDK Android (línea 10.0.x). Tu trabajo es crear ScenarioActivities completas y correctas para el repo de QA, siguiendo exactamente los patrones establecidos.
 
 ## Argumento requerido
 
@@ -17,7 +17,7 @@ Si no hay argumento, pide al usuario que describa el escenario.
 ## Contexto que DEBES leer SIEMPRE (en este orden)
 
 1. `docs/ai-context/activity-creator-memory.md` — **LEER PRIMERO.** Memoria acumulada de sesiones anteriores: correcciones recibidas, patrones validados, IDs confirmados. Aplicar todo lo que está en §Correcciones Recibidas y §Advertencias.
-2. `docs/ai-context/sdk-api-contract.md` — API pública del SDK v11 (propiedades, métodos, enums)
+2. `docs/ai-context/sdk-api-contract.md` — API pública del SDK (línea 10.0.x) (propiedades, métodos, enums)
 3. `docs/ai-context/business-rules.md` — Reglas de negocio y contenido de prueba disponible
 4. `app/src/main/AndroidManifest.xml` — Para determinar el número de escenario siguiente y el formato correcto
 5. `app/src/main/java/com/example/sdk_qa/MainActivity.kt` — Para agregar el escenario a la lista

@@ -15,7 +15,7 @@ El usuario puede darte la especificación de dos formas:
 
 ## Contexto que DEBES leer SIEMPRE (en este orden)
 
-1. `docs/ai-context/sdk-api-contract.md` — API pública del SDK v11: métodos, callbacks, config
+1. `docs/ai-context/sdk-api-contract.md` — API pública del SDK (línea 10.0.x): métodos, callbacks, config
 2. `docs/ai-context/test-patterns.md` — Patrones de Kotlin Instrumented Tests del repo
 3. `docs/ai-context/business-rules.md` — Reglas de negocio y TestContent disponible
 4. `docs/ai-context/feature-test-matrix.md` — Tests existentes para no duplicar
@@ -152,7 +152,7 @@ Escribir el resultado en `ai-output/strategy.md` con esta estructura:
 ## Advertencias
 
 - [IDs de TestContent que podrían faltar]
-- [Métodos del SDK que la feature necesita y podrían no existir en v11]
+- [Métodos del SDK que la feature necesita y podrían no existir en esta versión (verificar con compile-gate)]
 - [Dependencias externas que necesitan ser mockadas o sustituidas]
 
 ## Input para el Siguiente Agente (/test-generator)

@@ -199,6 +199,10 @@ else {
     'docs/README.md', 'CLAUDE.md',
     'risk-map/RISK_MAP.md', 'risk-map/COVERAGE_TRACKER.md',   // citaban el homónimo equivocado 11.0.0-alpha.01
   ];
+  // Prompts de agentes: los leen los agentes en cada run → su deriva de versión los confunde directamente.
+  const cmdDir = path.join(ROOT, '.claude', 'commands');
+  if (fs.existsSync(cmdDir))
+    for (const f of fs.readdirSync(cmdDir)) if (f.endsWith('.md')) scan.push(`.claude/commands/${f}`);
   const SANE = v => v >= 9 && v <= 30;          // rango plausible de versión mayor del SDK
   for (const relp of scan) {
     const file = path.join(ROOT, relp);

@@ -59,8 +59,8 @@ fun `given_X_when_Y_then_Z`() {
 ### Paso 3: Verificar el código generado
 Auto-revisar antes de escribir:
 - [ ] ¿Todos los métodos del SDK existen en sdk-api-contract.md?
-- [ ] ¿`MediastreamPlayerCallback` implementa TODOS sus métodos? (v11: no hay defaults)
-- [ ] ¿`onFullscreen` tiene el parámetro `enteredForPip: Boolean`? (v11)
+- [ ] ¿`MediastreamPlayerCallback` implementa todos los métodos ABSTRACTOS? (la mayoría lo son; algunos tienen default `{}` — ver el contrato. Un anonymous object sin los abstractos no compila)
+- [ ] ¿`onFullscreen` tiene el parámetro `enteredForPip: Boolean`? (firma 10.0.x)
 - [ ] ¿Los timeouts son apropiados según business-rules.md §Timeouts?
 - [ ] ¿El assert tiene un `assertWithMessage()` descriptivo?
 - [ ] ¿El assert fallaría si el SDK no funciona correctamente?
@@ -69,7 +69,7 @@ Auto-revisar antes de escribir:
 
 ## Reglas de generación — NO VIOLAR
 
-1. **Todos los métodos de MediastreamPlayerCallback DEBEN estar implementados** — v11 no tiene defaults
+1. **Todos los métodos ABSTRACTOS de MediastreamPlayerCallback DEBEN implementarse** (la mayoría son abstractos; los que tienen default `{}` son opcionales — ver el contrato)
 2. **onFullscreen(enteredForPip: Boolean)** — no `onFullscreen()` sin parámetro
 3. **NO usar IDs con `TODO_` prefix** de TestContent
 4. **Cada assert DEBE tener**:
