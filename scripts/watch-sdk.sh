@@ -54,7 +54,11 @@ slack() {
 run_agent() {
   local slash="$1" out="$2"
   log "Agente $slash (headless)…"
-  "$CLAUDE_BIN" -p "$slash" $CLAUDE_FLAGS || fail "claude -p $slash error (¿ANTHROPIC_API_KEY? ¿claude en PATH?)"
+  # MSYS_NO_PATHCONV/ARG_CONV_EXCL: en Git Bash (Windows) un arg que empieza con "/" se mangla a una
+  # ruta Windows (p.ej. "/changelog-analyzer" → "C:/Program Files/Git/changelog-analyzer") y claude
+  # recibe basura en vez del slash command. Desactivar la conversión para este argumento.
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$CLAUDE_BIN" -p "$slash" $CLAUDE_FLAGS \
+    || fail "claude -p $slash error (¿ANTHROPIC_API_KEY? ¿claude en PATH?)"
   [[ -f "$out" ]] || fail "$slash no produjo $out"
   echo "  ✓ $out"
 }
