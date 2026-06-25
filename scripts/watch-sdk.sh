@@ -151,6 +151,26 @@ fi
 
 # ── 6. Generación de tests ───────────────────────────────────────────────────
 run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
+
+# ── 6b. Compile-gate POST-generate: validar lo generado ANTES de gastar device ─
+# Con auto-reparación acotada (1 intento): si los tests generados no compilan, el generator lee los
+# errores (compile-gate-tests.txt) y los corrige; si sigue roto, aborta SIN tocar el device.
+TESTGATE="${AI_OUTPUT}/compile-gate-tests.txt"
+compile_tests() { set +e; ( cd "$PROJECT_ROOT" && ./gradlew :app:compileDebugAndroidTestKotlin --console=plain ) >"$TESTGATE" 2>&1; local rc=$?; set -e; echo "$rc"; }
+log "Compile-gate post-generate (¿compilan los tests generados?)"
+if [[ "$(compile_tests)" != "0" ]]; then
+  echo "  ⚠ los tests generados NO compilan — 1 intento de auto-reparación por el generator"
+  echo "result=FAIL" >> "$TESTGATE"
+  run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"   # lee compile-gate-tests.txt → fix mode
+  if [[ "$(compile_tests)" != "0" ]]; then
+    echo "result=FAIL" >> "$TESTGATE"
+    slack "Tests generados para ${SDK_VERSION} no compilan tras auto-reparación — abort sin device. Ver compile-gate-tests.txt."
+    fail "los tests generados no compilan (tras 1 reintento) — no se gasta device. Errores en ${TESTGATE}"
+  fi
+fi
+echo "result=PASS" >> "$TESTGATE"
+echo "  ✓ los tests generados compilan"
+
 log "Preparando device (anti-suspensión, idempotente)"
 bash "${SCRIPT_DIR}/prep-device.sh" || echo "  ⚠ prep-device falló (¿device conectado?) — run-tests lo detectará"
 log "Ejecutando tests en device"
