@@ -257,9 +257,17 @@ Antes de escribir los archivos, auto-revisar:
 Escribir los cambios en este orden:
 
 1. **Archivo Activity nuevo** (crear)
-2. **AndroidManifest.xml** (editar — agregar el bloque de activity)
+2. **AndroidManifest.xml** (editar — agregar el bloque de activity, `exported="false"`)
 3. **MainActivity.kt** (editar — agregar import + ScenarioListItem)
-4. **`docs/ai-context/activity-creator-memory.md`** (editar — registrar la sesión)
+4. **`DeepLinkRouterActivity.kt`** (editar — agregar la entrada `"<key>" to <Activity>::class.java`
+   en el mapa de rutas, debug-only). Si el argumento trae una deeplink-key explícita (formato
+   `<key>|<descripción>` del orquestador), úsala; si no, deriva una key corta y única. Sin esto el
+   escenario NO se puede lanzar por `sdkqa://scenario/<key>` y el explorer no podrá navegarlo.
+5. **`docs/ai-context/activity-creator-memory.md`** (editar — registrar la sesión)
+
+> **Modo fix:** si existe `ai-output/compile-gate.txt` con `result=FAIL` y los errores apuntan a la
+> Activity que creaste (API inexistente en este binario), corrígela mínimamente o elimínala; no
+> inventes propiedades del SDK que el compilador no encuentra.
 
 ### Qué registrar en la memoria al finalizar
 

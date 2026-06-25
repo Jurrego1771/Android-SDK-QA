@@ -51,6 +51,18 @@ Usar esta lógica de priorización:
 
 ## Output requerido
 
+### Además: escenarios a crear (handoff de la fase 7)
+Si algún test queda **BLOQUEADO** porque necesita una ScenarioActivity que NO existe (feature nueva
+del SDK sin escenario en el repo), escribe `ai-output/scenarios-to-create.txt` — **una línea por
+escenario**, formato `<deeplink-key>|<descripción para activity-creator>`:
+```
+vertical|Vertical player (VideoTypes.VERTICAL) con customPlaylistOrigin, feed vertical tipo reels
+```
+El orquestador invoca `/activity-creator` por cada línea ANTES de generar tests. Si no hace falta
+ningún escenario nuevo, NO crees el archivo (o déjalo vacío). Usa deeplink-keys que NO colisionen
+con las existentes (ver `DeepLinkRouterActivity.kt`).
+
+### Reporte principal
 Escribe el resultado en `ai-output/strategy.md`:
 
 ```markdown

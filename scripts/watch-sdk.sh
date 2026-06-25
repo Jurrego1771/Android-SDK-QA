@@ -127,26 +127,55 @@ else
   slack "Compile-gate FAIL para ${SDK_VERSION} (rama ${SDK_BRANCH}): el QA no compila contra el binario nuevo. Ver compile-gate.txt en el PR."
 fi
 
-# ── 4b. Instalar el APK NUEVO en el device (para que el explorer vea 11.0.0, no la app vieja) ─
-# El changelog-explorer usa navigate_deeplink contra la app INSTALADA. Sin esto exploraría el binario
-# viejo. Solo si compila (PASS) hay APK válido que instalar. prep-device asegura el device despierto.
-EXPLORE_OK=1
-if [[ $COMPILE_RC -eq 0 ]]; then
-  log "Instalando APK ${SDK_VERSION} en el device (para exploración con el binario real)"
-  bash "${SCRIPT_DIR}/prep-device.sh" || echo "  ⚠ prep-device falló"
-  set +e; ( cd "$PROJECT_ROOT" && ./gradlew :app:installDebug --console=plain ) >>"$COMPILE_LOG" 2>&1; INSTALL_RC=$?; set -e
-  if [[ $INSTALL_RC -eq 0 ]]; then echo "  ✓ app ${SDK_VERSION} instalada"; else EXPLORE_OK=0; echo "  ⚠ install falló — se omite la exploración en device"; fi
-else
-  EXPLORE_OK=0   # sin APK válido, no tiene sentido explorar el binario nuevo
-fi
+# helper: recompila androidTest y devuelve rc (para los gates de fase 7 y post-generate)
+recompile() { set +e; ( cd "$PROJECT_ROOT" && ./gradlew :app:compileDebugAndroidTestKotlin --console=plain ) >"$1" 2>&1; local rc=$?; set -e; echo "$rc"; }
 
-# ── 5. Cadena de agentes (headless) — ya ven la versión correcta + compile-gate ─
+# ── 5. Análisis + estrategia (device no necesario aún) ───────────────────────
 run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
 run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
-if [[ $EXPLORE_OK -eq 1 ]]; then
-  run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # device + MCP, app NUEVA instalada
+
+# ── 5b. FASE 7: crear escenarios para features nuevas (Vía B) si el strategist los pidió ──
+# El strategist escribe scenarios-to-create.txt (líneas `key|descripción`) cuando una feature nueva
+# necesita una Activity que no existe. Creamos cada una con /activity-creator (que también cablea el
+# deeplink), recompilamos, y con 1 intento de fix. Si no compilan, se omiten (la Vía A sigue válida;
+# el gate post-generate es la red final). Esto desbloquea cobertura de features nuevas (p.ej. Vertical).
+SCENARIOS="${AI_OUTPUT}/scenarios-to-create.txt"
+if [[ -s "$SCENARIOS" ]]; then
+  log "Fase 7: creando escenarios para features nuevas (Vía B)"
+  # activity-creator no produce un archivo de contrato fijo; lo invocamos y validamos por compile-gate.
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    log "activity-creator: ${line}"
+    "$CLAUDE_BIN" -p "/activity-creator ${line}" $CLAUDE_FLAGS || echo "  ⚠ activity-creator falló para: ${line}"
+  done < "$SCENARIOS"
+  log "Compile-gate tras activity-creator"
+  SC_RC="$(recompile "$COMPILE_LOG")"
+  if [[ "$SC_RC" != "0" ]]; then
+    echo "  ⚠ escenarios nuevos no compilan — 1 intento de fix (activity-creator modo fix)"
+    echo "result=FAIL" >> "$COMPILE_LOG"
+    while IFS= read -r line; do [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue; "$CLAUDE_BIN" -p "/activity-creator ${line}" $CLAUDE_FLAGS || true; done < "$SCENARIOS"
+    SC_RC="$(recompile "$COMPILE_LOG")"
+  fi
+  if [[ "$SC_RC" == "0" ]]; then COMPILE_RC=0; echo "result=PASS" >> "$COMPILE_LOG"; echo "  ✓ escenarios nuevos compilan";
+  else echo "  ⚠ escenarios nuevos siguen sin compilar — el gate post-generate decidirá (Vía A sigue válida)"; fi
+fi
+
+# ── 5c. Instalar el APK NUEVO (tras fase 7) para que el explorer vea los escenarios nuevos ──
+EXPLORE_OK=1
+if [[ $COMPILE_RC -eq 0 ]]; then
+  log "Instalando APK ${SDK_VERSION} en el device (binario + escenarios nuevos)"
+  bash "${SCRIPT_DIR}/prep-device.sh" || echo "  ⚠ prep-device falló"
+  set +e; ( cd "$PROJECT_ROOT" && ./gradlew :app:installDebug --console=plain ) >>"$COMPILE_LOG" 2>&1; INSTALL_RC=$?; set -e
+  [[ $INSTALL_RC -eq 0 ]] && echo "  ✓ app instalada" || { EXPLORE_OK=0; echo "  ⚠ install falló — se omite exploración"; }
 else
-  echo "  (se omite /changelog-explorer: el APK ${SDK_VERSION} no está instalado — el generator usará solo el contrato + compile-gate)" >&2
+  EXPLORE_OK=0
+fi
+
+# ── 5d. Exploración en device (app nueva + escenarios nuevos instalados) ──────
+if [[ $EXPLORE_OK -eq 1 ]]; then
+  run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # device + MCP
+else
+  echo "  (se omite /changelog-explorer: APK no instalado — el generator usa contrato + compile-gate)" >&2
 fi
 
 # ── 6. Generación de tests ───────────────────────────────────────────────────
@@ -156,13 +185,12 @@ run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
 # Con auto-reparación acotada (1 intento): si los tests generados no compilan, el generator lee los
 # errores (compile-gate-tests.txt) y los corrige; si sigue roto, aborta SIN tocar el device.
 TESTGATE="${AI_OUTPUT}/compile-gate-tests.txt"
-compile_tests() { set +e; ( cd "$PROJECT_ROOT" && ./gradlew :app:compileDebugAndroidTestKotlin --console=plain ) >"$TESTGATE" 2>&1; local rc=$?; set -e; echo "$rc"; }
 log "Compile-gate post-generate (¿compilan los tests generados?)"
-if [[ "$(compile_tests)" != "0" ]]; then
+if [[ "$(recompile "$TESTGATE")" != "0" ]]; then
   echo "  ⚠ los tests generados NO compilan — 1 intento de auto-reparación por el generator"
   echo "result=FAIL" >> "$TESTGATE"
   run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"   # lee compile-gate-tests.txt → fix mode
-  if [[ "$(compile_tests)" != "0" ]]; then
+  if [[ "$(recompile "$TESTGATE")" != "0" ]]; then
     echo "result=FAIL" >> "$TESTGATE"
     slack "Tests generados para ${SDK_VERSION} no compilan tras auto-reparación — abort sin device. Ver compile-gate-tests.txt."
     fail "los tests generados no compilan (tras 1 reintento) — no se gasta device. Errores en ${TESTGATE}"
