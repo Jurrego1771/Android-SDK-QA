@@ -19,6 +19,8 @@ jobs:
     name: Watch SDK + QA si hay versión nueva
     runs-on: self-hosted
     timeout-minutes: 90
+    permissions:
+      contents: write          # push del reporte a la rama gh-pages
     env:
       JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -46,10 +48,21 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;C:\ProgramData\chocolatey\bin;$env:PATH"
+          $owner = "${{ github.repository_owner }}".ToLower()
+          $env:REPORT_URL = "https://$owner.github.io/${{ github.event.repository.name }}/"
           & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/watch-sdk.sh"
           # exit 2 (entorno caído) es resultado válido, no fallo de CI (reintenta el próximo cron)
           if ($LASTEXITCODE -eq 2) { exit 0 }
           exit $LASTEXITCODE
+
+      - name: Publicar reporte a GitHub Pages (URL fija, force-orphan)
+        if: always()
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
+          if (Test-Path ai-output/report/index.html) {
+            & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/publish-report-pages.sh ai-output/report 'watch run ${{ github.run_number }}'"
+          } else { Write-Host 'sin ai-output/report/index.html — nada que publicar' }
 
       - name: Subir artefactos
         uses: actions/upload-artifact@v4

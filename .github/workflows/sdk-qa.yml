@@ -51,6 +51,8 @@ jobs:
     name: ${{ github.event_name == 'schedule' && 'Nightly — Suite completa' || github.event_name == 'push' && 'Push — Tests rápidos' || 'Manual' }}
     runs-on: self-hosted
     timeout-minutes: 60
+    permissions:
+      contents: write          # push del reporte a la rama gh-pages
 
     env:
       JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
@@ -96,9 +98,20 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;C:\ProgramData\chocolatey\bin;$env:PATH"
+          # URL fija de Pages → run-tests.sh la pasa al botón de Slack (owner en minúsculas).
+          $owner = "${{ github.repository_owner }}".ToLower()
+          $env:REPORT_URL = "https://$owner.github.io/${{ github.event.repository.name }}/"
           & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/run-tests.sh --target '${{ steps.params.outputs.target }}' --size '${{ steps.params.outputs.size }}' ${{ steps.params.outputs.skip_build }}"
           exit $LASTEXITCODE
 
+      - name: Publicar reporte a GitHub Pages (URL fija, force-orphan)
+        if: always()
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
+          if (Test-Path ai-output/report/index.html) {
+            & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/publish-report-pages.sh ai-output/report 'run ${{ github.run_number }} - ${{ github.event_name }}'"
+          } else { Write-Host 'sin ai-output/report/index.html — nada que publicar' }
 
       - name: Subir reporte HTML
         uses: actions/upload-artifact@v4

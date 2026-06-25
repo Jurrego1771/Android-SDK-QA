@@ -21,6 +21,8 @@ jobs:
     name: Pipeline QA dirigido por changelog
     runs-on: self-hosted          # mismo runner Windows con el A53 conectado
     timeout-minutes: 90
+    permissions:
+      contents: write          # push del reporte a la rama gh-pages
 
     env:
       JAVA_HOME: C:\actions-runner\_work\_tool\Java_Temurin-Hotspot_jdk\17.0.18-8\x64
@@ -61,10 +63,21 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "C:\Users\Neo\AppData\Local\Android\Sdk\platform-tools;C:\Program Files\Git\usr\bin;C:\ProgramData\chocolatey\bin;$env:PATH"
+          $owner = "${{ github.repository_owner }}".ToLower()
+          $env:REPORT_URL = "https://$owner.github.io/${{ github.event.repository.name }}/"
           & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/run-changelog-pipeline.sh"
           # exit 3 (no-op) y 4 (no en Maven) son resultados válidos, no fallos de CI
           if ($LASTEXITCODE -eq 3 -or $LASTEXITCODE -eq 4) { exit 0 }
           exit $LASTEXITCODE
+
+      - name: Publicar reporte a GitHub Pages (URL fija, force-orphan)
+        if: always() && steps.guard.outputs.changed == 'true'
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
+          if (Test-Path ai-output/report/index.html) {
+            & "C:\Program Files\Git\bin\bash.exe" -c "bash scripts/publish-report-pages.sh ai-output/report 'changelog run ${{ github.run_number }}'"
+          } else { Write-Host 'sin ai-output/report/index.html — nada que publicar' }
 
       - name: Subir artefactos del pipeline
         uses: actions/upload-artifact@v4

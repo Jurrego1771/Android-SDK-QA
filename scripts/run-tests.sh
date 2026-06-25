@@ -705,7 +705,7 @@ JSVER
     bash "${SCRIPT_DIR}/notify-slack.sh" \
         "$RESULTS_JSON" \
         "$DEVICE_LABEL" \
-        "" \
+        "${REPORT_URL:-}" \
         "$SDK_VER"
 fi
 

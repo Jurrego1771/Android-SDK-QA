@@ -108,11 +108,16 @@ en los repos de `settings.gradle.kts` del QA app durante esas corridas.
 pasa `RUN_URL=""`. Y no existe workflow de Pages — el `report.sh` genera `ai-output/report/index.html`
 pero solo se sube como *artifact*.
 
-**Fix (decidido: GitHub Pages por run):**
-1. Workflow `deploy-pages` que publica `ai-output/report/` en `/runs/<run_number>/` → URL navegable.
-2. `run-tests.sh`: pasar esa URL como `RUN_URL` (4º arg de `notify-slack.sh`).
-3. **Prerrequisito:** habilitar GitHub Pages en el repo. **Repo público confirmado (2026-06-25)** →
-   Pages disponible sin plan especial.
+**Fix (implementado, Fase 1):** GitHub Pages en **URL fija, force-orphan** — NO subcarpeta por run.
+Decisión revisada (2026-06-25): acumular por run inflaba el repo sin tope (videos en el historial de
+git, irreversible). En su lugar:
+1. `scripts/publish-report-pages.sh` publica `ai-output/report/` a `gh-pages` con una **rama huérfana
+   fresca** cada vez (1 commit, force-push) → crecimiento **cero**; Pages muestra siempre el ÚLTIMO
+   run en `https://<owner>.github.io/<repo>/`. Históricos → artifacts de Actions (retención 30 días).
+2. Los 3 workflows de device exportan `REPORT_URL` (fija) → `run-tests.sh` la pasa al botón de Slack
+   (4º arg de `notify-slack.sh`, antes `""`), y publican el reporte con un step posterior (`if: always`).
+3. **Prerrequisito (manual, una vez):** Settings → Pages → Source = rama `gh-pages`. Repo público
+   confirmado → Pages sin plan especial. La rama `gh-pages` se crea en el primer publish.
 
 ## 7. Fases de implementación
 
