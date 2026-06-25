@@ -48,3 +48,6 @@ midscene_run/
 .vscode/
 .idea/deploymentTargetSelector.xml
 .idea/misc.xml
+
+# Estado local del polling del SDK (último sha procesado) — runtime, no versionar
+.sdk-poll-state
