@@ -1,7 +1,7 @@
 # Coverage Tracker — Por Feature
 
 **Ultima actualizacion:** 2026-04-16
-**SDK Version bajo test:** 11.0.0-alpha.01
+**SDK Version bajo test:** ver `app/build.gradle.kts` (versión pineada — casa única; no duplicar aquí)
 **Tipo de tests:** Instrumented (E2E / caja negra) — el SDK es una dependencia externa
 
 > Unit tests de logica interna del SDK → repo `MediastreamPlatformSDKAndroid`

@@ -2,8 +2,8 @@
 
 **Version:** 1.1
 **Fecha baseline:** 2026-04-16
-**SDK Version bajo test:** 11.0.0-alpha.01
-**SDK consumido como:** dependencia Maven (`io.github.mediastream:mediastreamplatformsdkandroid:11.0.0-alpha.01`)
+**SDK Version bajo test:** ver `app/build.gradle.kts` (versión pineada — casa única; no duplicar aquí)
+**SDK consumido como:** dependencia `io.github.mediastream:mediastreamplatformsdkandroid` (versión en `app/build.gradle.kts`)
 **Cobertura global actual:** ~4% (5 tests — Analytics/profileId PR #143)
 
 > **Scope:** Este repo testea el SDK como **caja negra** (dependencia externa).
@@ -193,7 +193,8 @@ Este mapa de riesgos es un documento vivo. Cada vez que se implementa un test o 
 
 ## Cambios pendientes — v10.0.0 (breaking changes a preparar)
 
-> Documentados en `context/pip-implementation.md` del SDK. NO estan en el codigo actual (v9.9.0).
+> Documentados en `context/pip-implementation.md` del SDK. Nota histórica: al escribirse el código
+> estaba en una versión 9.x. Verificar contra la actual (`app/build.gradle.kts`) antes de planear.
 
 | Cambio | Riesgo de migracion | Impacto | Accion requerida |
 |--------|--------------------|---------|--------------------|

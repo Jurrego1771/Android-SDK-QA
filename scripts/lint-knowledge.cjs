@@ -197,6 +197,7 @@ else {
     'docs/ai-context/sdk-api-contract.md', 'docs/ai-context/business-rules.md',
     'docs/ai-context/test-patterns.md', 'docs/ai-context/feature-test-matrix.md',
     'docs/README.md', 'CLAUDE.md',
+    'risk-map/RISK_MAP.md', 'risk-map/COVERAGE_TRACKER.md',   // citaban el homónimo equivocado 11.0.0-alpha.01
   ];
   const SANE = v => v >= 9 && v <= 30;          // rango plausible de versión mayor del SDK
   for (const relp of scan) {
