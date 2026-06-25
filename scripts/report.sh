@@ -123,7 +123,8 @@ for (const test of (data.tests || [])) {
 }
 process.stdout.write(html || '<tr><td colspan="3" style="color:var(--muted);padding:18px">Sin tests registrados.</td></tr>');
 JSEOF
-2>/dev/null || echo '<tr><td colspan="3">—</td></tr>')
+)
+[[ -n "$TESTS_HTML" ]] || TESTS_HTML='<tr><td colspan="3">—</td></tr>'
 
 # ─── 5. Sesiones: cards (head + gauges QoE) + datos del timeline para el JS ────
 SESSIONS_CARDS=$(node - "$OUTPUT_DIR/sessions" <<'JSESS'
@@ -196,7 +197,7 @@ files.forEach((f, i) => {
 cards += '<script>window.__TL=' + JSON.stringify(tl) + ';</script>';
 process.stdout.write(cards);
 JSESS
-2>/dev/null || echo "")
+)
 
 NUM_SESSIONS=$(ls "$OUTPUT_DIR/sessions"/*.json 2>/dev/null | wc -l | tr -d ' ')
 
@@ -213,7 +214,7 @@ SESSIONS_SECTION=""
 
 # ─── Sección "Cambio probado" + veredictos + tests generados (de report.json) ──
 # La historia para el dev: QUÉ se probó, los 2 veredictos, qué se generó. Solo si hay report.json.
-CHANGE_SECTION=$(node - "${AI_OUTPUT}/report.json" <<'JCHG' 2>/dev/null || echo ""
+CHANGE_SECTION=$(node - "${AI_OUTPUT}/report.json" <<'JCHG'
 const fs=require('fs'); let R; try{R=JSON.parse(fs.readFileSync(process.argv[2],'utf8'))}catch{process.exit(0)}
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const ch=R.change||{}, v=R.verdicts||{}, c=R.counts||{}, gen=R.generated_tests||[];
