@@ -1,80 +1,40 @@
 # SDK Android QA — Documentación
 
-Indice central del repositorio de testing y documentacion del **Mediastream Platform SDK Android** (v9.9.0).
+Repositorio de QA caja-negra del **Mediastream Platform SDK Android**.
+La versión exacta bajo test la fija `app/build.gradle.kts` (no se duplica aquí — ver
+`qa-knowledge/CONVENTIONS.md §1`).
 
 ---
 
-## Estructura
+## Punto de entrada del conocimiento
 
-```
-docs/
-├── features/          <- Documentacion por feature del SDK
-├── api/               <- Referencia de la API publica
-├── integration/       <- Guias de integracion y setup
-└── testing/           <- Estrategia y guias de testing
+El catálogo por-feature (qué cubre cada una, tests, riesgos, defectos, deeplinks) ya **no** vive en
+una tabla a mano en este README — derivaba y mentía. La puerta única es:
 
-risk-map/
-├── RISK_MAP.md        <- Mapa de riesgos (actualizable)
-└── COVERAGE_TRACKER.md <- Tracker de cobertura por feature
+- **`qa-knowledge/INDEX.yaml`** — índice generado (feature → slug, cobertura, deeplinks).
+  Regenerar: `node scripts/build-knowledge-index.cjs`.
+- **`qa-knowledge/CONVENTIONS.md`** — el schema (3 curados + tests derivado) y las reglas.
+- Resolver una query como lo hace un agente: `node scripts/kb-resolve.cjs <feature|deeplink|keyword>`.
+- Validar consistencia (cross-links, `file:line`, versión del SDK): `node scripts/lint-knowledge.cjs`.
 
-fixtures/              <- Respuestas JSON reales de la API para tests
-```
-
----
-
-## Features documentadas
-
-| # | Feature | Archivo | Estado |
-|---|---------|---------|--------|
-| 00 | Vision general del SDK | [features/00-sdk-overview.md](features/00-sdk-overview.md) | ✅ |
-| 01 | Inicializacion del player | [features/01-initialization.md](features/01-initialization.md) | ✅ |
-| 02 | Configuracion (PlayerConfig) | [features/02-player-config.md](features/02-player-config.md) | ✅ |
-| 03 | Callbacks y eventos | [features/03-callbacks.md](features/03-callbacks.md) | ✅ |
-| 04 | Video VOD | [features/04-video-vod.md](features/04-video-vod.md) | ✅ |
-| 05 | Video Live | [features/05-video-live.md](features/05-video-live.md) | ✅ |
-| 06 | Episodes y autoplay | [features/06-video-episode.md](features/06-video-episode.md) | ✅ |
-| 07 | Audio (live, podcast, episode) | [features/07-audio.md](features/07-audio.md) | ✅ |
-| 08 | DVR y fictitious timeline | [features/08-dvr.md](features/08-dvr.md) | ✅ |
-| 09 | DRM | [features/09-drm.md](features/09-drm.md) | ✅ |
-| 10 | Ads — Google IMA / SSAI / DAI | [features/10-ads-ima.md](features/10-ads-ima.md) | ✅ |
-| 11 | Analytics — Comscore | [features/11-analytics-comscore.md](features/11-analytics-comscore.md) | ✅ |
-| 12 | Analytics — Youbora / NPAW | [features/12-analytics-youbora.md](features/12-analytics-youbora.md) | ✅ |
-| 13 | Google Cast / Chromecast | [features/13-chromecast.md](features/13-chromecast.md) | ✅ |
-| 14 | Picture-in-Picture | [features/14-pip.md](features/14-pip.md) | ✅ |
-| 15 | Android TV / Fire TV | [features/15-android-tv.md](features/15-android-tv.md) | ✅ |
-| 16 | Android Auto / Automotive | [features/16-android-auto.md](features/16-android-auto.md) | ✅ |
-| 17 | Subtitulos (ASS/SSA, WebVTT) | [features/17-subtitles.md](features/17-subtitles.md) | ✅ |
-| 18 | Descarga offline | [features/18-download.md](features/18-download.md) | ✅ |
-| 19 | Notificaciones de media | [features/19-notifications.md](features/19-notifications.md) | ✅ |
-| 20 | Personalizacion de UI | [features/20-ui-customization.md](features/20-ui-customization.md) | ✅ |
-| 21 | Services (PlayerService + WithSync) | [features/21-services.md](features/21-services.md) | ✅ |
-
-**Estado:** ✅ Documentado | 🚧 En progreso | ⬜ Pendiente
+> El conocimiento por-feature está migrando de `docs/features/<NN-...>/` (legado, schema de 6)
+> hacia `qa-knowledge/<slug>/` (casa única, schema mínimo de 4). El `INDEX.yaml` lleva el avance
+> en el campo `migrated:` de cada feature.
 
 ---
 
-## API Reference
+## Contexto que leen los agentes
 
-- [MediastreamPlayer](api/MediastreamPlayer.md)
-- [MediastreamPlayerConfig](api/MediastreamPlayerConfig.md)
-- [MediastreamPlayerCallback](api/MediastreamPlayerCallback.md)
-- [ApiService](api/ApiService.md)
-
----
+- [`ai-context/sdk-api-contract.md`](ai-context/sdk-api-contract.md) — firmas reales de la API (línea 10.0.x)
+- [`ai-context/business-rules.md`](ai-context/business-rules.md) — qué es éxito/fallo
+- [`ai-context/test-patterns.md`](ai-context/test-patterns.md) — patrones y templates de test
 
 ## Testing
 
-- [Estrategia de Testing](testing/test-strategy.md)
-- [Guia de Fixtures](testing/fixtures-guide.md)
-- [Workflow con IA](testing/ai-workflow.md)
-
----
+- [Estrategia de Testing](testing/test-strategy.md) · [Guía de Fixtures](testing/fixtures-guide.md)
+- [Workflow con IA](testing/ai-workflow.md) · [QA autónomo](testing/sdk-qa-autonomous.md)
+- [Bitácora de sesiones](testing/SESSION_LOG.md)
 
 ## Risk Map
 
-- [RISK_MAP.md](../risk-map/RISK_MAP.md) — Mapa de riesgos y prioridades
-- [COVERAGE_TRACKER.md](../risk-map/COVERAGE_TRACKER.md) — Cobertura actual por feature
-
----
-
-*SDK version: 9.9.0 | Ultima actualizacion: 2026-04-16*
+- [RISK_MAP.md](../risk-map/RISK_MAP.md) · [COVERAGE_TRACKER.md](../risk-map/COVERAGE_TRACKER.md)

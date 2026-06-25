@@ -1,8 +1,17 @@
-# SDK API Contract — Mediastream Platform SDK Android v11.0.0-alpha.01
+# SDK API Contract — Mediastream Platform SDK Android (línea 10.0.x)
 
 > **Fuente de verdad:** código fuente del SDK en `D:\repos\mediastream\MediastreamPlatformSDKAndroid`
-> y compilación real contra `io.github.mediastream:mediastreamplatformsdkandroid:11.0.0-alpha.01`.
+> (rama `master`, `version = 10.0.7`). La **versión exacta bajo test** la fija
+> `app/build.gradle.kts` — no se duplica aquí (evita deriva; ver `qa-knowledge/CONVENTIONS.md §1`).
+> La superficie de API descrita es estable en toda la línea 10.0.x.
 > Este archivo es la referencia para generación de tests — no inventar firmas o comportamientos.
+>
+> ⚠️ Histórico: una versión previa de este documento se rotuló como una "v11" inexistente; <!-- lint-knowledge:allow-version -->
+> **esa versión nunca existió**. El contenido es de la línea 10.0.x. (Ver memoria `sdk_v11_real_api`.)
+
+<!-- Nota: el marcador `lint-knowledge:allow-version` en la línea de arriba exime a esa línea de la
+     regla R5 (versión única). Úsalo SOLO para menciones históricas/didácticas, nunca para firmas vigentes. -->
+
 
 ---
 
@@ -278,9 +287,9 @@ MediastreamPlayer.getEMBED_HOST(): String
 ### DRM
 | Propiedad | Tipo | Default | Descripción |
 |-----------|------|---------|-------------|
-| `drmData` | `DrmData?` | null | Datos DRM (en v11 el SDK resuelve DRM automáticamente por ID) |
+| `drmData` | `DrmData?` | null | Datos DRM (el SDK resuelve DRM automáticamente por ID) |
 
-**Nota v11:** `DrmData` es una clase anidada pero no expuesta públicamente en v11. El DRM se resuelve automáticamente cuando se usa `id` con contenido DRM en la plataforma.
+**Nota DRM:** `DrmData` es una clase anidada pero no expuesta públicamente. El DRM se resuelve automáticamente cuando se usa `id` con contenido DRM en la plataforma.
 
 ### Acceso seguro
 | Propiedad | Tipo | Default | Descripción |
@@ -300,7 +309,7 @@ fun getPPIDFromAdTagParameters(): String?    // Obtiene PPID de los atributos
 
 ## 5. MediastreamPlayerCallback — Todos los Callbacks
 
-> **CRÍTICO v11:** Esta interfaz NO tiene implementaciones default. TODOS los métodos deben implementarse.
+> **CRÍTICO:** Esta interfaz NO tiene implementaciones default. TODOS los métodos deben implementarse.
 > No se puede crear un anonymous object parcial sin compilar error.
 
 ### Ciclo de vida del player
@@ -388,7 +397,7 @@ fun onLocalSourceAdded()
 fun onFullscreen(enteredForPip: Boolean)
 // → El player entró en modo fullscreen
 // → enteredForPip: true si el fullscreen fue iniciado como preparación para PiP
-// → FIRMA v11 — fue onFullscreen() sin parámetros en versiones anteriores
+// → FIRMA 10.0.x — fue onFullscreen() sin parámetros en versiones anteriores
 
 fun offFullscreen()
 // → El player salió del modo fullscreen
@@ -531,7 +540,7 @@ onReady → onAdEvents(CONTENT_PAUSE_REQUESTED) → onAdEvents(STARTED)
 
 ---
 
-## 8. Propiedades que NO EXISTEN en v11 (errores de compilación)
+## 8. Propiedades que NO EXISTEN en la línea 10.0.x (errores de compilación)
 
 - `notificationTitle` — eliminado
 - `notificationDescription` — eliminado

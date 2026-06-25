@@ -1,0 +1,470 @@
+# =============================================================================
+# qa-knowledge/INDEX.yaml — Puerta ÚNICA del conocimiento por-feature para agentes.
+#
+# Un agente que necesita "¿qué tests hay para X?" o "¿riesgos de este cambio?" entra AQUÍ
+# primero: mapea el cambio/feature → slug → carpeta, y abre solo lo que necesita. Una parada.
+#
+# GENERADO por scripts/build-knowledge-index.cjs — NO editar los campos derivados a mano
+# (counts, migrated, generated). Los campos curados (title, group, order, deeplinks, notes,
+# id_prefix, path_current, merge_candidates, unmapped_deeplinks) SÍ se editan aquí y el
+# generador los preserva. Regenerar tras cualquier cambio:  node scripts/build-knowledge-index.cjs
+# =============================================================================
+schema_version: '1.0'
+generated: '2026-06-25'
+sdk_version_source: app/build.gradle.kts
+unmapped_deeplinks:
+  - key: switcher
+    note: quality/track switcher — sin feature propia; ¿candidato a slug nuevo o parte de ui-customization?
+merge_candidates:
+  - keep: core-player
+    absorbs:
+      - initialization
+      - callbacks
+      - dvr
+    reason: |
+      core-player (CORE) ya cubre lifecycle/callbacks/threading y comparte el prefijo CORE con initialization (INIT+CORE) y dvr (DVR+CORE). Decidir si callbacks/init se fusionan en core-player o quedan como features finas que lo referencian.
+  - keep: pip
+    absorbs:
+      - pip-v10-upcoming
+    reason: 'pip-v10-upcoming es la evolución planificada de pip (status: upcoming, aún no en prod).'
+groups:
+  - foundation
+  - playback
+  - monetization
+  - analytics
+  - platform
+  - ux
+  - upcoming
+features:
+  - slug: sdk-overview
+    id_prefix: null
+    title: Visión general del SDK
+    group: foundation
+    order: 0
+    status: stable
+    kind: narrative
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 0
+      defects: 0
+      user_stories: 0
+    path_target: qa-knowledge/sdk-overview/
+    path_current: docs/features/00-sdk-overview/
+    migrated: false
+    notes: YAML vacíos — colapsar a un overview.md de nivel raíz o mantener como narrativa.
+  - slug: core-player
+    id_prefix: CORE
+    title: 'Core player: lifecycle, callbacks, threading (cross-cutting)'
+    group: foundation
+    order: 1
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 18
+      risks: 8
+      defects: 7
+      user_stories: 0
+      acceptance: 21
+      gaps: 11
+    path_target: qa-knowledge/core-player/
+    path_current: qa-knowledge/core-player/
+    migrated: true
+    notes: Plantilla estructural del schema de 9 archivos. Ver merge_candidates.
+  - slug: initialization
+    id_prefix: INIT
+    title: Inicialización del player
+    group: foundation
+    order: 2
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 5
+      defects: 0
+      user_stories: 4
+      gaps: 7
+    path_target: qa-knowledge/initialization/
+    path_current: docs/features/01-initialization/
+    migrated: false
+    notes: Usa prefijos INIT+CORE — solapa con core-player (ver merge_candidates).
+  - slug: player-config
+    id_prefix: CONFIG
+    title: MediastreamPlayerConfig
+    group: foundation
+    order: 3
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 4
+      defects: 0
+      user_stories: 8
+      gaps: 7
+    path_target: qa-knowledge/player-config/
+    path_current: docs/features/02-playerconfig/
+    migrated: false
+  - slug: callbacks
+    id_prefix: CB
+    title: MediastreamPlayerCallback
+    group: foundation
+    order: 4
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 4
+      defects: 2
+      user_stories: 6
+      gaps: 14
+    path_target: qa-knowledge/callbacks/
+    path_current: docs/features/03-callbacks/
+    migrated: false
+    notes: Solapa con core-player (threading/orden de callbacks). Ver merge_candidates.
+  - slug: vod
+    id_prefix: VOD
+    title: Video on Demand (VOD)
+    group: playback
+    order: 10
+    status: stable
+    deeplinks:
+      - vod
+      - vod-loop
+      - direct-hls
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 4
+      gaps: 9
+    path_target: qa-knowledge/vod/
+    path_current: docs/features/04-video-vod/
+    migrated: false
+  - slug: live
+    id_prefix: LIVE
+    title: Video Live
+    group: playback
+    order: 11
+    status: stable
+    deeplinks:
+      - live
+      - lived
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 3
+      gaps: 8
+    path_target: qa-knowledge/live/
+    path_current: docs/features/05-video-live/
+    migrated: false
+  - slug: episode
+    id_prefix: EP
+    title: 'Episodes: Next Episode UI y autoplay'
+    group: playback
+    order: 12
+    status: stable
+    deeplinks:
+      - episode
+      - episode-custom
+    counts:
+      tests: 0
+      risks: 4
+      defects: 0
+      user_stories: 4
+      gaps: 13
+    path_target: qa-knowledge/episode/
+    path_current: docs/features/06-video-episode/
+    migrated: false
+  - slug: dvr
+    id_prefix: DVR
+    title: DVR y fictitious timeline
+    group: playback
+    order: 13
+    status: stable
+    deeplinks:
+      - livedvr
+    counts:
+      tests: 0
+      risks: 4
+      defects: 0
+      user_stories: 4
+      gaps: 10
+    path_target: qa-knowledge/dvr/
+    path_current: docs/features/08-dvr/
+    migrated: false
+    notes: Usa prefijos DVR+CORE — solapa con core-player.
+  - slug: audio
+    id_prefix: AUD
+    title: Audio (live, podcast, episode)
+    group: playback
+    order: 14
+    status: stable
+    deeplinks:
+      - audio-live
+      - audio-vod
+      - audio-episode
+      - audio-service
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 4
+      gaps: 8
+    path_target: qa-knowledge/audio/
+    path_current: docs/features/09-audio/
+    migrated: false
+    notes: 'BUG de numeración legado: su .md se titula ''07 — Audio'' (estaba en folder 09). Corregir título al migrar.'
+  - slug: drm
+    id_prefix: DRM
+    title: DRM Widevine
+    group: playback
+    order: 15
+    status: stable
+    deeplinks:
+      - drm
+    counts:
+      tests: 0
+      risks: 5
+      defects: 2
+      user_stories: 3
+      gaps: 8
+    path_target: qa-knowledge/drm/
+    path_current: docs/features/07-drm/
+    migrated: false
+    notes: Tiene 2 .md (07-drm-widevine.md + huérfano 09-drm.md). Consolidar a un overview.md al migrar.
+  - slug: subtitles
+    id_prefix: SUB
+    title: Subtítulos (ASS/SSA, WebVTT, CEA-608)
+    group: playback
+    order: 16
+    status: stable
+    deeplinks:
+      - subtitles
+    counts:
+      tests: 0
+      risks: 1
+      defects: 0
+      user_stories: 3
+      gaps: 7
+    path_target: qa-knowledge/subtitles/
+    path_current: docs/features/17-subtitles/
+    migrated: false
+  - slug: ads-ima
+    id_prefix: ADS
+    title: 'Publicidad: Google IMA / SSAI / DAI'
+    group: monetization
+    order: 20
+    status: stable
+    deeplinks:
+      - ads
+    counts:
+      tests: 0
+      risks: 4
+      defects: 2
+      user_stories: 4
+      gaps: 10
+    path_target: qa-knowledge/ads-ima/
+    path_current: docs/features/10-ads-ima/
+    migrated: false
+  - slug: analytics-comscore
+    id_prefix: COM
+    title: 'Analytics: Comscore'
+    group: analytics
+    order: 30
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 1
+      defects: 0
+      user_stories: 3
+      gaps: 5
+    path_target: qa-knowledge/analytics-comscore/
+    path_current: docs/features/11-analytics-comscore/
+    migrated: false
+  - slug: analytics-youbora
+    id_prefix: YB
+    title: 'Analytics: Youbora / NPAW'
+    group: analytics
+    order: 31
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 2
+      defects: 1
+      user_stories: 2
+      gaps: 4
+    path_target: qa-knowledge/analytics-youbora/
+    path_current: docs/features/12-analytics-youbora/
+    migrated: false
+  - slug: chromecast
+    id_prefix: CC
+    title: Google Cast / Chromecast
+    group: platform
+    order: 40
+    status: stable
+    deeplinks:
+      - cast-vod
+      - cast-live
+      - cast-episode
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 3
+      gaps: 6
+    path_target: qa-knowledge/chromecast/
+    path_current: docs/features/13-chromecast/
+    migrated: false
+  - slug: pip
+    id_prefix: PIP
+    title: Picture-in-Picture (PiP)
+    group: platform
+    order: 41
+    status: stable
+    deeplinks:
+      - pip
+    counts:
+      tests: 0
+      risks: 5
+      defects: 1
+      user_stories: 3
+      gaps: 13
+    path_target: qa-knowledge/pip/
+    path_current: docs/features/14-pip/
+    migrated: false
+  - slug: android-tv
+    id_prefix: ATV
+    title: Android TV / Fire TV
+    group: platform
+    order: 42
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 1
+      defects: 0
+      user_stories: 3
+      gaps: 6
+    path_target: qa-knowledge/android-tv/
+    path_current: docs/features/15-android-tv/
+    migrated: false
+  - slug: android-auto
+    id_prefix: AUTO
+    title: Android Auto / Automotive
+    group: platform
+    order: 43
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 2
+      gaps: 5
+    path_target: qa-knowledge/android-auto/
+    path_current: docs/features/16-android-auto/
+    migrated: false
+  - slug: ui-customization
+    id_prefix: UI
+    title: Personalización de UI
+    group: ux
+    order: 50
+    status: stable
+    deeplinks:
+      - fullscreen
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 4
+      gaps: 8
+    path_target: qa-knowledge/ui-customization/
+    path_current: docs/features/20-ui-customization/
+    migrated: false
+    notes: El deeplink 'fullscreen' se asigna aquí provisionalmente; podría ser core-player.
+  - slug: notifications
+    id_prefix: NOTIF
+    title: Notificaciones de media
+    group: ux
+    order: 51
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 3
+      gaps: 7
+    path_target: qa-knowledge/notifications/
+    path_current: docs/features/19-notifications/
+    migrated: false
+  - slug: download
+    id_prefix: DL
+    title: Descarga offline
+    group: ux
+    order: 52
+    status: stable
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 2
+      defects: 0
+      user_stories: 2
+      gaps: 5
+    path_target: qa-knowledge/download/
+    path_current: docs/features/18-download/
+    migrated: false
+  - slug: services
+    id_prefix: SVC
+    title: 'Services: PlayerService y PlayerServiceWithSync'
+    group: ux
+    order: 53
+    status: stable
+    deeplinks:
+      - service
+    counts:
+      tests: 0
+      risks: 3
+      defects: 0
+      user_stories: 3
+      gaps: 12
+    path_target: qa-knowledge/services/
+    path_current: docs/features/21-services/
+    migrated: false
+  - slug: reels
+    id_prefix: REELS
+    title: Reels (ReelsV2)
+    group: ux
+    order: 54
+    status: stable
+    deeplinks:
+      - reels
+    counts:
+      tests: 0
+      risks: 4
+      defects: 1
+      user_stories: 4
+      gaps: 14
+    path_target: qa-knowledge/reels/
+    path_current: docs/features/22-reels/
+    migrated: false
+  - slug: pip-v10-upcoming
+    id_prefix: V10PIP
+    title: Cambios PiP planificados v10 (NO en producción aún)
+    group: upcoming
+    order: 90
+    status: upcoming
+    deeplinks: []
+    counts:
+      tests: 0
+      risks: 3
+      defects: 0
+      user_stories: 0
+      gaps: 7
+    path_target: qa-knowledge/pip-v10-upcoming/
+    path_current: docs/features/upcoming-v10-pip-changes/
+    migrated: false
+    notes: Evolución de pip. Mantener separado hasta que entre en prod (ver merge_candidates).

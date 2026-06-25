@@ -1,0 +1,50 @@
+name: Knowledge Lint
+
+# Gate del grafo de conocimiento: el INDEX al día y el knowledge consistente con el código.
+# Puro Node + git (no necesita device) → corre en ubuntu-latest, no ocupa el runner físico.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'qa-knowledge/**'
+      - 'docs/features/**'
+      - 'docs/ai-context/**'
+      - 'app/src/androidTest/**'
+      - 'app/build.gradle.kts'
+      - 'scripts/build-knowledge-index.cjs'
+      - 'scripts/lint-knowledge.cjs'
+      - 'scripts/kb-resolve.cjs'
+  pull_request:
+    paths:
+      - 'qa-knowledge/**'
+      - 'docs/features/**'
+      - 'docs/ai-context/**'
+      - 'app/src/androidTest/**'
+      - 'app/build.gradle.kts'
+      - 'scripts/*.cjs'
+  workflow_dispatch: {}
+
+concurrency:
+  group: knowledge-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: INDEX al día + knowledge consistente
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar deps de scripts (js-yaml)
+        run: npm install --no-audit --no-fund --prefix scripts
+
+      - name: INDEX al día (build-knowledge-index --check)
+        run: node scripts/build-knowledge-index.cjs --check
+
+      - name: Lint del knowledge (cross-links, file:line, @Ignore, IDs, versión SDK)
+        run: node scripts/lint-knowledge.cjs

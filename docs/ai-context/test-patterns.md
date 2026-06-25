@@ -146,7 +146,7 @@ fun `onPlay_fires_after_onReady_with_autoplay`() {
         // Registrar un callback adicional para capturar orden
         sc.onActivity { activity ->
             activity.player?.addPlayerCallback(object : MediastreamPlayerCallback {
-                // Implementar todos los métodos (no hay defaults en v11)
+                // Implementar todos los métodos (la interfaz no tiene defaults)
                 override fun onReady() { eventOrder.add("onReady") }
                 override fun onPlay() { eventOrder.add("onPlay") }
                 override fun playerViewReady(v: PlayerView?) {}
@@ -315,7 +315,7 @@ fun `episode_nextEpisodeIncoming_fires_before_overlay`() {
 | Assert solo `isNotNull()` | No verifica comportamiento | Assert el valor específico o estado |
 | No verificar que test FALLA sin el SDK | False positive garantizado | Comentar la config y verificar que falla |
 | Usar `TODO_` IDs de TestContent | Contenido no existe | Usar IDs ya configurados |
-| Registrar callback parcial sin todos los métodos | No compila en v11 | Implementar TODOS los métodos |
+| Registrar callback parcial sin todos los métodos | No compila (sin defaults) | Implementar TODOS los métodos |
 | `Thread.sleep()` > 500ms en vez de latch | Flaky | Usar CountDownLatch o awaitCallback |
 | Assert en el order de eventos con lista mutable | Race condition | Usar CountDownLatch + lista sincronizada |
 
@@ -323,7 +323,7 @@ fun `episode_nextEpisodeIncoming_fires_before_overlay`() {
 
 ## Cómo Implementar MediastreamPlayerCallback en Tests
 
-En v11, `MediastreamPlayerCallback` es completamente abstracta. Para tests que necesitan su propio callback:
+`MediastreamPlayerCallback` es completamente abstracta (sin defaults). Para tests que necesitan su propio callback:
 
 **Opción A (recomendada para la mayoría de tests):** Usar el `callbackCaptor` de `BaseScenarioActivity` directamente — ya está registrado.
 
@@ -342,7 +342,7 @@ object : MediastreamPlayerCallback {
     override fun onError(error: String?) {}
     override fun onNext() {}
     override fun onPrevious() {}
-    override fun onFullscreen(enteredForPip: Boolean) {}  // v11: tiene parámetro
+    override fun onFullscreen(enteredForPip: Boolean) {}  // 10.0.x: tiene parámetro
     override fun offFullscreen() {}
     override fun onNewSourceAdded(config: MediastreamPlayerConfig) {}
     override fun onLocalSourceAdded() {}
