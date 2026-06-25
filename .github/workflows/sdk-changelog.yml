@@ -10,9 +10,11 @@ on:
       - 'sdk-changelog/**'
   workflow_dispatch: {}   # también a demanda
 
+# Mutex compartido del device A53 (mismo grupo en sdk-qa / sdk-maven-watch) → serialización
+# explícita entre los 3 workflows que tocan el device. No cancelar un pipeline a medias.
 concurrency:
-  group: sdk-changelog-${{ github.ref }}
-  cancel-in-progress: false   # no cancelar un pipeline a medias (corre tests en device)
+  group: device-a53
+  cancel-in-progress: false
 
 jobs:
   changelog-qa:

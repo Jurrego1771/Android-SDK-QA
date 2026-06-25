@@ -8,9 +8,11 @@ on:
     - cron: '*/30 * * * *'   # cada 30 min (ajustable). El check es barato; el device solo se usa si hay versión nueva.
   workflow_dispatch: {}       # disparo manual
 
+# Mutex compartido del device A53 (mismo grupo en sdk-qa / sdk-changelog) → serialización
+# explícita entre los 3 workflows que tocan el device. No cortar un QA a medias.
 concurrency:
-  group: sdk-maven-watch
-  cancel-in-progress: false   # no cortar un QA a medias (corre tests en device)
+  group: device-a53
+  cancel-in-progress: false
 
 jobs:
   watch:

@@ -39,10 +39,12 @@ on:
         default: false
         type: boolean
 
-# Cancelar runs anteriores del mismo branch si llega uno nuevo
+# Mutex del device físico: los 3 workflows que tocan el A53 comparten ESTE grupo (string global
+# en GitHub Actions) → se serializan entre sí de forma explícita, sin depender de que haya 1 solo
+# runner. cancel-in-progress: false = nunca cortar un QA a medias en el device (se encolan).
 concurrency:
-  group: sdk-qa-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: device-a53
+  cancel-in-progress: false
 
 jobs:
   test:
