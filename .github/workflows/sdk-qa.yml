@@ -49,7 +49,7 @@ concurrency:
 jobs:
   test:
     name: ${{ github.event_name == 'schedule' && 'Nightly — Suite completa' || github.event_name == 'push' && 'Push — Tests rápidos' || 'Manual' }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 60
     permissions:
       contents: write          # push del reporte a la rama gh-pages
