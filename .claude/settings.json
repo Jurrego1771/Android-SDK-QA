@@ -1,0 +1,13 @@
+{
+  "_comment": "Settings de proyecto COMITEADOS (los lee el runner self-hosted en cada checkout, a diferencia de settings.local.json que es gitignored). Permiso QUIRÚRGICO de gradle para que los agentes headless (claude -p en watch-sdk.sh / run-changelog-pipeline.sh) puedan correr el build y AUTO-VERIFICARSE en modo fix — sin esto, gradle se les niega y vuelan a ciegas sobre si su fix compila. NO es bypassPermissions (no abre todo el runner); solo gradle. El permission-mode acceptEdits (en CLAUDE_FLAGS) cubre las ediciones de archivo.",
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew:*)",
+      "Bash(gradlew:*)",
+      "Bash(gradlew.bat:*)",
+      "Bash(gradle:*)",
+      "Bash(sh ./gradlew:*)",
+      "Bash(bash ./gradlew:*)"
+    ]
+  }
+}

@@ -10,6 +10,11 @@ errores (`e: ...Unresolved reference`, firmas, imports), abre los archivos seña
 mínimamente. Si un error viene de que una API del SDK no existe en este binario, ELIMINA ese test
 (no inventes la API) y nótalo en el report. Vuelve a dejar el `generated-tests-report.md` actualizado.
 
+**AUTO-VERIFICÁ tu fix** (tenés permiso de gradle): tras corregir, corré
+`./gradlew :app:compileDebugAndroidTestKotlin --console=plain` para confirmar que compila. Iterá
+hasta que pase o hasta agotar el fix (entonces documentá qué queda roto y por qué). NUNCA declares
+PASS sin haber compilado de verdad — si no podés verificar, dilo, no lo asumas.
+
 ## Contexto que DEBES leer SIEMPRE
 
 1. `docs/ai-context/sdk-api-contract.md` — Firmas reales del SDK (línea 10.0.x)

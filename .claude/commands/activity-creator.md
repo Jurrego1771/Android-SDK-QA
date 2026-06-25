@@ -266,8 +266,12 @@ Escribir los cambios en este orden:
 5. **`docs/ai-context/activity-creator-memory.md`** (editar — registrar la sesión)
 
 > **Modo fix:** si existe `ai-output/compile-gate.txt` con `result=FAIL` y los errores apuntan a la
-> Activity que creaste (API inexistente en este binario), corrígela mínimamente o elimínala; no
-> inventes propiedades del SDK que el compilador no encuentra.
+> Activity que creaste, corrígela mínimamente. Ojo: un error de *firma* (p.ej. `String?` vs `String`
+> no-null, "overrides nothing") **revela la firma real** del binario → ajustá a esa firma, no la
+> inventes. Solo si es `Unresolved reference` (la API no existe en este binario) elimina/marca la
+> Activity como BLOQUEADA. **Auto-verificá** (tenés permiso de gradle): corré
+> `./gradlew :app:compileDebugAndroidTestKotlin --console=plain` tras el fix para confirmar que
+> compila; iterá hasta que pase. No declares éxito sin haber compilado.
 
 ### Qué registrar en la memoria al finalizar
 
