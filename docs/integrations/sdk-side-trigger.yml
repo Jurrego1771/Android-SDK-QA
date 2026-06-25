@@ -2,9 +2,16 @@
 # QA-trigger.yml  —  COLOCAR EN EL REPO DEL SDK: .github/workflows/QA-trigger.yml
 #
 # Dispara el pipeline de QA caja-negra (repo Android-SDK-QA, runner self-hosted) cuando cambia el
-# código del SDK en la rama de release. NO corre tests aquí: solo notifica al repo QA vía
-# repository_dispatch, pasándole el CONTEXTO del cambio (PR nº o rango de commits) para que el QA
-# obtenga el diff REAL y ejecute analyze → explore(MCP) → generate → run en device → report → PR.
+# código del SDK en la rama de release. NO toca el código del SDK: el único paso es un POST a la API
+# de GitHub avisando al repo QA (repository_dispatch) con el CONTEXTO del cambio (PR nº o rango de
+# commits). El repo QA obtiene el diff REAL y ejecuta analyze → explore(MCP) → run en device → PR.
+#
+# Seguridad:
+#   - No hace checkout ni compila el SDK; no puede modificar/leer el código ni otros secrets.
+#   - `permissions: {}` → el GITHUB_TOKEN del job no tiene NINGÚN permiso sobre este repo.
+#   - El único secret usado (QA_DISPATCH_TOKEN) solo sirve para disparar el repo QA; no toca el SDK.
+#   - Los workflows disparados por PRs de forks NO reciben secrets → el disparo simplemente no ocurre
+#     para forks (comportamiento por defecto de GitHub; seguro).
 #
 # Requisito (una sola vez): crear el secret QA_DISPATCH_TOKEN en ESTE repo (el del SDK).
 #   Ver docs/integrations/README-sdk-trigger.md en el repo QA para los pasos exactos del token.
@@ -18,9 +25,10 @@ on:
   push:
     branches: ['10.0.x', 'release/**']   # ← ídem
 
-# Repo QA destino. Cambiar si el repo QA se renombra/mueve.
+permissions: {}   # este workflow no necesita ningún permiso sobre el repo del SDK
+
 env:
-  QA_REPO: Jurrego1771/Android-SDK-QA
+  QA_REPO: Jurrego1771/Android-SDK-QA   # repo QA destino
 
 jobs:
   notify-qa:
@@ -28,39 +36,36 @@ jobs:
     steps:
       - name: Disparar QA (PR)
         if: github.event_name == 'pull_request'
+        env:
+          QA_TOKEN: ${{ secrets.QA_DISPATCH_TOKEN }}
+          SDK_REPO: ${{ github.repository }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          curl -sf -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.QA_DISPATCH_TOKEN }}" \
-            "https://api.github.com/repos/${QA_REPO}/dispatches" \
-            -d @- <<JSON
-          {
-            "event_type": "sdk-pr",
-            "client_payload": {
-              "event": "pr",
-              "repo": "${{ github.repository }}",
-              "ref": "${{ github.event.pull_request.base.ref }}",
-              "pr_number": "${{ github.event.pull_request.number }}"
-            }
-          }
-          JSON
+          # jq construye el JSON desde env vars (evita inyección por título/rama con caracteres raros).
+          jq -nc \
+            --arg repo "$SDK_REPO" --arg ref "$BASE_REF" --arg pr "$PR_NUMBER" \
+            '{event_type:"sdk-pr", client_payload:{event:"pr", repo:$repo, ref:$ref, pr_number:$pr}}' \
+          | curl -sf -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $QA_TOKEN" \
+              "https://api.github.com/repos/${QA_REPO}/dispatches" \
+              -d @-
 
       - name: Disparar QA (push)
         if: github.event_name == 'push'
+        env:
+          QA_TOKEN: ${{ secrets.QA_DISPATCH_TOKEN }}
+          SDK_REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.event.after }}
         run: |
-          curl -sf -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.QA_DISPATCH_TOKEN }}" \
-            "https://api.github.com/repos/${QA_REPO}/dispatches" \
-            -d @- <<JSON
-          {
-            "event_type": "sdk-push",
-            "client_payload": {
-              "event": "push",
-              "repo": "${{ github.repository }}",
-              "ref": "${{ github.ref_name }}",
-              "base_sha": "${{ github.event.before }}",
-              "head_sha": "${{ github.event.after }}"
-            }
-          }
-          JSON
+          jq -nc \
+            --arg repo "$SDK_REPO" --arg ref "$REF_NAME" --arg base "$BASE_SHA" --arg head "$HEAD_SHA" \
+            '{event_type:"sdk-push", client_payload:{event:"push", repo:$repo, ref:$ref, base_sha:$base, head_sha:$head}}' \
+          | curl -sf -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $QA_TOKEN" \
+              "https://api.github.com/repos/${QA_REPO}/dispatches" \
+              -d @-
