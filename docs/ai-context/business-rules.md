@@ -202,9 +202,9 @@ CONTENT_PAUSE_REQUESTED → STARTED → [FIRST_QUARTILE] → [MIDPOINT] → [THI
 - La app crashea al intentar reproducir contenido DRM (NPE u excepción no manejada)
 - `onError` no dispara cuando la licencia falla (el usuario se queda en pantalla negra)
 
-### Nota v11:
+### Nota DRM:
 - DRM se resuelve automáticamente cuando el contenido tiene DRM configurado en la plataforma
-- No requiere configurar `DrmData` manualmente (no es API pública en v11)
+- No requiere configurar `DrmData` manualmente (no es API pública)
 - Solo disponible en entorno DEV (`MediastreamPlayerConfig.Environment.DEV`)
 
 ---

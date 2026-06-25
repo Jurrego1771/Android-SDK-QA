@@ -1,0 +1,72 @@
+version: "2.0"
+module: drm
+last_updated: "2026-06-25"
+
+# Migrado de docs/features/07-drm/ al schema mínimo (rules.md + risks + defects + tests derivado).
+# Ver qa-knowledge/CONVENTIONS.md.
+
+risks:
+
+  - id: DRM-RISK-001
+    severity: high
+    title: "videoFormat=DASH es obligatorio pero no se valida"
+    description: >
+      Si drmData está seteado pero videoFormat no es DASH, el SDK usa HLS por defecto
+      y la licencia Widevine no se aplica. No hay error ni warning.
+    affected_files:
+      - "MediastreamPlayerConfig.kt"
+      - "MediastreamPlayer.kt"
+    trigger: "DRM con videoFormat != DASH"
+    mitigation: "Documentar que DASH es obligatorio para DRM; el integrador debe asegurarlo."
+    test_priority: MUST
+
+  - id: DRM-RISK-002
+    severity: high
+    title: "Token JWT expira sin notificación"
+    description: >
+      El JWT de Axinom tiene expiration_date. Si se expira durante una sesión larga,
+      el stream DRM deja de funcionar.
+    affected_files:
+      - "Axinom DRM License Server"
+    trigger: "Sesión larga que excede expiration_date del token"
+    mitigation: "Usar tokens con expiration_date lejana o implementar refresh; monitorear errores DRM."
+    defect_ref: DRM-DEF-001
+    test_priority: MUST
+
+  - id: DRM-RISK-003
+    severity: high
+    title: "Key ID del token no coincide con el stream"
+    description: >
+      El JWT contiene keys[].id que debe coincidir con el Key ID del stream.
+      Mismatch produce error 4032.
+    affected_files:
+      - "Axinom DRM License Server"
+    trigger: "Token generado para un content ID diferente"
+    workaround: "Verificar que el token corresponde al content ID."
+    mitigation: "El integrador debe regenerar el token con el Key ID correcto."
+    test_priority: MUST
+
+  - id: DRM-RISK-004
+    severity: medium
+    title: "Header name case-sensitive"
+    description: >
+      X-AxDRM-Message es el header correcto. Variaciones como x-axdrm-message o
+      X-Axdrm-Message pueden fallar.
+    affected_files:
+      - "Axinom DRM License Server"
+    trigger: "Header escrito con capitalización incorrecta"
+    mitigation: "Usar exactamente X-AxDRM-Message."
+    test_priority: SHOULD
+
+  - id: DRM-RISK-005
+    severity: low
+    title: "ClassCastException en Youbora al cambiar estado de playback"
+    description: >
+      ClassCastException ContextImpl -> Activity ocurre en Youbora al cambiar estado.
+      No hay workaround desde QA.
+    affected_files:
+      - "Youbora adapter / MediastreamPlayer.kt"
+    trigger: "Cambio rápido de play a pause con Youbora habilitado"
+    workaround: "Ninguno desde QA. Reportar a Mediastream."
+    mitigation: "Deshabilitar Youbora temporalmente si el bug se manifiesta."
+    test_priority: COULD

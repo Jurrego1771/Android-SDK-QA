@@ -1,6 +1,9 @@
-version: "1.0"
+version: "2.0"
 module: drm
-last_updated: "2026-06-23"
+last_updated: "2026-06-25"
+
+# DERIVADO: existing_tests refleja los @Test reales (hoy ninguno para DRM).
+# coverage_gaps = backlog priorizado; cada gap referencia el riesgo/AC que cubriría.
 
 existing_tests: []
 
@@ -8,52 +11,53 @@ coverage_gaps:
 
   - id: GAP-DRM-001
     priority: MUST
-    title: "VOD con DRM carga y reproduce (token valido)"
+    title: "VOD con DRM carga y reproduce (token válido)"
     suggested_spec: "integration/DrmTest.kt"
-    notes: >
-      Verificar que onReady y onPlay llegan sin errores de licencia.
+    covers_ac: DRM-AC-001
+    notes: "Verificar que onReady y onPlay llegan sin errores de licencia."
 
   - id: GAP-DRM-002
     priority: MUST
     title: "videoFormat=DASH es obligatorio para DRM"
     suggested_spec: "integration/DrmConfigTest.kt"
-    notes: >
-      DRM con HLS no funciona. Test debe fallar si videoFormat!=DASH.
+    covers_risk: DRM-RISK-001
+    notes: "DRM con HLS no funciona. Test debe fallar si videoFormat != DASH."
 
   - id: GAP-DRM-003
     priority: MUST
-    title: "Token vencido -> onPlaybackErrors o onError con codigo DRM"
+    title: "Token vencido -> onPlaybackErrors o onError con código DRM"
     suggested_spec: "integration/DrmErrorTest.kt"
-    notes: >
-      El SDK propaga el error de licencia. Verificar que se recibe.
+    covers_ac: DRM-AC-003
+    covers_risk: DRM-RISK-002
+    notes: "El SDK propaga el error de licencia. Verificar que se recibe."
 
   - id: GAP-DRM-004
     priority: MUST
     title: "Token con Key ID incorrecto -> error 4032"
     suggested_spec: "integration/DrmErrorTest.kt"
+    covers_risk: DRM-RISK-003
 
   - id: GAP-DRM-005
     priority: MUST
-    title: "Secuencia de callbacks correcta: playerViewReady -> buffering -> onReady -> onPlay"
+    title: "Secuencia de callbacks: playerViewReady -> buffering -> onReady -> onPlay"
     suggested_spec: "integration/DrmTest.kt"
+    covers_ac: DRM-AC-001
 
   - id: GAP-DRM-006
     priority: SHOULD
     title: "Live con DRM funciona igual que VOD"
     suggested_spec: "integration/DrmLiveTest.kt"
-    notes: >
-      DRM en live es menos comun pero posible.
+    notes: "DRM en live es menos común pero posible."
 
   - id: GAP-DRM-007
     priority: SHOULD
     title: "isDebug=true muestra requests de licencia en logcat"
     suggested_spec: "integration/DrmDebugTest.kt"
-    notes: >
-      Filtrar logcat con ExoPlayerLib:W DrmSessionManager:D.
+    notes: "Filtrar logcat con ExoPlayerLib:W DrmSessionManager:D."
 
   - id: GAP-DRM-008
     priority: COULD
     title: "Nivel Widevine del dispositivo (L1 vs L3)"
     suggested_spec: "unit/WidevineLevelTest.kt"
-    notes: >
-      Test unitario verificando el nivel de seguridad del dispositivo.
+    covers_risk: DRM-RISK-005
+    notes: "Verifica el nivel de seguridad del dispositivo."
