@@ -12,7 +12,9 @@ on:
       - 'gradle/**'
       - 'scripts/**'
 
-  # Nightly 2am — suite completa (sin filtro de paths)
+  # Nightly 2am — suite completa SOLO en móvil (sin filtro de paths).
+  # Los nocturnos en TV (BRAVIA por WiFi) se retiraron: la TV no está siempre conectada y
+  # genera falsos rojos. Para correr en TV: workflow_dispatch con target=tv a demanda.
   schedule:
     - cron: '0 2 * * *'
 
@@ -71,7 +73,7 @@ jobs:
             "skip_build="   | Out-File $env:GITHUB_OUTPUT -Append
           } elseif ($event -eq "schedule") {
             "size=all"      | Out-File $env:GITHUB_OUTPUT -Append
-            "target=all"    | Out-File $env:GITHUB_OUTPUT -Append
+            "target=mobile" | Out-File $env:GITHUB_OUTPUT -Append   # nightly SOLO móvil (sin TV)
             "skip_build="   | Out-File $env:GITHUB_OUTPUT -Append
           } else {
             "size=${{ github.event.inputs.size }}"     | Out-File $env:GITHUB_OUTPUT -Append
