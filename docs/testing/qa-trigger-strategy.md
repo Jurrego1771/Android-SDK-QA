@@ -10,10 +10,17 @@
 
 ## 1. Principio
 
-El CHANGELOG del SDK vive **en la rama del cambio**, no en `master`. La rama —su **nombre** y su
-**changelog**— es la fuente de verdad del tipo de cambio y de qué features toca. El workflow ya no
-mira una rama fija (`SDK_BRANCH=10.0.8`): **descubre la rama del cambio, la clasifica, y ramifica
+La **rama del cambio** del SDK es la fuente de verdad. El workflow ya no mira una rama fija
+(`SDK_BRANCH=10.0.8`): **descubre la rama del cambio, la clasifica de forma autónoma, y ramifica
 el flujo**.
+
+> **Decisión de diseño (camino B, 2026-06-25): clasificación autónoma, sin depender del SDK team.**
+> Las ramas de versión SÍ traen `CHANGELOG.md` (formato `### New Features`/`### Bug Fixes`), pero
+> las ramas de **trabajo (fix/feature) NO lo mantienen** (verificado: `bug/adControls` no tiene
+> changelog). Por eso el clasificador NO depende del changelog: usa **nombre de rama** (tipo) +
+> **`git diff <rama>..master`** (qué archivos tocó → features vía INDEX). El changelog, *si existe*,
+> solo **enriquece** el contexto del agente — nunca es requisito. Así no se le impone proceso nuevo
+> al equipo SDK y el flujo no se bloquea por disciplina ajena.
 
 ## 2. Descubrimiento de la rama  (decisión: input manual + cron de versiones)
 
@@ -25,26 +32,40 @@ el flujo**.
 > El cron NO descubre ramas de feature/fix solo (evita disparar QA sobre trabajo que el team no
 > quería probar aún). Esas van por input explícito.
 
-## 3. Clasificación  (nombre de rama + changelog de la rama)
+## 3. Clasificación autónoma (camino B)
 
-El nombre da el tipo tentativo; el changelog de la rama (`gh api .../CHANGELOG.md?ref=<rama>`, ya
-implementado en `fetch-sdk-changelog.sh`) lo confirma y lista las features tocadas.
+Tres señales, en orden de fiabilidad. Ninguna requiere acción del equipo SDK.
 
-| Patrón de rama | `change_type` | Confirmación en changelog |
-|---|---|---|
-| `bug/*`, `bugfix/*`, `*-fix`, `*fix*` | `FIX` | sección "Bug Fixes" |
-| `NN.NN.NN` (semver puro, sin sufijo) | `RELEASE` | tag estable + artefacto en Maven |
-| `NN.NN.NN-alphaNN` | `VERSION` (en progreso) | alpha en Maven |
-| otro (`SGAI`, `cast`, `PlayerNotification`, `android-auto-v2`) | `FEATURE` | sección "New Features" |
-| `develop*`, `dev-*`, `master`, `HEAD` | `IGNORE` | — |
+**a) Tipo ← nombre de rama** (siempre disponible):
+
+| Patrón de rama | `change_type` |
+|---|---|
+| `bug/*`, `bugfix/*`, `*-fix`, `*fix*` | `FIX` |
+| `NN.NN.NN` (semver puro, sin sufijo) | `RELEASE` |
+| `NN.NN.NN-alphaNN` | `VERSION` (en progreso) |
+| otro (`SGAI`, `cast`, `PlayerNotification`, `android-auto-v2`) | `FEATURE` |
+| `develop*`, `dev-*`, `master`, `HEAD` | `IGNORE` |
+
+**b) Features tocadas ← `git diff <rama>..master`** (siempre disponible): los archivos del SDK
+modificados se mapean a slugs del INDEX. El mapeo se deriva de los `affected_files` ya presentes en
+`qa-knowledge/<slug>/risks.yaml` y `defects.yaml` (que apuntan a clases como `MediastreamPlayer.kt`,
+`MediastreamPlayerConfig.kt`). Si un archivo no mapea a ninguna feature → fallback a smoke + revisión.
+
+**c) Enriquecimiento ← `CHANGELOG.md@<rama>`** (opcional): si la rama trae changelog, su sección se
+pasa al agente como contexto del *intent*. Si no existe (caso típico en fix/feature), se omite sin error.
 
 Salida del clasificador (contrato nuevo, p.ej. `ai-output/change-meta.txt`):
 ```
 change_type=FIX
 sdk_branch=bug/adControls
-features=ads-ima          # slugs del INDEX (vía mapeo del changelog → kb-resolve)
+features=ads-ima          # slugs del INDEX, vía git diff → affected_files
 binary_source=local-build # ver §5
+changelog=absent          # present|absent (solo enriquece)
 ```
+
+> **Pieza nueva a construir:** un índice inverso `affected_file → slug` derivado de los YAML de
+> `qa-knowledge` (extensión natural de `build-knowledge-index.cjs`). Es lo que traduce el git diff
+> a features. Mientras no exista, fix/feature caen a smoke + revisión manual de alcance.
 
 ## 4. Los tres flujos  (alcance de tests vía INDEX + kb-resolve)
 
@@ -90,17 +111,20 @@ pero solo se sube como *artifact*.
 **Fix (decidido: GitHub Pages por run):**
 1. Workflow `deploy-pages` que publica `ai-output/report/` en `/runs/<run_number>/` → URL navegable.
 2. `run-tests.sh`: pasar esa URL como `RUN_URL` (4º arg de `notify-slack.sh`).
-3. **Prerrequisito:** habilitar GitHub Pages en el repo. Si el repo es privado, Pages requiere plan
-   GitHub Team/Enterprise — confirmar antes de implementar; si no, fallback al link del run de Actions.
+3. **Prerrequisito:** habilitar GitHub Pages en el repo. **Repo público confirmado (2026-06-25)** →
+   Pages disponible sin plan especial.
 
 ## 7. Fases de implementación
 
 1. **Slack/Pages** (independiente, valor inmediato): deploy-pages + pasar `RUN_URL`. Desbloquea el link.
-2. **Clasificador de rama**: `classify-branch.sh` (nombre + changelog) → `change-meta.txt`. Extiende
-   `fetch-sdk-changelog.sh` para aceptar cualquier `sdk_branch`.
-3. **Router en el orquestador**: ramificar `watch-sdk.sh` por `change_type` (alcance de `run-tests.sh`).
-4. **Build local → mavenLocal** para feature/fix.
-5. **workflow_dispatch con `sdk_branch`** + cron de versiones (descubrimiento).
+2. **Índice inverso `affected_file → slug`**: extender `build-knowledge-index.cjs` para emitir el
+   mapeo desde los `affected_files` de los YAML de `qa-knowledge`. Es lo que traduce el git diff a
+   features (camino B). Mejora con cada feature migrada.
+3. **Clasificador de rama**: `classify-branch.sh` — tipo ← nombre, features ← `git diff <rama>..master`
+   + índice inverso, changelog opcional → `change-meta.txt`.
+4. **Router en el orquestador**: ramificar `watch-sdk.sh` por `change_type` (alcance de `run-tests.sh`).
+5. **Build local → mavenLocal** para feature/fix.
+6. **workflow_dispatch con `sdk_branch`** + cron de versiones (descubrimiento).
 
-Fase 1 no depende de las demás. Las fases 2–3 dependen del grafo de conocimiento (INDEX + kb-resolve),
-ya en su sitio.
+Fase 1 no depende de las demás. Las fases 2–4 dependen del grafo de conocimiento (INDEX + kb-resolve),
+ya en su sitio; la fase 2 mejora a medida que se migran features (más `affected_files` → mejor mapeo).
