@@ -9,8 +9,16 @@ tests de internals viven en `MediastreamPlatformSDKAndroid`.
   decir `10.0.8-alpha01` — discrepancia conocida, ver `qa-knowledge/core-player` CORE-LEARN-004).
 - Una sola app / un APK para móvil y TV; el SDK es adaptativo en runtime. Diferenciación por
   anotaciones `@MobileOnly`/`@TvOnly` + filtro `--target` en `scripts/run-tests.sh`.
-- Devices: A53 físico `R5CTB1W92KY` (USB); Sony BRAVIA `192.168.1.224:5555` (TV, WiFi — IP por
-  DHCP, puede cambiar; `BRAVIA_VU31`, requiere aceptar la autorización ADB en pantalla al conectar).
+- Devices: **el harness auto-detecta el device USB conectado** (`adb devices`), no depende de un
+  serial fijo — cualquier teléfono enchufado sirve, sin registrar nada. Móvil actual: **Motorola
+  Edge 60 Fusion** `ZY22MLTTD3` (Android 15 / API 35). Anterior: Samsung A53 `R5CTB1W92KY` (API 36;
+  varios `learnings` del SESSION_LOG son de API 36 — p.ej. el PiP automático al salir). TV: Sony
+  BRAVIA `192.168.1.224:5555` (WiFi — IP por DHCP, puede cambiar; `BRAVIA_VU31`, requiere aceptar
+  la autorización ADB en pantalla al conectar).
+  > Nota: los `qa-knowledge/session-baselines` se capturaron en el A53 (`sdk10.0.7`). Al comparar
+  > sesiones de otro device, lo **estructural** (orden de callbacks, formato) diffea limpio; los
+  > **numéricos** (TTFF, rebuffer) varían por device además de por red — recapturar baseline si se
+  > fija un nuevo device de referencia.
 
 ---
 
