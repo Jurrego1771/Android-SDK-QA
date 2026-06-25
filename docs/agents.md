@@ -122,6 +122,16 @@ Hoy NO hay carpetas `smoke/`/`regression/` — la clasificación es por **anotac
 El `regression-set.txt` que produce el strategist es una lista de `--class`/`--package` que `run-tests.sh`
 ejecuta en la Fase B. El `test-generator` registra el `type` de cada test nuevo en `tests.yaml`.
 
+### Ejecución en 2 fases + auto-retry (lo orquesta qa-core.sh)
+- **Fase A — Verificación del cambio**: `run-tests.sh --class <tests nuevos del strategy>`. Responde
+  "¿el cambio hace lo que debe?".
+- **Fase B — Regresión seleccionada**: por cada línea de `regression-set.txt` (`class|FQCN` o `package|pkg`,
+  o `all` si RELEASE), `run-tests.sh --class/--package …` + smoke. Responde "¿rompimos algo?".
+- **Ambas corren siempre** (aunque A falle → un run da el cuadro completo).
+- Tras cada fase, `scripts/retry-failed-tests.sh <device> <results.json> <N>` reintenta los fallidos y
+  marca `flaky` (pasó en retry) vs `consistent` en el json. El `test-analyzer` usa esa señal para
+  clasificar (real vs flaky) — sin esto, un fail aislado es ambiguo.
+
 ---
 
 ## 7. Reglas transversales (todos los agentes)
