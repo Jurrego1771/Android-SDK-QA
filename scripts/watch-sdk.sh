@@ -100,17 +100,39 @@ fi
 log "Versión NUEVA detectada: ${LAST:-(ninguna)} → ${SDK_VERSION}"
 slack "Nueva versión del SDK a probar: ${SDK_VERSION} (rama ${SDK_BRANCH}). Corriendo QA…"
 
-# ── 3. Cadena de agentes (headless) ──────────────────────────────────────────
-run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
-run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
-run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # device + MCP
-
-# ── 4. Bump del SDK a la versión exacta resuelta ─────────────────────────────
+# ── 3. Bump del SDK PRIMERO (antes de los agentes) ───────────────────────────
+# Los agentes razonan sobre el código REAL bajo test. Si el bump va después (como antes), el
+# strategist lee build.gradle viejo y planea sobre la versión equivocada (incoherencia changelog
+# vs código). Bump primero → todos los agentes ven la versión correcta.
 log "Bump SDK → ${SDK_VERSION} en build.gradle.kts"
 sed -i -E "s|(mediastreamplatformsdkandroid:)[^\"]+|\1${SDK_VERSION}|" "$BUILD_GRADLE"
 grep -q "mediastreamplatformsdkandroid:${SDK_VERSION}" "$BUILD_GRADLE" || fail "bump no aplicó"
 
-# ── 5. Generación + 6. Ejecución en device ───────────────────────────────────
+# ── 4. Compile-gate: ¿el QA compila contra el binario nuevo? ─────────────────
+# Da a los agentes un HECHO en vez de una adivinanza ("no compilaría"). Escribe el resultado a
+# compile-gate.txt para que /test-strategist y /test-generator lo lean. No aborta: un fallo de
+# compilación es una señal a documentar (p.ej. breaking change de la interfaz → adaptación, fase 7).
+log "Compile-gate (compileDebugAndroidTestKotlin contra ${SDK_VERSION})"
+COMPILE_LOG="${AI_OUTPUT}/compile-gate.txt"
+set +e
+( cd "$PROJECT_ROOT" && ./gradlew :app:compileDebugAndroidTestKotlin --console=plain ) >"$COMPILE_LOG" 2>&1
+COMPILE_RC=$?
+set -e
+if [[ $COMPILE_RC -eq 0 ]]; then
+  echo "result=PASS" >> "$COMPILE_LOG"
+  echo "  ✓ el QA compila contra ${SDK_VERSION}"
+else
+  echo "result=FAIL" >> "$COMPILE_LOG"
+  echo "  ⚠ el QA NO compila contra ${SDK_VERSION} — los agentes lo verán en compile-gate.txt (¿breaking change? ¿adaptación necesaria?)"
+  slack "Compile-gate FAIL para ${SDK_VERSION} (rama ${SDK_BRANCH}): el QA no compila contra el binario nuevo. Ver compile-gate.txt en el PR."
+fi
+
+# ── 5. Cadena de agentes (headless) — ya ven la versión correcta + compile-gate ─
+run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
+run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
+run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # device + MCP
+
+# ── 6. Generación de tests ───────────────────────────────────────────────────
 run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
 log "Preparando device (anti-suspensión, idempotente)"
 bash "${SCRIPT_DIR}/prep-device.sh" || echo "  ⚠ prep-device falló (¿device conectado?) — run-tests lo detectará"

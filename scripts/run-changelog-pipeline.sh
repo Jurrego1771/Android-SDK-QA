@@ -73,17 +73,27 @@ if ! bash "${SCRIPT_DIR}/check-maven-available.sh" "$SDK_VERSION"; then
   echo "SDK $SDK_VERSION no disponible en Maven — abort limpio."; exit 4
 fi
 
-# ── 3. Cadena de agentes IA (headless) ──────────────────────────────────────
-run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
-run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
-run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # requiere device + MCP
-
-# ── 4. Bump de la versión del SDK ───────────────────────────────────────────
+# ── 3. Bump PRIMERO (antes de los agentes) — razonan sobre el código real ────
 log "Bump SDK → $SDK_VERSION en build.gradle.kts"
 sed -i -E "s|(mediastreamplatformsdkandroid:)[^\"]+|\1${SDK_VERSION}|" "$BUILD_GRADLE"
 grep -q "mediastreamplatformsdkandroid:${SDK_VERSION}" "$BUILD_GRADLE" || fail "bump no aplicó"
 
-# ── 5. Generación de tests (headless) ───────────────────────────────────────
+# ── 4. Compile-gate: ¿el QA compila contra el binario nuevo? (hecho, no adivinanza) ──
+log "Compile-gate (compileDebugAndroidTestKotlin contra ${SDK_VERSION})"
+COMPILE_LOG="${AI_OUTPUT}/compile-gate.txt"
+set +e
+( cd "$PROJECT_ROOT" && ./gradlew :app:compileDebugAndroidTestKotlin --console=plain ) >"$COMPILE_LOG" 2>&1
+COMPILE_RC=$?
+set -e
+if [[ $COMPILE_RC -eq 0 ]]; then echo "result=PASS" >> "$COMPILE_LOG"; echo "  ✓ compila";
+else echo "result=FAIL" >> "$COMPILE_LOG"; echo "  ⚠ NO compila — agentes lo verán en compile-gate.txt"; slack "Compile-gate FAIL para ${SDK_VERSION}: el QA no compila. Ver compile-gate.txt."; fi
+
+# ── 5. Cadena de agentes IA (headless) — ya ven la versión correcta + compile-gate ─
+run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
+run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
+run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # requiere device + MCP
+
+# ── 6. Generación de tests (headless) ───────────────────────────────────────
 run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
 
 # ── 6. Ejecutar la suite en device ──────────────────────────────────────────

@@ -11,6 +11,13 @@ Lee estos archivos en orden:
 4. `docs/ai-context/feature-test-matrix.md` — Tests existentes y gaps
 5. `risk-map/RISK_MAP.md` — Mapa de riesgos y cobertura actual
 6. `ai-output/analysis.md` — Output del diff-analyzer (input principal)
+7. `ai-output/compile-gate.txt` (SI EXISTE) — **HECHO empírico, no adivines**: dice si el QA YA
+   compila contra el binario bajo test (`result=PASS|FAIL`) y, si falla, los errores reales del
+   compilador. Decide feasibilidad con esto, no por suposición:
+   - `result=PASS` → la base compila; lo que use APIs existentes es testeable YA.
+   - `result=FAIL` con `Unresolved reference X` → esa API NO existe en este binario → marca esos
+     tests como BLOQUEADOS (requieren adaptación/`activity-creator`), no como "no compilaría".
+   La versión real bajo test es la de `app/build.gradle.kts` (ya bumpeada), no la del changelog.
 
 Si `ai-output/analysis.md` no existe, dile al usuario que ejecute `/diff-analyzer` primero.
 
