@@ -127,10 +127,27 @@ else
   slack "Compile-gate FAIL para ${SDK_VERSION} (rama ${SDK_BRANCH}): el QA no compila contra el binario nuevo. Ver compile-gate.txt en el PR."
 fi
 
+# ── 4b. Instalar el APK NUEVO en el device (para que el explorer vea 11.0.0, no la app vieja) ─
+# El changelog-explorer usa navigate_deeplink contra la app INSTALADA. Sin esto exploraría el binario
+# viejo. Solo si compila (PASS) hay APK válido que instalar. prep-device asegura el device despierto.
+EXPLORE_OK=1
+if [[ $COMPILE_RC -eq 0 ]]; then
+  log "Instalando APK ${SDK_VERSION} en el device (para exploración con el binario real)"
+  bash "${SCRIPT_DIR}/prep-device.sh" || echo "  ⚠ prep-device falló"
+  set +e; ( cd "$PROJECT_ROOT" && ./gradlew :app:installDebug --console=plain ) >>"$COMPILE_LOG" 2>&1; INSTALL_RC=$?; set -e
+  if [[ $INSTALL_RC -eq 0 ]]; then echo "  ✓ app ${SDK_VERSION} instalada"; else EXPLORE_OK=0; echo "  ⚠ install falló — se omite la exploración en device"; fi
+else
+  EXPLORE_OK=0   # sin APK válido, no tiene sentido explorar el binario nuevo
+fi
+
 # ── 5. Cadena de agentes (headless) — ya ven la versión correcta + compile-gate ─
 run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
 run_agent "/test-strategist"    "${AI_OUTPUT}/strategy.md"
-run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # device + MCP
+if [[ $EXPLORE_OK -eq 1 ]]; then
+  run_agent "/changelog-explorer" "${AI_OUTPUT}/exploration.md"   # device + MCP, app NUEVA instalada
+else
+  echo "  (se omite /changelog-explorer: el APK ${SDK_VERSION} no está instalado — el generator usará solo el contrato + compile-gate)" >&2
+fi
 
 # ── 6. Generación de tests ───────────────────────────────────────────────────
 run_agent "/test-generator" "${AI_OUTPUT}/generated-tests-report.md"
