@@ -87,6 +87,28 @@ Determinar:
 
 ## Output
 
+### `ai-output/report.json` (estructurado — lo consumen Slack y el HTML)
+ADEMÁS del .md, emite SIEMPRE este JSON. Es la **única** fuente del titular del reporte, para que
+Slack y el HTML cuenten la MISMA historia (qué se probó, veredictos, qué se generó, error por fallo).
+Toma `change`/`generated` de `source-meta.txt` + `analysis.md` + `generated-tests-report.md`.
+```json
+{
+  "change": { "sdk_version": "…", "change_type": "FIX|FEATURE|RELEASE", "summary": "1-2 líneas: qué cambio se probó (de analysis.md)" },
+  "verdicts": { "change": "PASS|FAIL|N/A", "regression": "PASS|FAIL|N/A" },
+  "counts": { "passed": 0, "real_failures": 0, "flaky": 0, "environment": 0, "skipped": 0 },
+  "generated_tests": [ { "name": "…", "type": "smoke|integration|regression", "feature": "…" } ],
+  "failures": [
+    { "test": "Clase.método", "type": "real|flaky|environment|test-defect",
+      "error": "1 línea: el mensaje específico", "stack": "línea clave del stack",
+      "why": "por qué importa / qué significa para el dev", "recommendation": "qué hacer" }
+  ]
+}
+```
+- `verdicts.change` = PASS si los tests NUEVOS (verificación del cambio) pasaron.
+  `verdicts.regression` = PASS si no hay fallos REALES en la regresión (flaky/entorno NO cuentan).
+- `counts.real_failures` excluye flaky y environment (usa el campo `flaky` del retry en test-results.json).
+
+### `ai-output/test-analysis-report.md` (detalle legible)
 Escribir en `ai-output/test-analysis-report.md`:
 
 ```markdown

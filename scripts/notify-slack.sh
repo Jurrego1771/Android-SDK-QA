@@ -37,54 +37,75 @@ command -v node &>/dev/null || { log_warn "node no encontrado — saltando notif
 # ─── Leer resultados y construir payload ──────────────────────────────────────
 log_info "Preparando mensaje Slack..."
 
-PAYLOAD=$(node - "$RESULTS_JSON" "$DEVICE_INFO" "$RUN_URL" "$SDK_VERSION" <<'JSEOF'
+# Prefiere report.json (estructurado, con el cambio + veredictos + clasificación de fallos);
+# si no existe, cae al test-results.json crudo (compat). El titular distingue REALES de flaky/entorno.
+REPORT_JSON="$(dirname "$RESULTS_JSON")/report.json"
+PAYLOAD=$(node - "$RESULTS_JSON" "$DEVICE_INFO" "$RUN_URL" "$SDK_VERSION" "$REPORT_JSON" <<'JSEOF'
 const fs = require('fs');
-const [resultsJson, deviceInfo, runUrl, sdkVersion] = process.argv.slice(2);
+const [resultsJson, deviceInfo, runUrl, sdkVersion, reportJson] = process.argv.slice(2);
+const now = new Date().toISOString().slice(0,16).replace('T',' ');
+const esc = s => String(s||'').replace(/`/g,'').slice(0,140);
 
+let R = null;
+try { R = JSON.parse(fs.readFileSync(reportJson, 'utf8')); } catch (_) {}
+
+// ── Camino RICO: report.json del test-analyzer ───────────────────────────────
+if (R && R.counts) {
+  const c = R.counts, v = R.verdicts || {};
+  const real = c.real_failures || 0, flaky = c.flaky || 0, env = c.environment || 0;
+  const ok = real === 0;                       // verde si 0 fallos REALES (flaky/entorno no cuentan)
+  const color = ok ? '#22c55e' : '#ef4444';
+  const emoji = ok ? ':white_check_mark:' : ':red_circle:';
+  const verdict = s => s==='PASS'?':white_check_mark: pasa':s==='FAIL'?':x: falla':'—';
+  const ch = R.change || {};
+  const blocks = [
+    {type:'header', text:{type:'plain_text', text:`${emoji}  SDK QA — ${ok?'sin fallos reales':real+' fallo(s) real(es)'}`, emoji:true}},
+    {type:'section', text:{type:'mrkdwn', text:
+      `*Cambio probado:* ${esc(ch.summary)||'(sin resumen)'}\n`+
+      `*Versión:* \`${esc(ch.sdk_version)||sdkVersion}\`  ·  *Tipo:* ${esc(ch.change_type)||'?'}  ·  *Device:* ${esc(deviceInfo)}`}},
+    {type:'section', fields:[
+      {type:'mrkdwn', text:`*Veredicto cambio:*\n${verdict(v.change)}`},
+      {type:'mrkdwn', text:`*Veredicto regresión:*\n${verdict(v.regression)}`},
+      {type:'mrkdwn', text:`*Fallos:*\n:x: ${real} reales   :warning: ${flaky} flaky   :globe_with_meridians: ${env} entorno`},
+      {type:'mrkdwn', text:`*Pasaron:*\n:white_check_mark: ${c.passed||0}   (${(R.generated_tests||[]).length} generados)`},
+    ]},
+  ];
+  // Top fallos REALES (los que importan al dev), con su error específico.
+  const reals = (R.failures||[]).filter(f => f.type==='real' || f.type==='test-defect');
+  if (reals.length) {
+    const lines = reals.slice(0,5).map(f =>
+      `• *${esc(f.test)}*  _(${f.type})_\n  \`${esc(f.error)}\`` + (f.recommendation?`\n  → ${esc(f.recommendation)}`:''));
+    if (reals.length>5) lines.push(`_… y ${reals.length-5} más (ver detalle)_`);
+    blocks.push({type:'section', text:{type:'mrkdwn', text:'*Fallos reales:*\n'+lines.join('\n')}});
+  }
+  if (flaky+env>0) blocks.push({type:'context', elements:[{type:'mrkdwn',
+    text:`:information_source: ${flaky} flaky + ${env} de entorno NO cuentan como fallo (reintentos/red). Ver detalle.`}]});
+  if (runUrl) blocks.push({type:'actions', elements:[{type:'button',
+    text:{type:'plain_text', text:'Ver reporte completo →', emoji:true}, url:runUrl, style: ok?'primary':'danger'}]});
+  blocks.push({type:'divider'});
+  console.log(JSON.stringify({attachments:[{color, blocks}]}));
+  process.exit(0);
+}
+
+// ── Camino COMPAT: solo test-results.json (sin clasificación) ────────────────
 let data;
 try { data = JSON.parse(fs.readFileSync(resultsJson, 'utf8')); }
 catch(e) { console.log(JSON.stringify({text: ':warning: SDK QA: no se pudo leer resultados (' + e.message + ')'})); process.exit(0); }
-
-const s       = data.summary || {};
-const passed  = s.passed   || 0;
-const failed  = s.failed   || 0;
-const duration= s.duration || '?';
-const tests   = data.tests || [];
-const now     = new Date().toISOString().slice(0,16).replace('T',' ');
-
-const allPassed   = failed === 0;
-const headerEmoji = allPassed ? ':white_check_mark:' : ':red_circle:';
-const headerText  = 'SDK QA Android — ' + (allPassed ? 'PASO' : 'FALLO');
-const color       = allPassed ? '#22c55e' : '#ef4444';
-
-const fields = [
+const s = data.summary||{}, passed=s.passed||0, failed=s.failed||0, tests=data.tests||[];
+const allPassed = failed===0, color = allPassed?'#22c55e':'#ef4444';
+const blocks = [
+  {type:'header', text:{type:'plain_text', text:`${allPassed?':white_check_mark:':':red_circle:'}  SDK QA — ${allPassed?'PASO':'FALLO'}`, emoji:true}},
+  {type:'section', fields:[
     {type:'mrkdwn', text:`*Tests:*\n:white_check_mark: ${passed} pasaron   :x: ${failed} fallaron`},
-    {type:'mrkdwn', text:`*Duración:*\n${duration}`},
-    {type:'mrkdwn', text:`*SDK Version:*\n\`${sdkVersion}\``},
+    {type:'mrkdwn', text:`*SDK:*\n\`${sdkVersion}\``},
     {type:'mrkdwn', text:`*Device:*\n${deviceInfo}`},
     {type:'mrkdwn', text:`*Fecha:*\n${now}`},
+  ]},
 ];
-
-const blocks = [
-    {type:'header', text:{type:'plain_text', text:`${headerEmoji}  ${headerText}`, emoji:true}},
-    {type:'section', fields}
-];
-
-const failedTests = tests.filter(t => t.status === 'failed');
-if (failedTests.length) {
-    const lines = failedTests.slice(0,10).map(t => {
-        const cls = (t.class||'').split('.').pop();
-        const first = (t.error||'').trim().split('\n')[0].slice(0,120);
-        return first ? `• *${cls}.${t.name}*\n  \`${first}\`` : `• *${cls}.${t.name}*`;
-    });
-    if (failedTests.length > 10) lines.push(`_... y ${failedTests.length - 10} más_`);
-    blocks.push({type:'section', text:{type:'mrkdwn', text:'*Tests fallidos:*\n' + lines.join('\n')}});
-}
-
-if (runUrl) blocks.push({type:'actions', elements:[{type:'button',
-    text:{type:'plain_text', text:'Ver detalles →', emoji:true},
-    url:runUrl, style: allPassed ? 'primary' : 'danger'}]});
-
+const failedTests = tests.filter(t => t.status==='failed');
+if (failedTests.length) blocks.push({type:'section', text:{type:'mrkdwn', text:'*Tests fallidos:*\n'+
+  failedTests.slice(0,10).map(t=>`• *${(t.class||'').split('.').pop()}.${t.name}*`+((t.error||'').trim()?`\n  \`${esc((t.error||'').split('\n')[0])}\``:'')).join('\n')}});
+if (runUrl) blocks.push({type:'actions', elements:[{type:'button', text:{type:'plain_text', text:'Ver detalles →', emoji:true}, url:runUrl, style: allPassed?'primary':'danger'}]});
 blocks.push({type:'divider'});
 console.log(JSON.stringify({attachments:[{color, blocks}]}));
 JSEOF

@@ -15,6 +15,7 @@ set -uo pipefail
 DEVICE_SERIAL="${1:-}"
 RESULTS_JSON="${2:-ai-output/test-results.json}"
 OUTPUT_DIR="${3:-ai-output/report}"
+AI_OUTPUT="$(dirname "$OUTPUT_DIR")"   # report.json/analysis.md viven en ai-output/ (padre de report/)
 APP_PACKAGE="com.example.sdk_qa"
 DEVICE_EVIDENCE_DIR="/sdcard/Android/data/${APP_PACKAGE}/files/sdk_qa_evidence"
 
@@ -210,6 +211,29 @@ fi
 SESSIONS_SECTION=""
 [[ -n "$SESSIONS_CARDS" ]] && SESSIONS_SECTION="<section><div class=\"eyebrow\">Sesiones de reproducción · timeline + QoE</div>${SESSIONS_CARDS}</section>"
 
+# ─── Sección "Cambio probado" + veredictos + tests generados (de report.json) ──
+# La historia para el dev: QUÉ se probó, los 2 veredictos, qué se generó. Solo si hay report.json.
+CHANGE_SECTION=$(node - "${AI_OUTPUT}/report.json" <<'JCHG' 2>/dev/null || echo ""
+const fs=require('fs'); let R; try{R=JSON.parse(fs.readFileSync(process.argv[2],'utf8'))}catch{process.exit(0)}
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const ch=R.change||{}, v=R.verdicts||{}, c=R.counts||{}, gen=R.generated_tests||[];
+const pill=s=>s==='PASS'?'<span class="pill pass">pasa</span>':s==='FAIL'?'<span class="pill fail">falla</span>':'<span class="pill skip">—</span>';
+let gh=''; if(gen.length){ gh='<table style="margin-top:10px"><thead><tr><th>Test generado</th><th>Tipo</th><th>Feature</th></tr></thead><tbody>'+
+  gen.map(g=>`<tr><td class="tname">${esc(g.name)}</td><td><span class="pill skip">${esc(g.type)}</span></td><td>${esc(g.feature||'')}</td></tr>`).join('')+'</tbody></table>'; }
+process.stdout.write(
+ '<section><div class="eyebrow">Cambio probado</div>'+
+ '<div class="session"><div class="session-head"><h3>'+esc(ch.summary||'(sin resumen)')+'</h3>'+
+ '<span class="chip fmt">'+esc(ch.sdk_version||'?')+'</span><span class="chip">'+esc(ch.change_type||'?')+'</span></div>'+
+ '<div class="gauges">'+
+ '<div class="gauge"><div class="g-label">Veredicto cambio</div><div class="g-val">'+pill(v.change)+'</div></div>'+
+ '<div class="gauge"><div class="g-label">Veredicto regresión</div><div class="g-val">'+pill(v.regression)+'</div></div>'+
+ '<div class="gauge '+((c.real_failures||0)>0?'crit':'good')+'"><div class="g-label">Fallos reales</div><div class="g-val">'+(c.real_failures||0)+'</div></div>'+
+ '<div class="gauge warn"><div class="g-label">Flaky · entorno</div><div class="g-val">'+(c.flaky||0)+' · '+(c.environment||0)+'</div></div>'+
+ '</div>'+gh+'</div></section>'
+);
+JCHG
+)
+
 # ─── 6. Render del HTML (heredoc SIN comillas: expande \$VAR de bash) ─────────
 # OJO: el render JS del timeline usa concatenación (no template literals) para no chocar con
 # la expansión del heredoc. No introducir `\$` ni backticks crudos en el CSS/JS de abajo.
@@ -334,6 +358,8 @@ cat > "$OUTPUT_DIR/index.html" <<HTML
     <div class="stat neutral"><span class="stripe"></span><div class="label">Sesiones</div><div class="num">$NUM_SESSIONS</div></div>
     <div class="stat neutral"><span class="stripe"></span><div class="label">Duración</div><div class="num">$DURATION</div></div>
   </div>
+
+  $CHANGE_SECTION
 
   $SESSIONS_SECTION
 
