@@ -22,6 +22,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Cargar scripts/.env (ANTHROPIC_API_KEY, SLACK_WEBHOOK_URL, etc.) sin pisar lo ya definido en el
+# entorno (los secrets del workflow tienen prioridad). Cubre tanto el flujo CI como el local.
+ENV_FILE="${SCRIPT_DIR}/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  while IFS='=' read -r _k _v; do
+    [[ "$_k" =~ ^[[:space:]]*# || -z "$_k" ]] && continue
+    [[ -z "${!_k:-}" ]] && export "$_k"="$_v"
+  done < "$ENV_FILE"
+fi
+
 AI_OUTPUT="${PROJECT_ROOT}/ai-output"
 BUILD_GRADLE="${PROJECT_ROOT}/app/build.gradle.kts"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
