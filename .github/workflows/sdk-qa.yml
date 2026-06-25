@@ -79,6 +79,9 @@ jobs:
       - name: Crear local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+      - name: Permisos gradlew
+        run: chmod +x gradlew
+
       - name: Ejecutar tests
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
