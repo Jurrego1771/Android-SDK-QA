@@ -72,6 +72,17 @@ for (const f of features) {
       else idRegistry.set(r.id, { feature: f.slug, where: `${f.slug}/${name}` });
     }
   }
+  // Los criterios de aceptación (AC) viven en rules.md (o business-rules.md legado) como
+  // anclas <PREFIX>-AC-NNN — registrarlos para que ac_ref/covers_ac resuelvan.
+  if (f.id_prefix) {
+    for (const md of ['rules.md', 'business-rules.md']) {
+      const file = path.join(dir, md);
+      if (!fs.existsSync(file)) continue;
+      const txt = fs.readFileSync(file, 'utf8');
+      for (const m of txt.matchAll(new RegExp(`\\b${f.id_prefix}-AC-\\d{2,}\\b`, 'g')))
+        if (!idRegistry.has(m[0])) idRegistry.set(m[0], { feature: f.slug, where: `${f.slug}/${md}` });
+    }
+  }
 }
 
 // ── PASO 2: reglas por feature ─────────────────────────────────────────────
@@ -109,12 +120,16 @@ for (const f of features) {
   for (const name of KNOWLEDGE_YAMLS) {
     const file = path.join(dir, name);
     if (!fs.existsSync(file)) continue;
+    // Cross-link roto: error en feature migrada (schema canónico), aviso en legado (la
+    // migración crea los IDs AC en rules.md y normaliza las claves).
+    const refReport = f.migrated ? err : (rule, msg) => warn(rule, msg + ' (legado — se salda al migrar)');
     for (const r of records(file)) {
       for (const [k, v] of Object.entries(r)) {
-        if (!/_ref$/.test(k) || v == null) continue;
+        // claves de referencia: *_ref, *_ac, covers_* (cross-links del grafo)
+        if (!(/(_ref|_ac)$/.test(k) || /^covers_/.test(k)) || v == null) continue;
         for (const ref of (Array.isArray(v) ? v : [v])) {
-          if (typeof ref !== 'string') continue;
-          if (!idRegistry.has(ref)) err('R3', `${f.slug}/${name}: ${r.id}.${k} → "${ref}" no existe`);
+          if (typeof ref !== 'string' || !/^[A-Z0-9]+-[A-Z]+-\d/.test(ref)) continue;
+          if (!idRegistry.has(ref)) refReport('R3', `${f.slug}/${name}: ${r.id}.${k} → "${ref}" no existe`);
         }
       }
     }

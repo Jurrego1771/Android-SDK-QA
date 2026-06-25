@@ -227,12 +227,12 @@ features:
       tests: 0
       risks: 5
       defects: 2
-      user_stories: 3
+      user_stories: 0
       gaps: 8
     path_target: qa-knowledge/drm/
-    path_current: docs/features/07-drm/
-    migrated: false
-    notes: Tiene 2 .md (07-drm-widevine.md + huérfano 09-drm.md). Consolidar a un overview.md al migrar.
+    path_current: qa-knowledge/drm/
+    migrated: true
+    notes: Piloto de migración al schema mínimo de 4 (rules.md + risks + defects + tests). Fusionó los 2 .md legado y plegó user-stories/dependencies.
   - slug: subtitles
     id_prefix: SUB
     title: Subtítulos (ASS/SSA, WebVTT, CEA-608)
