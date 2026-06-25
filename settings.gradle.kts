@@ -17,6 +17,10 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // mavenLocal primero: para QA de ramas de trabajo del SDK (feature/fix), el binario se
+        // buildea desde la rama con publishToMavenLocal (scripts/build-sdk-local.sh). Para versiones
+        // publicadas, mavenLocal no tiene el artefacto y resuelve normalmente desde los repos de abajo.
+        mavenLocal()
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }

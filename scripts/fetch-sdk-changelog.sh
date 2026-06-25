@@ -38,11 +38,18 @@ SECTION_HEADER="$(grep -m1 '^## ' "${AI_OUTPUT}/changelog.md" | sed 's/^## //')"
 LINE="$(echo "$SECTION_HEADER" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 [[ -n "$LINE" ]] || { echo "✗ No se halló versión X.Y.Z en el header: $SECTION_HEADER" >&2; exit 2; }
 
-# 4. Resolver la versión EXACTA publicada en Maven para esa línea (gate de disponibilidad incluido).
-EXACT="$(bash "${SCRIPT_DIR}/resolve-sdk-version.sh" "$LINE" --plain 2>/dev/null)"
-if [[ -z "$EXACT" ]]; then
-  echo "Línea $LINE aún sin artefacto en Maven — no hay binario que probar todavía." >&2
-  exit 1
+# 4. Versión EXACTA a probar.
+#    - SDK_VERSION_OVERRIDE seteado (rama de trabajo → build local): usar esa versión, SIN gate Maven.
+#    - si no: resolver en Maven la línea (gate de disponibilidad incluido) — flujo de versión publicada.
+if [[ -n "${SDK_VERSION_OVERRIDE:-}" ]]; then
+  EXACT="$SDK_VERSION_OVERRIDE"
+  echo "  (versión por override: ${EXACT} — build local de la rama, sin resolver Maven)" >&2
+else
+  EXACT="$(bash "${SCRIPT_DIR}/resolve-sdk-version.sh" "$LINE" --plain 2>/dev/null)"
+  if [[ -z "$EXACT" ]]; then
+    echo "Línea $LINE aún sin artefacto en Maven — no hay binario que probar todavía." >&2
+    exit 1
+  fi
 fi
 
 cat > "${AI_OUTPUT}/changelog-meta.txt" <<META

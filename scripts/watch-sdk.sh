@@ -63,16 +63,30 @@ run_agent() {
   echo "  ✓ $out"
 }
 
-# ── 1. Ingesta del changelog del SDK + resolución de versión en Maven ─────────
-log "Leyendo changelog del SDK (${SDK_REPO}@${SDK_BRANCH}) y resolviendo versión en Maven"
-set +e
-bash "${SCRIPT_DIR}/fetch-sdk-changelog.sh"; FETCH_RC=$?
-set -e
-case $FETCH_RC in
-  0) ;;
-  1) echo "La línea del changelog aún no tiene artefacto en Maven — no-op (se reintenta en el próximo cron)."; exit 0 ;;
-  *) fail "fetch-sdk-changelog.sh error ($FETCH_RC)" ;;
-esac
+# ── 1. Ingesta + origen del binario, según el tipo de rama ────────────────────
+# Línea de versión publicada (semver puro, p.ej. 10.0.8) → binario de Maven (flujo histórico).
+# Rama de trabajo (feature/*, bug/*, nombres) → build LOCAL del SDK desde la rama → mavenLocal,
+#   porque el artefacto de Maven NO corresponde al código de la rama (homónimos desfasados).
+if [[ "$SDK_BRANCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  log "Rama de versión '${SDK_BRANCH}' → resolver binario en Maven"
+  set +e; bash "${SCRIPT_DIR}/fetch-sdk-changelog.sh"; FETCH_RC=$?; set -e
+  case $FETCH_RC in
+    0) ;;
+    1) echo "La línea del changelog aún no tiene artefacto en Maven — no-op (reintenta el próximo cron)."; exit 0 ;;
+    *) fail "fetch-sdk-changelog.sh error ($FETCH_RC)" ;;
+  esac
+else
+  log "Rama de trabajo '${SDK_BRANCH}' → build local del SDK desde la rama (mavenLocal)"
+  set +e; LOCAL_VER="$(bash "${SCRIPT_DIR}/build-sdk-local.sh" "$SDK_BRANCH")"; BUILD_RC=$?; set -e
+  case $BUILD_RC in
+    0) ;;
+    2) slack "Clon del SDK no disponible en el runner — QA de ${SDK_BRANCH} abortado (entorno)."; echo "Entorno (clon SDK) — exit 2."; exit 2 ;;
+    *) fail "build-sdk-local.sh falló (la rama ${SDK_BRANCH} del SDK no compila/publica)" ;;
+  esac
+  # Changelog de la rama para contexto de los agentes, con la versión del build local (sin gate Maven).
+  set +e; SDK_VERSION_OVERRIDE="$LOCAL_VER" bash "${SCRIPT_DIR}/fetch-sdk-changelog.sh"; FETCH_RC=$?; set -e
+  [[ $FETCH_RC -eq 0 ]] || fail "fetch-sdk-changelog.sh (override) error ($FETCH_RC)"
+fi
 
 SDK_VERSION="$(grep '^sdk_version=' "${AI_OUTPUT}/changelog-meta.txt" | cut -d= -f2)"
 [[ -n "$SDK_VERSION" ]] || fail "no se pudo leer sdk_version"
@@ -84,7 +98,7 @@ if [[ "$SDK_VERSION" == "$LAST" ]]; then
   exit 0
 fi
 log "Versión NUEVA detectada: ${LAST:-(ninguna)} → ${SDK_VERSION}"
-slack "Nueva versión del SDK detectada en Maven: ${SDK_VERSION}. Corriendo QA…"
+slack "Nueva versión del SDK a probar: ${SDK_VERSION} (rama ${SDK_BRANCH}). Corriendo QA…"
 
 # ── 3. Cadena de agentes (headless) ──────────────────────────────────────────
 run_agent "/changelog-analyzer" "${AI_OUTPUT}/analysis.md"
