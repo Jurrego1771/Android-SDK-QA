@@ -45,6 +45,9 @@ jobs:
       - name: Crear local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+      - name: Permisos gradlew
+        run: chmod +x gradlew
+
       - name: Vigilar SDK + QA si hay versión nueva
         run: |
           export PATH="$ANDROID_HOME/platform-tools:/opt/homebrew/bin:$PATH"
