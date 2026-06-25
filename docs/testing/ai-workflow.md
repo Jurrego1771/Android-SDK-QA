@@ -1,6 +1,10 @@
 # Workflow con IA para Generar Tests
 
-## Flujo para analizar un PR o commit (`/diff-analyzer`)
+> **Fuente de verdad del proceso actual: [`docs/agents.md`](../agents.md).** Los analyzers se
+> consolidaron en `/change-analyzer` (changelog/diff/issue) y el explorer en `/explorer`. Este doc
+> conserva el detalle manual del flujo de PR; los nombres de agente abajo se actualizaron al set nuevo.
+
+## Flujo para analizar un PR o commit (`/change-analyzer`)
 
 Antes de invocar el agente hay que generar el diff como archivo — así el modelo lee texto plano en vez de recibir el diff crudo en el contexto de la conversación, ahorrando tokens.
 
@@ -13,7 +17,7 @@ Antes de invocar el agente hay que generar el diff como archivo — así el mode
 # Output: ai-output/diff.txt + ai-output/diff-meta.txt
 
 # 2. Invocar el agente (usa Haiku — tarea de documentación, no razonamiento)
-/diff-analyzer
+/change-analyzer
 ```
 
 El agente escribe el resultado en `ai-output/analysis.md`.

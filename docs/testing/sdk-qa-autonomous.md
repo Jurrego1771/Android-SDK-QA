@@ -18,7 +18,7 @@ Cron (cada 30 min, self-hosted)  →  scripts/watch-sdk.sh
   2. resolve-sdk-version.sh → último alpha mainline en Maven (10.0.8-alpha08)
         └─ si la línea aún no tiene artefacto en Maven → no-op (reintenta al próximo cron)
   3. ¿nueva vs .last-tested-sdk?   no → no-op (no toca el device)
-  4. sí → changelog-analyzer → strategist → explore(MCP+device) → bump → generate
+  4. sí → (núcleo qa-core.sh) change-analyzer → strategist → explore(MCP+device) → bump → generate
           → run-tests(device) → analyze → diff-sesiones → version-comparator
           → rama auto/sdk-<versión> + PR de QA   (gh del runner)
           → marca .last-tested-sdk = <versión>   (solo si abrió el PR)

@@ -48,4 +48,4 @@ DIFF_SIZE=$(wc -l < "$DIFF_FILE")
 echo "✓ Diff generado: $DIFF_FILE ($DIFF_SIZE líneas)"
 echo "✓ Metadata: $META_FILE"
 echo ""
-echo "Siguiente paso: ejecutar /diff-analyzer en Claude Code"
+echo "Siguiente paso: ejecutar /change-analyzer en Claude Code (lee source.md/source-meta.txt)"

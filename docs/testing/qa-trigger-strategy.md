@@ -148,23 +148,24 @@ git, irreversible). En su lugar:
 
 ## 7. Fases de implementación
 
-1. **Slack/Pages** (independiente, valor inmediato): deploy-pages + pasar `RUN_URL`. Desbloquea el link.
-2. **Índice inverso `affected_file → slug`**: extender `build-knowledge-index.cjs` para emitir el
-   mapeo desde los `affected_files` de los YAML de `qa-knowledge`. Es lo que traduce el git diff a
-   features (camino B). Mejora con cada feature migrada.
-3. **Clasificador de rama**: `classify-branch.sh` — tipo ← nombre, features ← `git diff <rama>..master`
-   + índice inverso, changelog opcional → `change-meta.txt`.
-4. **Router en el orquestador**: ramificar `watch-sdk.sh` por `change_type` (alcance de `run-tests.sh`).
-5. **Build local → mavenLocal** para feature/fix. ✅ hecho (`build-sdk-local.sh`). Verificado
-   end-to-end: el `.aar` de Maven de una rama de trabajo NO corresponde a su código (homónimos
-   desfasados); buildear desde la rama → mavenLocal → el QA compila (donde contra Maven fallaba).
-   Nota: el `publishToMavenLocal` del SDK falla (doble sources jar) → se usa assembleRelease + install
-   manual del AAR/POM a `~/.m2`.
-6. **workflow_dispatch con `sdk_branch`** + cron de versiones (descubrimiento). ✅ hecho.
-7. **Adaptación de API (compile-gate)** — el paso que falta para que FEATURE no muera en un build
-   roto: `compileDebugAndroidTestKotlin` tras el bump; si falla por la interfaz, un agente agrega los
-   callbacks faltantes a las clases que implementan `MediastreamPlayerCallback` y crea los escenarios
-   con `/activity-creator`; recompila; documenta el breaking change en `qa-knowledge`. Ver §4.
+> **Estado: implementado.** El proceso vive en el núcleo `scripts/qa-core.sh` con 3 adaptadores de
+> entrada (versión / changelog local / issue). Detalle del set de agentes y el contrato: `docs/agents.md`.
+
+1. **Slack/Pages** ✅ — `publish-report-pages.sh` + `RUN_URL` en el botón de Slack.
+2. **Índice inverso `affected_file → slug`** ✅ — `build-knowledge-index.cjs` emite
+   `qa-knowledge/affected-files.json`; lo usa `change-analyzer` para el blast radius (mejora al migrar features).
+3. **Clasificación del cambio** ✅ — los adaptadores infieren `change_type` (nombre de rama + semver) y
+   lo dejan en `source-meta.txt`; `change-analyzer` calcula directas + acopladas.
+4. **Router / selección de regresión** ✅ — `test-strategist` emite `regression-set.txt` (smoke + tocada
+   + acopladas; `all` si RELEASE); `qa-core.sh` ejecuta 2 fases + `retry-failed-tests.sh`.
+5. **Build local → mavenLocal** ✅ — `build-sdk-local.sh` (assembleRelease + install manual del AAR/POM
+   a `~/.m2`, porque el `publishToMavenLocal` del SDK falla por doble sources jar).
+6. **workflow_dispatch con `sdk_branch`** + cron de versiones ✅.
+7. **Adaptación de API (compile-gate + activity-creator)** ✅ — `qa-core.sh` corre el compile-gate tras
+   el bump; si el strategist pide escenarios (`scenarios-to-create.txt`), `activity-creator` los crea
+   (con auto-fix), recompila, instala, y el `explorer` los observa.
+8. **Shift-left por issue** ✅ — `ingest-issue.sh "<desc>"|<#N>` → núcleo (prueba la versión actual).
+9. **Issues de hallazgos** ✅ — `explorer` → `findings.json` → `create-findings-issues.sh` (bugs+mejoras).
 
 Fase 1 no depende de las demás. Las fases 2–4 dependen del grafo de conocimiento (INDEX + kb-resolve),
 ya en su sitio; la fase 2 mejora a medida que se migran features. La fase 7 es la que cierra el flujo

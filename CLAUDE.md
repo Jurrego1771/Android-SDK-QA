@@ -124,10 +124,28 @@ adb shell am instrument -w -e class com.example.sdk_qa.integration.<Clase> \
 
 ---
 
+## QA agéntico — proceso y entradas
+
+El QA lo ejecuta una cadena de **8 agentes** (`.claude/commands/*`, `.claude/agents/*`) que siguen el
+proceso profesional risk-based + RTS + exploratory-first. **Fuente de verdad: `docs/agents.md`** (schema
+uniforme, set de agentes, contrato de archivos `ai-output/*`, las 6 etapas). NO dupliques esa info acá.
+
+- **Núcleo compartido:** `scripts/qa-core.sh` (bump → compile-gate → change-analyzer → test-strategist →
+  [activity-creator] → explorer → test-generator → run 2 fases + retry → test-analyzer → version-comparator → PR).
+- **3 adaptadores de entrada** que normalizan a `ai-output/source.md`+`source-meta.txt` y delegan al núcleo:
+  - `scripts/watch-sdk.sh` — versión nueva del SDK (cron / `workflow_dispatch sdk_branch=…`).
+  - `scripts/run-changelog-pipeline.sh` — changelog versionado en el repo (push a `sdk-changelog/`).
+  - `scripts/ingest-issue.sh "<descripción>" | <#issue>` — **shift-left por issue** (prueba la versión actual).
+- **Blast radius:** `qa-knowledge/affected-files.json` (archivo SDK → features), regenerado por
+  `build-knowledge-index.cjs`. **Grafo de conocimiento:** `qa-knowledge/` (ver `CONVENTIONS.md`, schema de 4).
+- El agente headless tiene permiso de gradle (`.claude/settings.json`) para auto-verificar sus fixes.
+- Nada se mergea solo: el proceso abre **PR** (resultados) e **issues** (bugs/mejoras de la exploración).
+
 ## Convenciones
 
 - Bitácora de trabajo: `docs/testing/SESSION_LOG.md` (qué/por qué/siguiente paso, se actualiza
   al cierre de cada sesión).
-- Aprendizajes del SDK: `qa-knowledge/<módulo>/learnings.yaml`.
+- Conocimiento por-feature: `qa-knowledge/<slug>/` — schema de 4 (`rules.md` + `risks.yaml` +
+  `defects.yaml` + `tests.yaml`). Ver `qa-knowledge/CONVENTIONS.md`.
 - Mapa de riesgos/cobertura: `risk-map/RISK_MAP.md`.
 - Commits: convencionales (`feat(...)`, `test(...)`, `fix(...)`, `docs(...)`).

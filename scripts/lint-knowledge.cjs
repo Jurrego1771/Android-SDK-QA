@@ -231,9 +231,26 @@ try {
   err('R6', 'INDEX.yaml desactualizado o inválido (corré: node scripts/build-knowledge-index.cjs)');
 }
 
+// ── R7: agentes con schema uniforme (frontmatter model) ──────────────────────
+// Cada agente (.claude/commands/*.md + .claude/agents/*.md) DEBE declarar `model:` en frontmatter
+// (el problema que el rediseño resolvió: 5/10 sin model). Ver docs/agents.md.
+let agentCount = 0;
+for (const sub of ['commands', 'agents']) {
+  const dir = path.join(ROOT, '.claude', sub);
+  if (!fs.existsSync(dir)) continue;
+  for (const f of fs.readdirSync(dir)) {
+    if (!f.endsWith('.md')) continue;
+    agentCount++;
+    // Extraer el bloque frontmatter (entre los dos primeros ---) y verificar que declare model.
+    const txt = fs.readFileSync(path.join(dir, f), 'utf8');
+    const fm = txt.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fm || !/^model:\s*\S/m.test(fm[1])) err('R7', `.claude/${sub}/${f}: falta 'model:' en el frontmatter (schema uniforme — ver docs/agents.md)`);
+  }
+}
+
 // ── reporte ────────────────────────────────────────────────────────────────
 if (!QUIET) {
-  console.log(`\nFeatures revisadas: ${features.length}  ·  IDs registrados: ${idRegistry.size}`);
+  console.log(`\nFeatures revisadas: ${features.length}  ·  IDs registrados: ${idRegistry.size}  ·  Agentes: ${agentCount}`);
   if (bv) console.log(`Versión del SDK (build.gradle): ${bv.raw}`);
 }
 if (warns.length) { console.log(`\n⚠ Avisos (${warns.length}):`); warns.forEach(w => console.log('  - ' + w)); }
