@@ -54,6 +54,10 @@ jobs:
         if: steps.guard.outputs.changed == 'true'
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+      - name: Permisos gradlew
+        if: steps.guard.outputs.changed == 'true'
+        run: chmod +x gradlew
+
       - name: Ejecutar pipeline (changelog → tests → PR)
         if: steps.guard.outputs.changed == 'true'
         run: |
