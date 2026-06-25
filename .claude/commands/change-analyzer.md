@@ -32,6 +32,11 @@ Según `source_type`:
 ### Paso 2 — Blast radius (features afectadas)
 - **Directas**: mapea símbolos/archivos a slugs del INDEX. Si hay `affected-files.json` y la fuente trae
   archivos (diff/rama), normaliza cada ruta (quita `:línea` y paréntesis: `MediastreamPlayer.kt (lambda…)` → `MediastreamPlayer.kt`) y resuelve su slug. Si no, infiere por símbolos/keywords con `kb-resolve`.
+  - **Clase-dios**: `MediastreamPlayer.kt` (~17 features) y `MediastreamPlayerConfig.kt` (~8) tocan casi
+    todo. Si el cambio cae ahí, NO marques las 17 como directas: refina por el **método/símbolo** tocado
+    (del diff/changelog) y mapea ese símbolo a su feature (ej. `setDrmConfiguration`→drm, `onSwipeToItem`→reels).
+    El archivo solo es señal gruesa; el símbolo es la señal fina. Solo si no hay símbolo claro, marca el
+    núcleo (`core-player`) como directa y el resto como acopladas de menor prioridad.
 - **Acopladas**: por cada feature directa, añade las acopladas vía `merge_candidates` del INDEX y los
   `defect_ref`/`risk` cruzados del grafo (ej. un cambio en core-player arrastra callbacks/dvr). Marca claramente directa vs acoplada — el strategist las usa para la regresión.
 

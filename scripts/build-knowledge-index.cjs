@@ -133,6 +133,41 @@ if (rk) {
       warnings.push(`deeplink del router sin mapear ni declarar: "${k}"  (asignar a una feature o agregar a unmapped_deeplinks)`);
 }
 
+// ── índice inverso affected_file → slug (para el blast radius del change-analyzer) ──
+// Extrae los `affected_files` de risks.yaml/defects.yaml de cada feature, normaliza la ruta
+// (quita ":línea" y "(paréntesis)": "MediastreamPlayer.kt (lambda…)" → "MediastreamPlayer.kt") y
+// mapea archivo del SDK → [slugs]. Un git-diff de la rama del SDK se resuelve a features con esto.
+function affectedFilesOf(file) {
+  if (!fs.existsSync(file)) return [];
+  let d; try { d = yaml.load(fs.readFileSync(file, 'utf8')); } catch { return []; }
+  const out = [];
+  for (const val of Object.values(d || {}))
+    if (Array.isArray(val))
+      for (const item of val)
+        for (const raw of (item?.affected_files || []))
+          if (typeof raw === 'string')
+            // una entrada puede listar varios archivos separados por coma
+            for (let part of raw.split(',')) {
+              part = part.replace(/\(.*$/, '').replace(/:.*$/, '');        // sin (…) ni :línea
+              const base = (part.split('/').pop() || '').replace(/[\s ]+/g, '').trim(); // basename sin espacios (incl. NBSP)
+              if (/\.(kt|java)$/.test(base)) out.push(base);
+            }
+  return out;
+}
+const reverse = {};   // { "MediastreamPlayer.kt": ["core-player","drm",...] }
+for (const f of data.features) {
+  if (!f.id_prefix) continue;
+  const dir = path.join(ROOT, (f.migrated ? `qa-knowledge/${f.slug}` : f.path_current || '').replace(/\/+$/, ''));
+  const files = new Set([...affectedFilesOf(path.join(dir, 'risks.yaml')), ...affectedFilesOf(path.join(dir, 'defects.yaml'))]);
+  for (const file of files) (reverse[file] ||= []).push(f.slug);
+}
+const AFFECTED = path.join(ROOT, 'qa-knowledge', 'affected-files.json');
+const affectedJson = JSON.stringify({
+  _comment: 'GENERADO por build-knowledge-index.cjs. Mapa archivo_SDK(basename) → slugs de feature, desde los affected_files de risks/defects. Lo usa change-analyzer para el blast radius (git-diff → features). NO editar a mano.',
+  generated: new Date().toISOString().slice(0, 10),
+  map: Object.fromEntries(Object.entries(reverse).map(([k, v]) => [k, [...new Set(v)].sort()])),
+}, null, 2) + '\n';
+
 // ── fecha de generación ───────────────────────────────────────────────────
 data.generated = new Date().toISOString().slice(0, 10);
 
@@ -149,15 +184,19 @@ console.log(`Prefijos únicos: ${seenPrefix.size}  ·  slugs: ${seenSlug.size}`)
 if (warnings.length) { console.log('\n⚠ Avisos:'); warnings.forEach(w => console.log('  - ' + w)); }
 if (problems.length) { console.log('\n✗ Errores de validación:'); problems.forEach(p => console.log('  - ' + p)); }
 
-const changed = after !== before;
+const beforeAffected = fs.existsSync(AFFECTED) ? fs.readFileSync(AFFECTED, 'utf8') : '';
+// comparar ignorando la línea `generated` (cambia cada día y no es deriva real)
+const stripGen = s => s.replace(/"generated":\s*"[^"]*",?\n/g, '');
+const changed = after !== before || stripGen(affectedJson) !== stripGen(beforeAffected);
 
 if (CHECK) {
   if (problems.length) { console.error('\n✗ --check: validación falló.'); process.exit(1); }
-  if (changed) { console.error('\n✗ --check: INDEX.yaml está desactualizado (corré build-knowledge-index sin --check).'); process.exit(1); }
-  console.log('\n✓ --check: INDEX.yaml al día y válido.');
+  if (changed) { console.error('\n✗ --check: INDEX.yaml / affected-files.json desactualizado (corré build-knowledge-index sin --check).'); process.exit(1); }
+  console.log(`\n✓ --check: INDEX.yaml + affected-files.json al día. Mapa inverso: ${Object.keys(reverse).length} archivos.`);
   process.exit(0);
 }
 
-if (problems.length) { console.error('\n✗ Hay errores de validación — INDEX.yaml NO se reescribe. Corregí y reintentá.'); process.exit(1); }
+if (problems.length) { console.error('\n✗ Hay errores de validación — no se reescribe. Corregí y reintentá.'); process.exit(1); }
 fs.writeFileSync(INDEX, after);
-console.log(`\n✓ ${changed ? 'INDEX.yaml regenerado' : 'INDEX.yaml ya estaba al día'}.`);
+fs.writeFileSync(AFFECTED, affectedJson);
+console.log(`\n✓ ${changed ? 'INDEX.yaml + affected-files.json regenerados' : 'ya estaban al día'}. Mapa inverso: ${Object.keys(reverse).length} archivos del SDK → features.`);

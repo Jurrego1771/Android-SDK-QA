@@ -1,0 +1,87 @@
+{
+  "_comment": "GENERADO por build-knowledge-index.cjs. Mapa archivo_SDK(basename) → slugs de feature, desde los affected_files de risks/defects. Lo usa change-analyzer para el blast radius (git-diff → features). NO editar a mano.",
+  "generated": "2026-06-25",
+  "map": {
+    "MediastreamPlayer.kt": [
+      "ads-ima",
+      "analytics-youbora",
+      "android-tv",
+      "audio",
+      "callbacks",
+      "chromecast",
+      "core-player",
+      "drm",
+      "dvr",
+      "episode",
+      "initialization",
+      "live",
+      "pip",
+      "player-config",
+      "services",
+      "ui-customization",
+      "vod"
+    ],
+    "MediastreamPlayerConfig.kt": [
+      "core-player",
+      "drm",
+      "dvr",
+      "live",
+      "notifications",
+      "pip-v10-upcoming",
+      "player-config",
+      "ui-customization"
+    ],
+    "ApiService.kt": [
+      "initialization"
+    ],
+    "MediastreamDAIController.kt": [
+      "dvr"
+    ],
+    "DvrTimeBar.kt": [
+      "dvr"
+    ],
+    "MediastreamPlayerService.kt": [
+      "audio",
+      "services"
+    ],
+    "VideoLiveScenarioActivity.kt": [
+      "drm"
+    ],
+    "CustomAssSubtitleParser.kt": [
+      "subtitles"
+    ],
+    "ComscoreAnalyticsManager.kt": [
+      "analytics-comscore"
+    ],
+    "YouboraAnalyticsAdapter.kt": [
+      "analytics-youbora"
+    ],
+    "MediastreamPlayerPip.kt": [
+      "pip"
+    ],
+    "MediastreamPlayerServiceWithSync.kt": [
+      "android-auto"
+    ],
+    "DownloadTracker.kt": [
+      "download"
+    ],
+    "DemoDownloadService.kt": [
+      "download"
+    ],
+    "ReelsV2Handler.kt": [
+      "reels"
+    ],
+    "PlayerPool.kt": [
+      "reels"
+    ],
+    "ReelsPreferencesManager.kt": [
+      "reels"
+    ],
+    "ReelsContentManager.kt": [
+      "reels"
+    ],
+    "MediastreamPlayerCallback.kt": [
+      "pip-v10-upcoming"
+    ]
+  }
+}
