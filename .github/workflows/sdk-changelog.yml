@@ -19,7 +19,7 @@ concurrency:
 jobs:
   changelog-qa:
     name: Pipeline QA dirigido por changelog
-    runs-on: self-hosted          # mismo runner Windows con el A53 conectado
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 90
     permissions:
       contents: write          # push del reporte a la rama gh-pages
