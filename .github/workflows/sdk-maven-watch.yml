@@ -4,9 +4,11 @@ name: SDK Maven Watch (QA autónomo)
 # corre el pipeline de QA caja-negra en el runner self-hosted (esta máquina + device).
 # NO requiere nada en el repo del SDK (sin workflow, sin PAT): usa el `gh` del runner.
 on:
-  schedule:
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
+  # CRON DESACTIVADO mientras se define el gatillante (no malgastar tokens de Claude en auto-runs).
+  # Reactivar cuando el flujo esté decidido — y a una cadencia razonable (diario/6h, NO cada 30 min).
+  # schedule:
+  #   - cron: '*/30 * * * *'
+  workflow_dispatch:           # solo disparo manual por ahora
     inputs:
       sdk_branch:
         description: 'Rama del SDK a probar a demanda (ej. feature/vertical, bug/adControls). Vacío = línea vigilada por defecto.'
