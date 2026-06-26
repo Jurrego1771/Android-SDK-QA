@@ -70,11 +70,13 @@ done
 [[ $errors -eq 0 ]] && echo "  ✓ todos LF"
 
 echo ""
-echo "── 5. Heredoc node dentro de \$() (riesgo en 3.2 — preferir .cjs) ──"
-# Patrón que rompió report.sh. No siempre falla, pero es frágil → aviso.
+echo "── 5. Heredoc node dentro de \$() — ROMPE en bash 3.2 ──"
+# bash 3.2 NO reconoce el heredoc dentro de $() → parsea el cuerpo JS como shell; un `"` del JS
+# (p.ej. en un regex) queda sin cerrar → "unexpected EOF". Rompió report.sh Y run-tests.sh.
+# Extraer el JS a un .cjs (como report-render.cjs) o usar grep/sed nativo.
 for s in $MAC_SCRIPTS; do
   [[ -f "scripts/$s" ]] || continue
-  grep -qE '=\$\(node .*<<' "scripts/$s" && warn "scripts/$s tiene 'node … <<HEREDOC' dentro de \$() — frágil en bash 3.2, considerar extraer a .cjs"
+  nocmt "scripts/$s" | grep -qE '\$\(node .*<<' && err "scripts/$s tiene 'node … <<HEREDOC' dentro de \$() — ROMPE en bash 3.2; extraer a .cjs o usar grep/sed nativo"
 done
 
 echo ""
