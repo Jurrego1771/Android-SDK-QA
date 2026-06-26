@@ -48,6 +48,10 @@ jobs:
       JAVA_HOME: /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
       ANDROID_HOME: /Users/juliourrego/Library/Android/sdk
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # Locale UTF-8: el /bin/bash 3.2 de macOS mis-parsea los caracteres multibyte de los scripts
+      # (cajas ═╚╝, ✗, —) bajo locale C → "unexpected EOF looking for matching quote". Forzar UTF-8.
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
 
     steps:
       - name: Checkout

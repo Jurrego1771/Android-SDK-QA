@@ -32,6 +32,8 @@ jobs:
       JAVA_HOME: /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
       ANDROID_HOME: /Users/juliourrego/Library/Android/sdk
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      LANG: en_US.UTF-8     # bash 3.2 de macOS mis-parsea multibyte bajo locale C (ver sdk-qa.yml)
+      LC_ALL: en_US.UTF-8
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SDK_REPO: ${{ vars.SDK_REPO || 'mediastream/MediastreamPlatformSDKAndroid' }}
