@@ -1,0 +1,31 @@
+name: Scripts Smoke (portabilidad Mac)
+
+# Smoke test del entorno: corre check-portability.sh EN EL RUNNER MAC para cazar los bugs
+# "bash del Mac ≠ Git Bash" (mapfile/declare -A de bash 4+, heredoc-en-$(), CRLF, locale) ANTES
+# de gastar device + tokens en un run real. Rápido (<1 min), no toca el device ni la API.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+  workflow_dispatch: {}
+
+# No comparte el mutex device-a53: no toca el device, puede correr en paralelo.
+concurrency:
+  group: scripts-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Portabilidad de scripts (bash del runner)
+    runs-on: [self-hosted, mac-mini]
+    timeout-minutes: 5
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@v4
+      - name: check-portability (reporta la versión REAL de bash del Mac)
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          bash scripts/check-portability.sh

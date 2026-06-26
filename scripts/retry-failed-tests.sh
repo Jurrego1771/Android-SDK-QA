@@ -26,7 +26,9 @@ TEST_RUNNER="${APP_PACKAGE}.test/androidx.test.runner.AndroidJUnitRunner"
 [[ -f "$RESULTS" ]] || { echo "retry: no existe $RESULTS — nada que reintentar" >&2; exit 0; }
 
 # Lista de fallidos: "FQCN|método" (node lee el json; evita depender de jq).
-mapfile -t FAILED < <(node -e '
+# while-read en vez de mapfile (mapfile es bash 4+, no existe en el /bin/bash 3.2 de macOS).
+FAILED=()
+while IFS= read -r _line; do [[ -n "$_line" ]] && FAILED+=("$_line"); done < <(node -e '
   const d=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
   for (const t of (d.tests||[])) if (t.status==="failed") console.log((t.class||"")+"|"+(t.name||""));
 ' "$RESULTS")
@@ -34,8 +36,9 @@ mapfile -t FAILED < <(node -e '
 if [[ ${#FAILED[@]} -eq 0 ]]; then echo "retry: 0 fallidos — nada que reintentar"; exit 0; fi
 echo "retry: ${#FAILED[@]} test(s) fallido(s), hasta ${N} reintento(s) c/u…"
 
-# Reintenta cada fallido; cuenta cuántos reintentos pasaron.
-declare -A RETRY_PASSED
+# Reintenta cada fallido; construye RETRY_JSON ("entry=passed" por línea) directo en el loop.
+# (Sin array asociativo `declare -A` — es bash 4+; no existe en bash 3.2.)
+RETRY_JSON=""
 for entry in "${FAILED[@]}"; do
   cls="${entry%%|*}"; method="${entry##*|}"
   [[ -z "$cls" || -z "$method" ]] && continue
@@ -46,13 +49,10 @@ for entry in "${FAILED[@]}"; do
       passed=$((passed+1))
     fi
   done
-  RETRY_PASSED["$entry"]=$passed
+  RETRY_JSON+="${entry}=${passed}"$'\n'
   if [[ $passed -gt 0 ]]; then echo "  ⚠ FLAKY: ${cls##*.}.${method} (pasó ${passed}/${N} en reintento)";
   else echo "  ✗ CONSISTENTE: ${cls##*.}.${method} (falló ${N}/${N})"; fi
 done
-
-# Reescribe el json: añade flaky/retries/retry_passed a cada test fallido.
-RETRY_JSON="$(for k in "${!RETRY_PASSED[@]}"; do echo "${k}=${RETRY_PASSED[$k]}"; done)"
 node -e '
   const fs=require("fs"); const file=process.argv[1]; const n=parseInt(process.argv[2],10);
   const map={}; for (const line of process.argv[3].split("\n")) { if(!line) continue; const i=line.lastIndexOf("="); map[line.slice(0,i)]=parseInt(line.slice(i+1),10); }

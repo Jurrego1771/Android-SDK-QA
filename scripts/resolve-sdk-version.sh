@@ -25,7 +25,9 @@ XML="$(curl -s --max-time 15 "$META_URL" 2>/dev/null)"
 [[ -n "$XML" ]] || { echo "✗ No se pudo leer maven-metadata.xml" >&2; exit 2; }
 
 # Todas las versiones, en orden de publicación (el XML las lista cronológicamente).
-mapfile -t ALL < <(echo "$XML" | grep -oE '<version>[^<]+</version>' | sed -E 's#</?version>##g')
+# while-read en vez de mapfile (bash 4+, no existe en el /bin/bash 3.2 de macOS).
+ALL=()
+while IFS= read -r _v; do [[ -n "$_v" ]] && ALL+=("$_v"); done < <(echo "$XML" | grep -oE '<version>[^<]+</version>' | sed -E 's#</?version>##g')
 [[ ${#ALL[@]} -gt 0 ]] || { echo "✗ metadata sin versiones" >&2; exit 2; }
 
 # Por defecto se resuelve la progresión MAINLINE: la línea exacta o `-alphaNN` (incl. `-alpha.NN`).
