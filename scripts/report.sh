@@ -81,123 +81,11 @@ FAILED=$(_json_field failed)
 DURATION=$(_json_field duration)
 
 # ─── 4. Filas de tests (con detalle expandible: error + screenshot embebido) ──
-TESTS_HTML=$(node - "$RESULTS_JSON" "$OUTPUT_DIR/screenshots" <<'JSEOF'
-const fs = require('fs'), path = require('path');
-const [resultsJson, screenshotsDir] = process.argv.slice(2);
-let data; try { data = JSON.parse(fs.readFileSync(resultsJson, 'utf8')); } catch(_) { process.exit(0); }
-const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const pill = { passed:'pass', failed:'fail', skipped:'skip' };
-let html = '';
-for (const test of (data.tests || [])) {
-    const name = test.name || '', cls = test.class || '';
-    const status = test.status || 'skipped', dur = test.duration || '—';
-    const error = test.error || '';
-    const p = pill[status] || 'skip';
-
-    let shot = '';
-    if (status === 'failed' && fs.existsSync(screenshotsDir)) {
-        const safe = name.replace(/[ /]/g,'_').slice(0,80);
-        const cands = [
-            path.join(screenshotsDir, cls + '_' + safe + '.png'),
-            path.join(screenshotsDir, cls.split('.').pop() + '_' + safe + '.png'),
-            ...fs.readdirSync(screenshotsDir).filter(f => f.includes(safe.slice(0,30))).map(f => path.join(screenshotsDir, f))
-        ];
-        for (const f of cands) if (fs.existsSync(f)) {
-            const b64 = fs.readFileSync(f).toString('base64');
-            shot = '<div class="shot"><img src="data:image/png;base64,'+b64+'" alt="screenshot del fallo" onclick="this.classList.toggle(\'zoom\')"/><p>Screenshot al momento del fallo</p></div>';
-            break;
-        }
-    }
-    let detail = '';
-    if (error || shot) {
-        const fired = (test.callbacks_fired || []).join(', ');
-        const missing = (test.callbacks_missing || []).join(', ');
-        const cb = (fired || missing) ? '<div class="cb"><span class="cb-ok">✓ recibidos: '+esc(fired||'ninguno')+'</span><span class="cb-no">✗ faltantes: '+esc(missing||'ninguno')+'</span></div>' : '';
-        detail = '<tr class="detail"><td colspan="3"><div class="err">'+(error?'<pre>'+esc(error)+'</pre>':'')+cb+shot+'</div></td></tr>';
-    }
-    const shortCls = cls.split('.').pop();
-    html += '<tr class="trow '+p+(detail?' has-detail':'')+'" onclick="toggleDetail(this)">'
-         +  '<td><span class="pill '+p+'">'+status.slice(0,4)+'</span></td>'
-         +  '<td class="tname"><span class="tcls">'+esc(shortCls)+'</span>.'+esc(name)+'</td>'
-         +  '<td class="dur">'+esc(dur)+'</td></tr>' + detail;
-}
-process.stdout.write(html || '<tr><td colspan="3" style="color:var(--muted);padding:18px">Sin tests registrados.</td></tr>');
-JSEOF
-)
+TESTS_HTML=$(node "${SCRIPT_DIR}/report-render.cjs" tests "$RESULTS_JSON" "$OUTPUT_DIR/screenshots")
 [[ -n "$TESTS_HTML" ]] || TESTS_HTML='<tr><td colspan="3">—</td></tr>'
 
 # ─── 5. Sesiones: cards (head + gauges QoE) + datos del timeline para el JS ────
-SESSIONS_CARDS=$(node - "$OUTPUT_DIR/sessions" <<'JSESS'
-const fs = require('fs'), path = require('path');
-const dir = process.argv[2];
-if (!fs.existsSync(dir)) process.exit(0);
-const files = fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort();
-if (!files.length) process.exit(0);
-const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-// Normaliza métricas "no medidas": el SDK reporta -1 cuando nunca se alcanzó (p.ej. ttff si
-// la sesión falló antes del primer frame). -1/null → n/a (no se pinta como "good").
-const norm = v => (v==null || v<0) ? null : v;
-// Severidad QoE por umbral de industria (alineado al HUD del debug panel). null = n/a neutral.
-const sev = {
-  ttff:   v => v==null?['',0] : v<2000?['good',Math.min(v/4000,1)] : v<4000?['warn',Math.min(v/4000,1)] : ['crit',1],
-  rebuf:  v => v==null?['',0] : v===0?['good',.04] : v<=2?['warn',v/3] : ['crit',1],
-  drop:   v => v==null?['',0] : v===0?['good',.04] : v<=30?['warn',v/60] : ['crit',1],
-  switch: v => v==null?['',0] : ['good',Math.min((v||0)/10,.4)],
-};
-function gauge(label, val, unit, cls, frac){
-  const v = val==null ? '—' : (val + (unit?'<span class="g-unit"> '+unit+'</span>':''));
-  return '<div class="gauge '+(cls||'')+'"><div class="g-label"><span class="dot-s"></span>'+label+'</div>'
-       + '<div class="g-val">'+v+'</div><div class="g-bar"><i style="width:'+Math.round((frac||0)*100)+'%"></i></div></div>';
-}
-let cards = '', tl = {};
-files.forEach((f, i) => {
-  let d; try { d = JSON.parse(fs.readFileSync(path.join(dir,f),'utf8')); } catch(_) { return; }
-  const m = d.metrics || {}, id = 'tl-'+i;
-  const fmt = (d.playback && d.playback.format || '?').toUpperCase();
-  const res = m.resolution || '?', codec = m.videoCodec || '';
-  const offMain = Array.isArray(d.offMainThread) ? d.offMainThread.length : 0;
-  const threadChip = offMain===0
-    ? '<span class="chip thread-ok">● main-only</span>'
-    : '<span class="chip thread-bad">● '+offMain+' off-main</span>';
-  // Estado de la sesión: errores de carga/player en el timeline → falló.
-  const errs = (d.timeline||[]).filter(e => e.type==='player_error' || e.type==='load_error').length;
-  const failed = errs>0 || (m.loadErrorCount>0) || norm(m.ttffMs)==null;
-  const outcomeChip = failed ? '<span class="chip thread-bad">● con errores'+(errs?' ('+errs+')':'')+'</span>' : '';
-  const [tc,tf] = sev.ttff(norm(m.ttffMs)), [rc,rf] = sev.rebuf(norm(m.rebufferCount)),
-        [dc,df] = sev.drop(norm(m.droppedFrames)), [sc,sf] = sev.switch(norm(m.bitrateSwitches));
-  cards += '<div class="session"><div class="session-head">'
-    + '<h3>'+esc(d.scenario||f)+'</h3>'
-    + '<span class="chip fmt">'+esc(fmt)+'</span>'
-    + '<span class="chip">'+esc(res)+(codec?' · '+esc(codec):'')+'</span>'
-    + '<span class="spacer"></span>'+outcomeChip+threadChip
-    + '<a href="sessions/'+esc(f)+'" class="chip">JSON ↗</a></div>'
-    + '<div class="gauges">'
-    + gauge('TTFF', norm(m.ttffMs), 'ms', tc, tf)
-    + gauge('Rebuffers', norm(m.rebufferCount), '', rc, rf)
-    + gauge('Dropped frames', norm(m.droppedFrames), '', dc, df)
-    + gauge('Bitrate switches', norm(m.bitrateSwitches), '', sc, sf)
-    + '</div><div class="tl-wrap"><div class="tl" id="'+id+'"></div></div>'
-    + '<div class="legend"><span><i style="background:var(--sdk)"></i>callback SDK</span>'
-    + '<span><i style="background:var(--exo)"></i>evento ExoPlayer</span>'
-    + '<span style="color:var(--accent)">▭ TTFF (0 → first frame)</span></div></div>';
-
-  // Datos del timeline para el render JS del browser.
-  const tline = (d.timeline || []).map(e => ({
-    off: e.offsetMs||0, src: e.source==='exo'?'exo':'sdk', type: e.type||'?',
-    hi: e.type==='first_frame'
-  }));
-  const total = tline.length ? Math.max(...tline.map(e=>e.off), 1) : 1;
-  const ff = tline.find(e=>e.type==='first_frame');
-  const ttffOff = ff ? ff.off : (norm(m.ttffMs) || 0);   // barra TTFF: evento first_frame o metric
-  // alternar etiqueta arriba/abajo para que no se pisen
-  tline.forEach((e,k)=> e.up = (k%2===0));
-  tl[id] = { total, ttff: ttffOff, events: tline };
-});
-cards += '<script>window.__TL=' + JSON.stringify(tl) + ';</script>';
-process.stdout.write(cards);
-JSESS
-)
+SESSIONS_CARDS=$(node "${SCRIPT_DIR}/report-render.cjs" sessions "$OUTPUT_DIR/sessions")
 
 NUM_SESSIONS=$(ls "$OUTPUT_DIR/sessions"/*.json 2>/dev/null | wc -l | tr -d ' ')
 
@@ -214,26 +102,7 @@ SESSIONS_SECTION=""
 
 # ─── Sección "Cambio probado" + veredictos + tests generados (de report.json) ──
 # La historia para el dev: QUÉ se probó, los 2 veredictos, qué se generó. Solo si hay report.json.
-CHANGE_SECTION=$(node - "${AI_OUTPUT}/report.json" <<'JCHG'
-const fs=require('fs'); let R; try{R=JSON.parse(fs.readFileSync(process.argv[2],'utf8'))}catch{process.exit(0)}
-const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const ch=R.change||{}, v=R.verdicts||{}, c=R.counts||{}, gen=R.generated_tests||[];
-const pill=s=>s==='PASS'?'<span class="pill pass">pasa</span>':s==='FAIL'?'<span class="pill fail">falla</span>':'<span class="pill skip">—</span>';
-let gh=''; if(gen.length){ gh='<table style="margin-top:10px"><thead><tr><th>Test generado</th><th>Tipo</th><th>Feature</th></tr></thead><tbody>'+
-  gen.map(g=>`<tr><td class="tname">${esc(g.name)}</td><td><span class="pill skip">${esc(g.type)}</span></td><td>${esc(g.feature||'')}</td></tr>`).join('')+'</tbody></table>'; }
-process.stdout.write(
- '<section><div class="eyebrow">Cambio probado</div>'+
- '<div class="session"><div class="session-head"><h3>'+esc(ch.summary||'(sin resumen)')+'</h3>'+
- '<span class="chip fmt">'+esc(ch.sdk_version||'?')+'</span><span class="chip">'+esc(ch.change_type||'?')+'</span></div>'+
- '<div class="gauges">'+
- '<div class="gauge"><div class="g-label">Veredicto cambio</div><div class="g-val">'+pill(v.change)+'</div></div>'+
- '<div class="gauge"><div class="g-label">Veredicto regresión</div><div class="g-val">'+pill(v.regression)+'</div></div>'+
- '<div class="gauge '+((c.real_failures||0)>0?'crit':'good')+'"><div class="g-label">Fallos reales</div><div class="g-val">'+(c.real_failures||0)+'</div></div>'+
- '<div class="gauge warn"><div class="g-label">Flaky · entorno</div><div class="g-val">'+(c.flaky||0)+' · '+(c.environment||0)+'</div></div>'+
- '</div>'+gh+'</div></section>'
-);
-JCHG
-)
+CHANGE_SECTION=$(node "${SCRIPT_DIR}/report-render.cjs" change "${AI_OUTPUT}/report.json")
 
 # ─── 6. Render del HTML (heredoc SIN comillas: expande \$VAR de bash) ─────────
 # OJO: el render JS del timeline usa concatenación (no template literals) para no chocar con
